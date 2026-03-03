@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar,
+  CalendarDays,
   Clock,
   ImagePlus,
   Layers,
@@ -34,6 +35,8 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -541,6 +544,7 @@ function VariantsBuilder({
 // ─── Card Components ──────────────────────────────────────────────────────────
 
 function ProductCard({ product }: { product: Product }) {
+  const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[product.category] || "oklch(0.52 0.14 155)";
   const totalVariants = product.variants.reduce(
     (acc, g) => acc + g.options.length,
@@ -618,12 +622,12 @@ function ProductCard({ product }: { product: Product }) {
           <div>
             {product.price > 0 && (
               <p className="font-label font-bold text-foreground">
-                PKR {product.price.toLocaleString()}
+                {formatPrice(product.price)}
               </p>
             )}
             {product.isRental && product.rentalPricePerDay && (
               <p className="text-xs text-muted-foreground font-label">
-                PKR {product.rentalPricePerDay.toLocaleString()}/day rental
+                {formatPrice(product.rentalPricePerDay)}/day rental
               </p>
             )}
           </div>
@@ -639,6 +643,7 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 function ServiceCard({ service }: { service: Service }) {
+  const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[service.category] || "oklch(0.52 0.14 155)";
   const totalVariants = service.variants.reduce(
     (acc, g) => acc + g.options.length,
@@ -706,7 +711,7 @@ function ServiceCard({ service }: { service: Service }) {
           <div className="flex items-center gap-1.5">
             <Clock size={12} className="text-muted-foreground" />
             <span className="font-label font-bold text-foreground text-sm">
-              PKR {service.pricePerHour.toLocaleString()}
+              {formatPrice(service.pricePerHour)}
             </span>
             <span className="text-xs text-muted-foreground">/hr</span>
           </div>
@@ -721,11 +726,39 @@ function ServiceCard({ service }: { service: Service }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+// Mock colors that would be "detected" from product images
+const MOCK_DETECTED_COLORS = [
+  { name: "Black", hex: "#1a1a1a" },
+  { name: "White", hex: "#f5f5f5" },
+  { name: "Red", hex: "#dc2626" },
+  { name: "Blue", hex: "#2563eb" },
+  { name: "Green", hex: "#16a34a" },
+  { name: "Yellow", hex: "#ca8a04" },
+  { name: "Pink", hex: "#db2777" },
+  { name: "Brown", hex: "#92400e" },
+];
+
+function pickRandomColors() {
+  const shuffled = [...MOCK_DETECTED_COLORS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 3 + Math.floor(Math.random() * 2));
+}
+
 export default function ProductsServicesPage() {
+  const { formatPrice } = useCurrency();
   const [products, setProducts] = useState<Product[]>(SAMPLE_PRODUCTS);
   const [services, setServices] = useState<Service[]>(SAMPLE_SERVICES);
   const [productOpen, setProductOpen] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(false);
+
+  // Color detection state
+  const [colorDetecting, setColorDetecting] = useState(false);
+  const [detectedColors, setDetectedColors] = useState<
+    { name: string; hex: string }[]
+  >([]);
+  const [showColorPrompt, setShowColorPrompt] = useState(false);
+  const [colorVariants, setColorVariants] = useState<
+    { color: { name: string; hex: string }; price: string; stock: string }[]
+  >([]);
 
   // Product form state
   const [productPhotos, setProductPhotos] = useState<string[]>([]);
@@ -779,6 +812,46 @@ export default function ProductsServicesPage() {
     });
     setProductPhotos([]);
     setProductVariants([]);
+    setDetectedColors([]);
+    setShowColorPrompt(false);
+    setColorVariants([]);
+    setColorDetecting(false);
+  };
+
+  // Called when photos are added
+  const handleProductPhotosAdd = (urls: string[]) => {
+    setProductPhotos((prev) => {
+      const next = [...prev, ...urls];
+      if (next.length > 0 && prev.length === 0) {
+        // Trigger color detection on first photo upload
+        setColorDetecting(true);
+        setShowColorPrompt(false);
+        setTimeout(() => {
+          const colors = pickRandomColors();
+          setDetectedColors(colors);
+          setColorDetecting(false);
+          setShowColorPrompt(true);
+        }, 1200);
+      }
+      return next;
+    });
+  };
+
+  const handleAcceptColorVariants = () => {
+    const colorGroup: VariantGroup = {
+      name: "Color",
+      options: colorVariants.map((cv) => ({
+        label: cv.color.name,
+        priceModifier: Number(cv.price) || 0,
+        stock: Number(cv.stock) || 1,
+      })),
+    };
+    setProductVariants((prev) => {
+      const filtered = prev.filter((v) => v.name !== "Color");
+      return [colorGroup, ...filtered];
+    });
+    setShowColorPrompt(false);
+    toast.success("Color variants added to product!");
   };
 
   const resetServiceForm = () => {
@@ -864,6 +937,9 @@ export default function ProductsServicesPage() {
             <TabsTrigger value="services" className="font-label gap-2">
               <Wrench size={14} /> Services
             </TabsTrigger>
+            <TabsTrigger value="events" className="font-label gap-2">
+              <CalendarDays size={14} /> Events
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex gap-2">
@@ -899,15 +975,162 @@ export default function ProductsServicesPage() {
                     {/* Photos */}
                     <PhotoUploadArea
                       photos={productPhotos}
-                      onAdd={(urls) =>
-                        setProductPhotos((prev) => [...prev, ...urls])
-                      }
+                      onAdd={handleProductPhotosAdd}
                       onRemove={(idx) =>
                         setProductPhotos((prev) =>
                           prev.filter((_, i) => i !== idx),
                         )
                       }
                     />
+
+                    {/* Color Detection */}
+                    {colorDetecting && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/60 border border-border">
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span className="text-xs font-label text-muted-foreground">
+                          Analyzing colors in your image...
+                        </span>
+                      </div>
+                    )}
+                    {showColorPrompt && detectedColors.length > 0 && (
+                      <div className="p-3 rounded-lg border border-border bg-secondary/40 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            {detectedColors.map((c) => (
+                              <span
+                                key={c.name}
+                                className="w-4 h-4 rounded-full border border-border/50"
+                                style={{ background: c.hex }}
+                                title={c.name}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-xs font-label font-semibold text-foreground">
+                            Detected:{" "}
+                            {detectedColors.map((c) => c.name).join(", ")}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Would you like to add color variants with individual
+                          pricing?
+                        </p>
+                        <div className="space-y-2">
+                          {detectedColors.map((c) => (
+                            <div
+                              key={c.name}
+                              className="flex items-center gap-2"
+                            >
+                              <span
+                                className="w-5 h-5 rounded-full border border-border/50 shrink-0"
+                                style={{ background: c.hex }}
+                              />
+                              <span className="text-xs font-label w-16 shrink-0">
+                                {c.name}
+                              </span>
+                              <Input
+                                type="number"
+                                placeholder="+/- price"
+                                className="h-7 text-xs w-24"
+                                value={
+                                  colorVariants.find(
+                                    (cv) => cv.color.name === c.name,
+                                  )?.price || ""
+                                }
+                                onChange={(e) => {
+                                  setColorVariants((prev) => {
+                                    const existing = prev.find(
+                                      (cv) => cv.color.name === c.name,
+                                    );
+                                    if (existing) {
+                                      return prev.map((cv) =>
+                                        cv.color.name === c.name
+                                          ? { ...cv, price: e.target.value }
+                                          : cv,
+                                      );
+                                    }
+                                    return [
+                                      ...prev,
+                                      {
+                                        color: c,
+                                        price: e.target.value,
+                                        stock: "1",
+                                      },
+                                    ];
+                                  });
+                                }}
+                              />
+                              <Input
+                                type="number"
+                                placeholder="stock"
+                                className="h-7 text-xs w-20"
+                                value={
+                                  colorVariants.find(
+                                    (cv) => cv.color.name === c.name,
+                                  )?.stock || ""
+                                }
+                                onChange={(e) => {
+                                  setColorVariants((prev) => {
+                                    const existing = prev.find(
+                                      (cv) => cv.color.name === c.name,
+                                    );
+                                    if (existing) {
+                                      return prev.map((cv) =>
+                                        cv.color.name === c.name
+                                          ? { ...cv, stock: e.target.value }
+                                          : cv,
+                                      );
+                                    }
+                                    return [
+                                      ...prev,
+                                      {
+                                        color: c,
+                                        price: "0",
+                                        stock: e.target.value,
+                                      },
+                                    ];
+                                  });
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-7 text-xs font-label"
+                            onClick={() => {
+                              // ensure all detected colors have entries
+                              const allColors = detectedColors.map((c) => {
+                                const existing = colorVariants.find(
+                                  (cv) => cv.color.name === c.name,
+                                );
+                                return (
+                                  existing || {
+                                    color: c,
+                                    price: "0",
+                                    stock: "1",
+                                  }
+                                );
+                              });
+                              setColorVariants(allColors);
+                              handleAcceptColorVariants();
+                            }}
+                          >
+                            Yes, Add Color Variants
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs font-label"
+                            onClick={() => setShowColorPrompt(false)}
+                          >
+                            Skip
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Name */}
                     <div className="space-y-2">
@@ -1047,7 +1270,7 @@ export default function ProductsServicesPage() {
                           <div className="text-xs text-primary font-label font-semibold bg-primary/10 rounded-lg px-3 py-2">
                             {rentalDays} days availability window ·{" "}
                             {rentalTotal > 0
-                              ? `PKR ${rentalTotal.toLocaleString()} max rental`
+                              ? `${formatPrice(rentalTotal)} max rental`
                               : "Set rental price/day to calculate total"}
                           </div>
                         )}
@@ -1233,6 +1456,13 @@ export default function ProductsServicesPage() {
               </div>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="events">
+          <EventsTab
+            moduleName="Products & Services"
+            moduleColor="oklch(0.65 0.25 335)"
+          />
         </TabsContent>
       </Tabs>
     </div>

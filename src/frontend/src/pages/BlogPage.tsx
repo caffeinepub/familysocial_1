@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─── Template definitions ────────────────────────────────────────────────────
 
@@ -1900,6 +1901,11 @@ export default function BlogPage() {
           </Tabs>
         </TabsContent>
       </Tabs>
+
+      {/* Events */}
+      <div className="mt-6 pt-6 border-t border-border">
+        <EventsTab moduleName="Blog" moduleColor="oklch(0.60 0.22 310)" />
+      </div>
 
       {/* Footer */}
       <div className="mt-8 text-center text-xs text-muted-foreground">

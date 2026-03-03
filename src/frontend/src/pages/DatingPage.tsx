@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -2137,6 +2138,11 @@ export default function DatingPage() {
           </a>
         </p>
       </footer>
+
+      {/* Events */}
+      <div className="px-4 pb-8 lg:px-8">
+        <EventsTab moduleName="Dating" moduleColor="oklch(0.62 0.24 350)" />
+      </div>
     </div>
   );
 }

@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +24,17 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Bell, Camera, Loader2, Palette, Shield, User } from "lucide-react";
+import {
+  Bell,
+  Camera,
+  Database,
+  Download,
+  Loader2,
+  Palette,
+  Shield,
+  Trash2,
+  User,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend.d";
@@ -367,6 +388,149 @@ export default function SettingsPage({ userProfile }: Props) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Privacy & Data */}
+        <div className="bg-card border border-border rounded-xl p-5 shadow-card animate-fade-up">
+          <div className="flex items-center gap-3 mb-5">
+            <Database size={16} className="text-primary" />
+            <h2 className="font-label font-semibold text-foreground">
+              Privacy &amp; Data
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-label font-semibold text-foreground">
+                  Export My Data
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Download a complete copy of your FamilySocial data including
+                  profile, family tree, posts, and activity history.
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs font-label shrink-0 gap-1.5"
+                  >
+                    <Download size={13} />
+                    Request Export
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="font-label">
+                      Export Your Data
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will generate a JSON file containing all your
+                      FamilySocial data: profile, family tree, posts, healthcare
+                      records, and activity history. The file will download
+                      immediately.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="font-label text-xs">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      className="font-label text-xs"
+                      onClick={() => {
+                        const mockData = {
+                          exportDate: new Date().toISOString(),
+                          profile: {
+                            name: form.name,
+                            occupation: form.occupation,
+                            bloodType: form.bloodType,
+                            dateOfBirth: form.dateOfBirth,
+                            bio: form.bio,
+                          },
+                          familyTree: { members: 8, businesses: 2 },
+                          posts: { total: 47, public: 12, private: 35 },
+                          healthcare: { conditions: 2, appointments: 5 },
+                          timeline: { entries: 22 },
+                          note: "This is a mock data export from FamilySocial",
+                        };
+                        const blob = new Blob(
+                          [JSON.stringify(mockData, null, 2)],
+                          { type: "application/json" },
+                        );
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `familysocial-export-${new Date().toISOString().split("T")[0]}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("Data export downloaded!");
+                      }}
+                    >
+                      Download Export
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-label font-semibold text-destructive">
+                  Delete Account
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Request permanent account deletion. Your data will be archived
+                  for 30 days before deletion.
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs font-label shrink-0 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <Trash2 size={13} />
+                    Request Deletion
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="font-label text-destructive">
+                      Delete Account?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      <strong>This action cannot be undone.</strong> Your
+                      account will be archived for 30 days, after which all your
+                      data will be permanently deleted. You will lose access to
+                      your family tree, posts, healthcare records, and all other
+                      data.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="font-label text-xs">
+                      Keep My Account
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      className="font-label text-xs bg-destructive hover:bg-destructive/90"
+                      onClick={() => {
+                        toast.success(
+                          "Deletion requested. Your account will be archived in 30 days.",
+                          { duration: 6000 },
+                        );
+                      }}
+                    >
+                      Yes, Delete My Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
 

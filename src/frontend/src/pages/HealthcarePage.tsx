@@ -64,6 +64,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend.d";
+import EventsTab from "../components/EventsTab";
 
 // ─────────────────────────────────────────────
 // Types
@@ -2618,6 +2619,7 @@ export default function HealthcarePage({ userProfile }: Props) {
             { value: "insurance", label: "Insurance", icon: ShieldCheck },
             { value: "advisors", label: "Advisors", icon: Stethoscope },
             { value: "family", label: "Family Health", icon: Users },
+            { value: "events", label: "Events", icon: CalendarDays },
           ].map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}
@@ -2645,6 +2647,12 @@ export default function HealthcarePage({ userProfile }: Props) {
         </TabsContent>
         <TabsContent value="family">
           <FamilyHealthTab />
+        </TabsContent>
+        <TabsContent value="events">
+          <EventsTab
+            moduleName="Healthcare"
+            moduleColor="oklch(0.58 0.22 25)"
+          />
         </TabsContent>
       </Tabs>
     </div>

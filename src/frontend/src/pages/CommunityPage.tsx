@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 interface Community {
   id: number;
@@ -398,6 +399,11 @@ export default function CommunityPage() {
           ))}
         </div>
       )}
+
+      {/* Events */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <EventsTab moduleName="Community" moduleColor="oklch(0.60 0.20 190)" />
+      </div>
     </div>
   );
 }

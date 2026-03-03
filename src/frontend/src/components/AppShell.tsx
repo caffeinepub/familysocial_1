@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
@@ -16,6 +17,7 @@ import {
   Briefcase,
   Building2,
   ChevronRight,
+  Clock,
   CreditCard,
   GraduationCap,
   Heart,
@@ -37,37 +39,110 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import {
+  Component,
+  type ErrorInfo,
+  type ReactNode,
+  Suspense,
+  lazy,
+  useState,
+} from "react";
 import type { UserProfile } from "../backend.d";
 import { useAdminStatus } from "../hooks/useAdminStatus";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import CoworkerAssistant from "./CoworkerAssistant";
+import CurrencySelector from "./CurrencySelector";
 import NotificationsPanel from "./NotificationsPanel";
 import SuggestionsPanel from "./SuggestionsPanel";
 import TipsPanel from "./TipsPanel";
 
-import AdminPanelPage from "../pages/AdminPanelPage";
-import BlogPage from "../pages/BlogPage";
-import ComingSoonPage from "../pages/ComingSoonPage";
-import CommunityPage from "../pages/CommunityPage";
-import DashboardPage from "../pages/DashboardPage";
-import DatingPage from "../pages/DatingPage";
-import EducationPage from "../pages/EducationPage";
-import FamilyTreePage from "../pages/FamilyTreePage";
-import GatedCommunityPage from "../pages/GatedCommunityPage";
-import GeoMapPage from "../pages/GeoMapPage";
-import HealthcarePage from "../pages/HealthcarePage";
-import JobsPage from "../pages/JobsPage";
-import MatrimonyPage from "../pages/MatrimonyPage";
-import POSPage from "../pages/POSPage";
-import PersonalFeedPage from "../pages/PersonalFeedPage";
-import ProductsServicesPage from "../pages/ProductsServicesPage";
-import RealEstatePage from "../pages/RealEstatePage";
-import SettingsPage from "../pages/SettingsPage";
-import SocialFeedPage from "../pages/SocialFeedPage";
-import TravelPage from "../pages/TravelPage";
+// Lazy-loaded pages for code splitting (improves initial load time significantly)
+const AdminPanelPage = lazy(() => import("../pages/AdminPanelPage"));
+const BlogPage = lazy(() => import("../pages/BlogPage"));
+const ComingSoonPage = lazy(() => import("../pages/ComingSoonPage"));
+const CommunityPage = lazy(() => import("../pages/CommunityPage"));
+const DashboardPage = lazy(() => import("../pages/DashboardPage"));
+const DatingPage = lazy(() => import("../pages/DatingPage"));
+const EducationPage = lazy(() => import("../pages/EducationPage"));
+const FamilyTreePage = lazy(() => import("../pages/FamilyTreePage"));
+const GatedCommunityPage = lazy(() => import("../pages/GatedCommunityPage"));
+const GeoMapPage = lazy(() => import("../pages/GeoMapPage"));
+const HealthcarePage = lazy(() => import("../pages/HealthcarePage"));
+const JobsPage = lazy(() => import("../pages/JobsPage"));
+const MatrimonyPage = lazy(() => import("../pages/MatrimonyPage"));
+const POSPage = lazy(() => import("../pages/POSPage"));
+const PersonalFeedPage = lazy(() => import("../pages/PersonalFeedPage"));
+const ProductsServicesPage = lazy(
+  () => import("../pages/ProductsServicesPage"),
+);
+const RealEstatePage = lazy(() => import("../pages/RealEstatePage"));
+const SettingsPage = lazy(() => import("../pages/SettingsPage"));
+const SocialFeedPage = lazy(() => import("../pages/SocialFeedPage"));
+const TimelinePage = lazy(() => import("../pages/TimelinePage"));
+const TravelPage = lazy(() => import("../pages/TravelPage"));
 import AgentConsentBanner from "./AgentConsentBanner";
 import SupportChatWidget from "./SupportChatWidget";
+
+// ---- ErrorBoundary: prevents one broken page from crashing the whole app ----
+interface EBState {
+  hasError: boolean;
+  error: Error | null;
+}
+class PageErrorBoundary extends Component<{ children: ReactNode }, EBState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error): EBState {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[IndyaCentral] Page error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <div>
+            <p className="font-semibold text-lg text-foreground">
+              Something went wrong on this page
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {this.state.error?.message || "Unknown error"}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Try again
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Page loading skeleton
+function PageLoader() {
+  return (
+    <div className="p-6 space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-3/4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface NavItem {
   id: string;
@@ -81,6 +156,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "social-feed", label: "Social Feed", icon: Home, badge: 3 },
   { id: "map", label: "Geomap", icon: MapIcon },
   { id: "personal-feed", label: "My Feed", icon: BookMarked },
+  { id: "timeline", label: "Timeline", icon: Clock },
   { id: "community", label: "Community", icon: Users },
   { id: "gated-community", label: "Gated Community", icon: Building2 },
   { id: "products", label: "Products & Services", icon: ShoppingBag },
@@ -159,6 +235,8 @@ export default function AppShell({
         return <GeoMapPage />;
       case "personal-feed":
         return <PersonalFeedPage />;
+      case "timeline":
+        return <TimelinePage />;
       case "community":
         return <CommunityPage />;
       case "gated-community":
@@ -254,10 +332,10 @@ export default function AppShell({
         </div>
         <div>
           <span className="text-base font-display font-bold text-sidebar-foreground">
-            FamilySocial
+            IndyaCentral
           </span>
           <p className="text-[10px] font-label text-sidebar-foreground/40 leading-none mt-0.5">
-            Family • Community • Life
+            IndyaCentral
           </p>
         </div>
       </div>
@@ -290,7 +368,7 @@ export default function AppShell({
               {userProfile?.name || "My Profile"}
             </p>
             <p className="text-[10px] text-sidebar-foreground/40 truncate">
-              {userProfile?.occupation || "FamilySocial Member"}
+              {userProfile?.occupation || "IndyaCentral Member"}
             </p>
           </div>
           <Button
@@ -365,7 +443,7 @@ export default function AppShell({
 
           {/* Breadcrumb / page title */}
           <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
-            <span className="font-label">FamilySocial</span>
+            <span className="font-label">IndyaCentral</span>
             <ChevronRight size={14} />
             <span className="font-label font-semibold text-foreground">
               {NAV_ITEMS.find((n) => n.id === currentPage)?.label ||
@@ -386,6 +464,9 @@ export default function AppShell({
               />
             </div>
           </div>
+
+          {/* Currency selector */}
+          <CurrencySelector />
 
           {/* Tips button */}
           <Button
@@ -484,7 +565,9 @@ export default function AppShell({
         {/* Page content */}
         <main className="flex-1 overflow-y-auto main-scroll">
           <AgentConsentBanner />
-          {renderPage()}
+          <PageErrorBoundary>
+            <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
+          </PageErrorBoundary>
         </main>
       </div>
 
@@ -497,12 +580,20 @@ export default function AppShell({
         onClose={() => setNotifOpen(false)}
         unreadCount={unreadCount}
         onMarkAllRead={() => setUnreadCount(0)}
+        onNavigateHome={() => {
+          setNotifOpen(false);
+          onNavigate("social-feed");
+        }}
       />
 
       {/* Suggestions panel */}
       <SuggestionsPanel
         open={suggestOpen}
         onClose={() => setSuggestOpen(false)}
+        onNavigateHome={() => {
+          setSuggestOpen(false);
+          onNavigate("social-feed");
+        }}
       />
 
       {/* Tips panel */}
@@ -512,7 +603,7 @@ export default function AppShell({
         currentPage={currentPage}
       />
 
-      {/* Co-worker assistant */}
+      {/* Friend assistant */}
       <CoworkerAssistant currentPage={currentPage} />
     </div>
   );

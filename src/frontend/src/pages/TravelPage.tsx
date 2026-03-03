@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─────────────────────────────────────────────
 // Types
@@ -2342,6 +2343,9 @@ export default function TravelPage() {
           <TabsTrigger value="cab" className="gap-1.5 text-xs sm:text-sm">
             <Car size={14} /> Cab Booking
           </TabsTrigger>
+          <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
+            <Calendar size={14} /> Events
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="packages" className="mt-5">
@@ -2371,6 +2375,10 @@ export default function TravelPage() {
 
         <TabsContent value="cab" className="mt-5">
           <CabTab itineraries={itineraries} />
+        </TabsContent>
+
+        <TabsContent value="events" className="mt-5">
+          <EventsTab moduleName="Travel" moduleColor="oklch(0.48 0.12 200)" />
         </TabsContent>
       </Tabs>
     </div>

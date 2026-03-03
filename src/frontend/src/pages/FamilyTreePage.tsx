@@ -50,6 +50,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { FamilyMember, Relationship, UserProfile } from "../backend.d";
+import EventsTab from "../components/EventsTab";
 import { ExtendedProfileSheet } from "../components/ExtendedProfileSheet";
 import type { Business } from "../components/ExtendedProfileSheet.types";
 import {
@@ -1285,6 +1286,21 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
           members={members ?? []}
           isAdmin={!!isAdmin}
           onManage={() => setCircleManagerOpen(true)}
+          onCircleUpdate={(updates) => {
+            if (circle) {
+              const updated = { ...circle, ...updates };
+              setCircle(updated);
+              // Persist to localStorage
+              try {
+                localStorage.setItem(
+                  `familysocial_circle_${principalId}`,
+                  JSON.stringify(updated),
+                );
+              } catch {
+                // ignore
+              }
+            }
+          }}
         />
 
         {/* Family Circle Manager Sheet */}
@@ -1903,6 +1919,14 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Events */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <EventsTab
+          moduleName="Family Tree"
+          moduleColor="oklch(0.55 0.22 280)"
+        />
       </div>
     </TooltipProvider>
   );

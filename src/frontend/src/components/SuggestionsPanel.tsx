@@ -5,6 +5,7 @@ import {
   Briefcase,
   Building2,
   Heart,
+  Home,
   Search,
   Sparkles,
   TreePine,
@@ -196,9 +197,14 @@ const MODULE_ORDER = [
 interface Props {
   open: boolean;
   onClose: () => void;
+  onNavigateHome?: () => void;
 }
 
-export default function SuggestionsPanel({ open, onClose }: Props) {
+export default function SuggestionsPanel({
+  open,
+  onClose,
+  onNavigateHome,
+}: Props) {
   const panelRef = useRef<HTMLDialogElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [connected, setConnected] = useState<Set<number>>(new Set());
@@ -312,6 +318,21 @@ export default function SuggestionsPanel({ open, onClose }: Props) {
             <X size={14} />
           </Button>
         </div>
+
+        {/* Back to Home button */}
+        {onNavigateHome && (
+          <div className="px-5 py-2.5 border-b border-border/50 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[11px] font-label text-primary hover:text-primary/80 hover:bg-primary/10 px-2 gap-1.5"
+              onClick={onNavigateHome}
+            >
+              <Home size={12} />
+              Back to Home Feed
+            </Button>
+          </div>
+        )}
 
         {/* Search */}
         <div className="px-4 py-3 border-b border-border shrink-0">

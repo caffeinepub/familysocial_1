@@ -6,6 +6,7 @@ import {
   Building2,
   FileText,
   Heart,
+  Home,
   Plane,
   ShoppingBag,
   TreePine,
@@ -174,6 +175,7 @@ interface Props {
   unreadCount: number;
   onMarkAllRead: () => void;
   notifications?: Notification[];
+  onNavigateHome?: () => void;
 }
 
 export default function NotificationsPanel({
@@ -182,6 +184,7 @@ export default function NotificationsPanel({
   unreadCount,
   onMarkAllRead,
   notifications = SAMPLE_NOTIFICATIONS,
+  onNavigateHome,
 }: Props) {
   const panelRef = useRef<HTMLDialogElement>(null);
 
@@ -295,6 +298,21 @@ export default function NotificationsPanel({
             </Button>
           </div>
         </div>
+
+        {/* Back to Home button */}
+        {onNavigateHome && (
+          <div className="px-5 py-2.5 border-b border-border/50 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[11px] font-label text-primary hover:text-primary/80 hover:bg-primary/10 px-2 gap-1.5"
+              onClick={onNavigateHome}
+            >
+              <Home size={12} />
+              Back to Home Feed
+            </Button>
+          </div>
+        )}
 
         {/* Notification list */}
         <div className="flex-1 overflow-y-auto main-scroll">

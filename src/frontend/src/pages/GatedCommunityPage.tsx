@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─────────────────────────────────────────────
 // Types
@@ -2639,6 +2640,7 @@ export default function GatedCommunityPage() {
               { value: "complaints", label: "Complaints", icon: AlertTriangle },
               { value: "marketplace", label: "Marketplace", icon: Package },
               { value: "parking", label: "Parking & Property", icon: Car },
+              { value: "events", label: "Events", icon: Calendar },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -2672,6 +2674,12 @@ export default function GatedCommunityPage() {
         </TabsContent>
         <TabsContent value="parking" className="mt-0">
           <ParkingPropertyTab />
+        </TabsContent>
+        <TabsContent value="events" className="mt-0 p-4 lg:p-6">
+          <EventsTab
+            moduleName="Gated Community"
+            moduleColor="oklch(0.55 0.18 240)"
+          />
         </TabsContent>
       </Tabs>
     </div>

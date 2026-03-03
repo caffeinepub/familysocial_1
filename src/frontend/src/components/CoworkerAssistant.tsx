@@ -149,7 +149,7 @@ const getTime = () => {
 const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
-    text: "Hello! I'm your FamilySocial co-worker. I know every module and can help you navigate, suggest next steps, and answer questions. What are you working on today?",
+    text: "Hello! I'm your FamilySocial Friend. I know every module and can help you navigate, suggest next steps, and answer questions. What are you working on today?",
     time: getTime(),
   },
 ];
@@ -257,7 +257,7 @@ export default function CoworkerAssistant({ currentPage }: Props) {
             onClick={() => setOpen(true)}
             className="fixed bottom-24 right-5 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
             style={{ background: "oklch(0.52 0.14 155)" }}
-            aria-label="Open co-worker assistant"
+            aria-label="Open Friend assistant"
           >
             <BrainCircuit
               size={22}
@@ -299,7 +299,7 @@ export default function CoworkerAssistant({ currentPage }: Props) {
                   </div>
                   <div>
                     <p className="text-sm font-label font-semibold text-foreground">
-                      Co-worker
+                      Friend
                     </p>
                     <div className="flex items-center gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.52_0.14_155)] animate-pulse" />

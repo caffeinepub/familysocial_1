@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─────────────────────────────────────────────
 // Types
@@ -1781,6 +1782,11 @@ export default function RealEstatePage() {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
       />
+
+      {/* Events */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <EventsTab moduleName="Real Estate" moduleColor="oklch(0.62 0.19 55)" />
+      </div>
     </div>
   );
 }

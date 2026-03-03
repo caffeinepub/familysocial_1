@@ -31,6 +31,7 @@ import {
   MessageSquare,
   MoreHorizontal,
   Package,
+  Palette,
   Percent,
   RefreshCw,
   RotateCcw,
@@ -1196,6 +1197,450 @@ const ALL_USERS = [
   },
 ];
 
+// ─── Theme Template Manager ───────────────────────────────────────────────────
+
+const THEME_TEMPLATES = [
+  {
+    id: "indyacentral-vibrant",
+    name: "IndyaCentral Vibrant",
+    primary: "0.55 0.22 280",
+    accent: "0.65 0.25 335",
+    sidebar: "0.20 0.065 280",
+    isDefault: true,
+  },
+  {
+    id: "ocean-blue",
+    name: "Ocean Blue",
+    primary: "0.55 0.18 220",
+    accent: "0.65 0.20 180",
+    sidebar: "0.18 0.06 220",
+    isDefault: false,
+  },
+  {
+    id: "forest-green",
+    name: "Forest Green",
+    primary: "0.45 0.15 145",
+    accent: "0.65 0.18 85",
+    sidebar: "0.16 0.05 145",
+    isDefault: false,
+  },
+  {
+    id: "sunset-orange",
+    name: "Sunset Orange",
+    primary: "0.60 0.22 45",
+    accent: "0.65 0.25 25",
+    sidebar: "0.18 0.055 45",
+    isDefault: false,
+  },
+  {
+    id: "rose-gold",
+    name: "Rose Gold",
+    primary: "0.55 0.18 355",
+    accent: "0.72 0.15 65",
+    sidebar: "0.17 0.055 355",
+    isDefault: false,
+  },
+  {
+    id: "midnight-dark",
+    name: "Midnight Dark",
+    primary: "0.65 0.14 255",
+    accent: "0.70 0.20 200",
+    sidebar: "0.12 0.04 255",
+    isDefault: false,
+  },
+] as const;
+
+function ThemeTemplateManager() {
+  const [activeId, setActiveId] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem("indyacentral-theme");
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<string, string>;
+        const primary = parsed["--primary"];
+        const found = THEME_TEMPLATES.find((t) => t.primary === primary);
+        return found ? found.id : "indyacentral-vibrant";
+      }
+    } catch {
+      // ignore
+    }
+    return "indyacentral-vibrant";
+  });
+
+  const [customPrimary, setCustomPrimary] = useState({
+    l: "0.55",
+    c: "0.22",
+    h: "280",
+  });
+  const [customAccent, setCustomAccent] = useState({
+    l: "0.65",
+    c: "0.25",
+    h: "335",
+  });
+  const [customSidebar, setCustomSidebar] = useState({
+    l: "0.20",
+    c: "0.065",
+    h: "280",
+  });
+
+  const applyTheme = (
+    primary: string,
+    accent: string,
+    sidebar: string,
+    id: string,
+  ) => {
+    const vars: Record<string, string> = {
+      "--primary": primary,
+      "--ring": primary,
+      "--accent": accent,
+      "--sidebar": sidebar,
+      "--sidebar-primary": accent,
+      "--sidebar-accent": `${sidebar.split(" ")[0]} ${(Number.parseFloat(sidebar.split(" ")[1]) + 0.01).toFixed(3)} ${sidebar.split(" ")[2]}`,
+    };
+    for (const [key, value] of Object.entries(vars)) {
+      document.documentElement.style.setProperty(key, value);
+    }
+    localStorage.setItem("indyacentral-theme", JSON.stringify(vars));
+    setActiveId(id);
+    toast.success("Theme applied successfully");
+  };
+
+  const resetToDefault = () => {
+    const defaultKeys = [
+      "--primary",
+      "--ring",
+      "--accent",
+      "--sidebar",
+      "--sidebar-primary",
+      "--sidebar-accent",
+    ];
+    for (const key of defaultKeys) {
+      document.documentElement.style.removeProperty(key);
+    }
+    localStorage.removeItem("indyacentral-theme");
+    setActiveId("indyacentral-vibrant");
+    toast.success("Theme reset to default");
+  };
+
+  const applyCustomTheme = () => {
+    const primary = `${customPrimary.l} ${customPrimary.c} ${customPrimary.h}`;
+    const accent = `${customAccent.l} ${customAccent.c} ${customAccent.h}`;
+    const sidebar = `${customSidebar.l} ${customSidebar.c} ${customSidebar.h}`;
+    applyTheme(primary, accent, sidebar, "custom");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Pre-built templates */}
+      <div>
+        <h3 className="text-sm font-label font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Palette size={14} className="text-primary" />
+          Theme Templates
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {THEME_TEMPLATES.map((t) => {
+            const [pl, pc, ph] = t.primary.split(" ").map(Number);
+            const [al, ac, ah] = t.accent.split(" ").map(Number);
+            const [sl, sc, sh] = t.sidebar.split(" ").map(Number);
+            const isActive = activeId === t.id;
+            return (
+              <div
+                key={t.id}
+                className={`bg-card border rounded-xl p-4 transition-all ${isActive ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50"}`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-label font-semibold text-foreground">
+                    {t.name}
+                  </p>
+                  {isActive && (
+                    <span
+                      className="text-[10px] font-label font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: "oklch(0.55 0.22 280 / 0.12)",
+                        color: "oklch(0.45 0.18 280)",
+                      }}
+                    >
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                {/* Color swatches */}
+                <div className="flex gap-2 mb-4">
+                  <div
+                    className="w-8 h-8 rounded-lg border border-border/40 flex-shrink-0"
+                    style={{ background: `oklch(${pl} ${pc} ${ph})` }}
+                    title="Primary"
+                  />
+                  <div
+                    className="w-8 h-8 rounded-lg border border-border/40 flex-shrink-0"
+                    style={{ background: `oklch(${al} ${ac} ${ah})` }}
+                    title="Accent"
+                  />
+                  <div
+                    className="w-8 h-8 rounded-lg border border-border/40 flex-shrink-0"
+                    style={{ background: `oklch(${sl} ${sc} ${sh})` }}
+                    title="Sidebar"
+                  />
+                  <div
+                    className="flex-1 h-8 rounded-lg border border-border/40"
+                    style={{
+                      background: `linear-gradient(90deg, oklch(${pl} ${pc} ${ph}), oklch(${al} ${ac} ${ah}))`,
+                    }}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant={isActive ? "secondary" : "default"}
+                  className="w-full text-xs font-label"
+                  onClick={() =>
+                    applyTheme(t.primary, t.accent, t.sidebar, t.id)
+                  }
+                  disabled={isActive}
+                  data-ocid={`theme.${t.id}.button`}
+                >
+                  {isActive ? "Currently Active" : "Apply Theme"}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Custom Theme Builder */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+        <h3 className="text-sm font-label font-semibold text-foreground flex items-center gap-2">
+          <Settings2 size={14} className="text-primary" />
+          Custom Theme Builder
+        </h3>
+
+        {/* Live preview strip */}
+        <div
+          className="h-10 rounded-xl border border-border/50"
+          style={{
+            background: `linear-gradient(135deg, oklch(${customPrimary.l} ${customPrimary.c} ${customPrimary.h}) 0%, oklch(${customAccent.l} ${customAccent.c} ${customAccent.h}) 50%, oklch(${customSidebar.l} ${customSidebar.c} ${customSidebar.h}) 100%)`,
+          }}
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {/* Primary */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-5 h-5 rounded-md border border-border/50 shrink-0"
+                style={{
+                  background: `oklch(${customPrimary.l} ${customPrimary.c} ${customPrimary.h})`,
+                }}
+              />
+              <p className="text-xs font-label font-semibold text-foreground">
+                Primary Color
+              </p>
+            </div>
+            {[
+              {
+                label: "L (Lightness)",
+                key: "l" as const,
+                min: "0",
+                max: "1",
+                step: "0.01",
+                val: customPrimary.l,
+                set: (v: string) => setCustomPrimary((p) => ({ ...p, l: v })),
+              },
+              {
+                label: "C (Chroma)",
+                key: "c" as const,
+                min: "0",
+                max: "0.4",
+                step: "0.005",
+                val: customPrimary.c,
+                set: (v: string) => setCustomPrimary((p) => ({ ...p, c: v })),
+              },
+              {
+                label: "H (Hue)",
+                key: "h" as const,
+                min: "0",
+                max: "360",
+                step: "1",
+                val: customPrimary.h,
+                set: (v: string) => setCustomPrimary((p) => ({ ...p, h: v })),
+              },
+            ].map(({ label, min, max, step, val, set }) => (
+              <div key={label}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    {label}
+                  </span>
+                  <span className="text-[11px] font-mono text-foreground">
+                    {val}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={val}
+                  onChange={(e) => set(e.target.value)}
+                  className="w-full accent-primary"
+                  data-ocid="theme.custom.input"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Accent */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-5 h-5 rounded-md border border-border/50 shrink-0"
+                style={{
+                  background: `oklch(${customAccent.l} ${customAccent.c} ${customAccent.h})`,
+                }}
+              />
+              <p className="text-xs font-label font-semibold text-foreground">
+                Accent Color
+              </p>
+            </div>
+            {[
+              {
+                label: "L (Lightness)",
+                min: "0",
+                max: "1",
+                step: "0.01",
+                val: customAccent.l,
+                set: (v: string) => setCustomAccent((p) => ({ ...p, l: v })),
+              },
+              {
+                label: "C (Chroma)",
+                min: "0",
+                max: "0.4",
+                step: "0.005",
+                val: customAccent.c,
+                set: (v: string) => setCustomAccent((p) => ({ ...p, c: v })),
+              },
+              {
+                label: "H (Hue)",
+                min: "0",
+                max: "360",
+                step: "1",
+                val: customAccent.h,
+                set: (v: string) => setCustomAccent((p) => ({ ...p, h: v })),
+              },
+            ].map(({ label, min, max, step, val, set }) => (
+              <div key={label}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    {label}
+                  </span>
+                  <span className="text-[11px] font-mono text-foreground">
+                    {val}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={val}
+                  onChange={(e) => set(e.target.value)}
+                  className="w-full accent-primary"
+                  data-ocid="theme.custom.input"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-5 h-5 rounded-md border border-border/50 shrink-0"
+                style={{
+                  background: `oklch(${customSidebar.l} ${customSidebar.c} ${customSidebar.h})`,
+                }}
+              />
+              <p className="text-xs font-label font-semibold text-foreground">
+                Sidebar Color
+              </p>
+            </div>
+            {[
+              {
+                label: "L (Lightness)",
+                min: "0",
+                max: "1",
+                step: "0.01",
+                val: customSidebar.l,
+                set: (v: string) => setCustomSidebar((p) => ({ ...p, l: v })),
+              },
+              {
+                label: "C (Chroma)",
+                min: "0",
+                max: "0.4",
+                step: "0.005",
+                val: customSidebar.c,
+                set: (v: string) => setCustomSidebar((p) => ({ ...p, c: v })),
+              },
+              {
+                label: "H (Hue)",
+                min: "0",
+                max: "360",
+                step: "1",
+                val: customSidebar.h,
+                set: (v: string) => setCustomSidebar((p) => ({ ...p, h: v })),
+              },
+            ].map(({ label, min, max, step, val, set }) => (
+              <div key={label}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    {label}
+                  </span>
+                  <span className="text-[11px] font-mono text-foreground">
+                    {val}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={val}
+                  onChange={(e) => set(e.target.value)}
+                  className="w-full accent-primary"
+                  data-ocid="theme.custom.input"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            onClick={applyCustomTheme}
+            className="text-xs font-label gap-1.5"
+            data-ocid="theme.custom.save_button"
+          >
+            <Palette size={13} />
+            Save Custom Theme
+          </Button>
+          <Button
+            variant="outline"
+            onClick={resetToDefault}
+            className="text-xs font-label gap-1.5"
+            data-ocid="theme.reset.button"
+          >
+            <RotateCcw size={13} />
+            Reset to Default
+          </Button>
+        </div>
+      </div>
+
+      <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg px-3 py-2">
+        💡 <strong>Tip:</strong> Theme changes apply instantly across the entire
+        application and are saved to your browser. Share your custom theme by
+        exporting the OKLCH values.
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminPanelPage() {
@@ -1292,6 +1737,8 @@ export default function AdminPanelPage() {
               { value: "agent15", label: "📈 A15: Analytics" },
               { value: "agent16", label: "💡 A16: Tips" },
               { value: "factory", label: "🏭 Agent Factory" },
+              { value: "theme", label: "🎨 Theme" },
+              { value: "data-requests", label: "📂 Data Requests" },
               { value: "modules", label: "📦 All Modules" },
             ] as { value: string; label: string }[]
           ).map((t) => (
@@ -2811,6 +3258,119 @@ export default function AdminPanelPage() {
         {/* ── AGENT FACTORY ── */}
         <TabsContent value="factory" className="mt-0 space-y-4">
           <AgentFactory />
+        </TabsContent>
+
+        {/* ── THEME MANAGER ── */}
+        <TabsContent value="theme" className="mt-0 space-y-4">
+          <ThemeTemplateManager />
+        </TabsContent>
+
+        {/* ── DATA REQUESTS ── */}
+        <TabsContent value="data-requests" className="mt-0 space-y-4">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-label font-semibold text-foreground flex items-center gap-2">
+                <Database size={14} className="text-primary" />
+                Data Export &amp; Deletion Requests
+              </h3>
+              <SBadge label="5 Pending" color="amber" />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <TH>User</TH>
+                    <TH>Type</TH>
+                    <TH>Requested</TH>
+                    <TH>Status</TH>
+                    <TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      user: "Ahmed Khan",
+                      type: "Export",
+                      date: "Mar 2, 2026",
+                      status: "Pending",
+                    },
+                    {
+                      user: "Fatima Hassan",
+                      type: "Deletion",
+                      date: "Mar 1, 2026",
+                      status: "Processing",
+                    },
+                    {
+                      user: "Bilal Chaudhry",
+                      type: "Export",
+                      date: "Feb 28, 2026",
+                      status: "Completed",
+                    },
+                    {
+                      user: "Sana Malik",
+                      type: "Deletion",
+                      date: "Feb 27, 2026",
+                      status: "Pending",
+                    },
+                    {
+                      user: "Omar Farooq",
+                      type: "Export",
+                      date: "Feb 25, 2026",
+                      status: "Pending",
+                    },
+                  ].map((req) => (
+                    <tr
+                      key={req.user}
+                      className="hover:bg-secondary/20 transition-colors"
+                    >
+                      <TD className="font-medium">{req.user}</TD>
+                      <TD>
+                        <SBadge
+                          label={req.type}
+                          color={req.type === "Export" ? "blue" : "red"}
+                        />
+                      </TD>
+                      <TD>{req.date}</TD>
+                      <TD>
+                        <SBadge
+                          label={req.status}
+                          color={
+                            req.status === "Completed"
+                              ? "green"
+                              : req.status === "Processing"
+                                ? "amber"
+                                : "gray"
+                          }
+                        />
+                      </TD>
+                      <TD>
+                        <div className="flex gap-1.5">
+                          <ActionBtn
+                            label="Process"
+                            color="amber"
+                            onClick={() =>
+                              toast.success(
+                                `Processing ${req.type} request for ${req.user}`,
+                              )
+                            }
+                          />
+                          <ActionBtn
+                            label="Complete"
+                            color="green"
+                            onClick={() =>
+                              toast.success(
+                                `${req.type} request completed for ${req.user}`,
+                              )
+                            }
+                          />
+                        </div>
+                      </TD>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </TabsContent>
 
         {/* ── ALL MODULES ── */}

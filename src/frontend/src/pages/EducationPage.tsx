@@ -75,6 +75,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -3786,6 +3787,11 @@ export default function EducationPage() {
       {role === "parent" && <ParentView />}
       {role === "teacher" && <TeacherView />}
       {role === "admin" && <AdminView />}
+
+      {/* Events */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <EventsTab moduleName="Education" moduleColor="oklch(0.55 0.18 240)" />
+      </div>
     </div>
   );
 }

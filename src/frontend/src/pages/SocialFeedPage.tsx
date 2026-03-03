@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import type { UserProfile } from "../backend.d";
+import EventsTab from "../components/EventsTab";
 
 // ── Module configuration ────────────────────────────────────────────────────
 
@@ -777,6 +778,14 @@ export default function SocialFeedPage({ userProfile }: Props) {
             </div>
           ))
         )}
+      </div>
+
+      {/* Events section */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <EventsTab
+          moduleName="Social Feed"
+          moduleColor="oklch(0.55 0.22 280)"
+        />
       </div>
     </div>
   );

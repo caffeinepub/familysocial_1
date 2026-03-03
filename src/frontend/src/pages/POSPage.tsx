@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useCurrency } from "../contexts/CurrencyContext";
 import {
   type Product,
   SAMPLE_PRODUCTS,
@@ -108,6 +109,7 @@ function VariantSelectorModal({
     rentalData?: { start: string; end: string; days: number },
   ) => void;
 }) {
+  const { formatPrice } = useCurrency();
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
   >({});
@@ -200,7 +202,7 @@ function VariantSelectorModal({
                     {opt.priceModifier !== 0 && (
                       <span className="ml-1 opacity-70">
                         {opt.priceModifier > 0 ? "+" : ""}
-                        {opt.priceModifier.toLocaleString()}
+                        {formatPrice(Math.abs(opt.priceModifier))}
                       </span>
                     )}
                   </button>
@@ -246,8 +248,8 @@ function VariantSelectorModal({
             <div className="text-xs text-muted-foreground">
               Price modifier:{" "}
               <span className="font-semibold text-foreground">
-                {totalModifier > 0 ? "+" : ""}PKR{" "}
-                {totalModifier.toLocaleString()}
+                {totalModifier > 0 ? "+" : "-"}
+                {formatPrice(Math.abs(totalModifier))}
               </span>
             </div>
           )}
@@ -272,6 +274,7 @@ function ReceiptModal({
   onClose: () => void;
   onNewSale?: () => void;
 }) {
+  const { formatPrice } = useCurrency();
   if (!sale) return null;
 
   const discountAmount =
@@ -329,11 +332,11 @@ function ReceiptModal({
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    {item.qty} × PKR {item.unitPrice.toLocaleString()}
+                    {item.qty} × {formatPrice(item.unitPrice)}
                   </p>
                 </div>
                 <p className="text-sm font-label font-semibold text-foreground whitespace-nowrap">
-                  PKR {(item.qty * item.unitPrice).toLocaleString()}
+                  {formatPrice(item.qty * item.unitPrice)}
                 </p>
               </div>
             ))}
@@ -345,7 +348,7 @@ function ReceiptModal({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-muted-foreground">
               <span>Subtotal</span>
-              <span>PKR {sale.subtotal.toLocaleString()}</span>
+              <span>{formatPrice(sale.subtotal)}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-green-600 dark:text-green-400">
@@ -353,20 +356,20 @@ function ReceiptModal({
                   Discount
                   {sale.discountType === "pct" ? ` (${sale.discount}%)` : ""}
                 </span>
-                <span>− PKR {discountAmount.toLocaleString()}</span>
+                <span>− {formatPrice(discountAmount)}</span>
               </div>
             )}
             {taxAmount > 0 && (
               <div className="flex justify-between text-muted-foreground">
                 <span>Tax ({sale.tax}%)</span>
-                <span>+ PKR {Math.round(taxAmount).toLocaleString()}</span>
+                <span>+ {formatPrice(Math.round(taxAmount))}</span>
               </div>
             )}
             <Separator />
             <div className="flex justify-between font-display font-bold text-lg text-foreground">
               <span>Grand Total</span>
               <span className="text-primary">
-                PKR {sale.grandTotal.toLocaleString()}
+                {formatPrice(sale.grandTotal)}
               </span>
             </div>
           </div>
@@ -415,6 +418,7 @@ function CatalogCard({
   isService: boolean;
   onAdd: (item: Product | Service) => void;
 }) {
+  const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[category] || "oklch(0.55 0.10 200)";
   const hasVariants = item.variants.length > 0;
 
@@ -468,7 +472,7 @@ function CatalogCard({
           )}
         </div>
         <p className="text-sm font-display font-bold text-foreground mb-2">
-          PKR {price.toLocaleString()}
+          {formatPrice(price)}
           {isService && (
             <span className="text-[10px] font-normal text-muted-foreground">
               /hr
@@ -511,6 +515,7 @@ function CartItemRow({
   onQtyChange: (delta: number) => void;
   onRemove: () => void;
 }) {
+  const { formatPrice } = useCurrency();
   const lineTotal = item.qty * item.unitPrice;
 
   return (
@@ -530,7 +535,7 @@ function CartItemRow({
           </p>
         )}
         <p className="text-xs text-muted-foreground mt-0.5">
-          PKR {item.unitPrice.toLocaleString()} each
+          {formatPrice(item.unitPrice)} each
         </p>
       </div>
 
@@ -559,7 +564,7 @@ function CartItemRow({
 
       <div className="text-right shrink-0 ml-1">
         <p className="text-sm font-label font-bold text-foreground">
-          PKR {lineTotal.toLocaleString()}
+          {formatPrice(lineTotal)}
         </p>
         <Button
           variant="ghost"
@@ -577,6 +582,7 @@ function CartItemRow({
 // ─── Main POS Page ────────────────────────────────────────────────────────────
 
 export default function POSPage() {
+  const { formatPrice, currency } = useCurrency();
   const [activeTab, setActiveTab] = useState<"new-sale" | "history">(
     "new-sale",
   );
@@ -919,7 +925,7 @@ export default function POSPage() {
                   <Percent size={11} /> %
                 </>
               ) : (
-                <>PKR</>
+                <>{currency.symbol}</>
               )}
             </button>
           </div>
@@ -937,7 +943,7 @@ export default function POSPage() {
               className="h-8 text-xs flex-1"
             />
             <span className="text-xs text-muted-foreground shrink-0 w-[52px] text-right">
-              {tax > 0 && `+PKR ${Math.round(taxAmount).toLocaleString()}`}
+              {tax > 0 && `+${formatPrice(Math.round(taxAmount))}`}
             </span>
           </div>
 
@@ -947,25 +953,23 @@ export default function POSPage() {
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between text-muted-foreground text-xs">
               <span>Subtotal</span>
-              <span>PKR {subtotal.toLocaleString()}</span>
+              <span>{formatPrice(subtotal)}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-xs text-green-600 dark:text-green-400">
                 <span>Discount</span>
-                <span>− PKR {discountAmount.toLocaleString()}</span>
+                <span>− {formatPrice(discountAmount)}</span>
               </div>
             )}
             {taxAmount > 0 && (
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Tax ({tax}%)</span>
-                <span>+ PKR {Math.round(taxAmount).toLocaleString()}</span>
+                <span>+ {formatPrice(Math.round(taxAmount))}</span>
               </div>
             )}
             <div className="flex justify-between font-display font-bold text-base text-foreground pt-1">
               <span>Grand Total</span>
-              <span className="text-primary">
-                PKR {grandTotal.toLocaleString()}
-              </span>
+              <span className="text-primary">{formatPrice(grandTotal)}</span>
             </div>
           </div>
 
@@ -1027,7 +1031,7 @@ export default function POSPage() {
                 </div>
                 <div className="text-right">
                   <p className="font-display font-bold text-foreground text-sm">
-                    PKR {sale.grandTotal.toLocaleString()}
+                    {formatPrice(sale.grandTotal)}
                   </p>
                   <div className="flex items-center justify-end gap-1.5 mt-1">
                     <Badge className="text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-0 font-label">

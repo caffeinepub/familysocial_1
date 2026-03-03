@@ -27,6 +27,8 @@ export interface FamilyCircle {
   memberIds: string[];
   coAdminIds: string[];
   createdAt: string;
+  bannerColor?: string;
+  bannerImageUrl?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,12 +63,150 @@ interface FamilyCircleBannerProps {
   onManage: () => void;
 }
 
+const BANNER_PRESETS = [
+  { label: "Violet", value: "oklch(0.55 0.22 280)" },
+  { label: "Rose", value: "oklch(0.65 0.25 335)" },
+  { label: "Emerald", value: "oklch(0.52 0.14 155)" },
+  { label: "Amber", value: "oklch(0.72 0.17 85)" },
+  { label: "Sky", value: "oklch(0.55 0.18 240)" },
+  { label: "Coral", value: "oklch(0.62 0.22 25)" },
+];
+
+interface EditBannerDialogProps {
+  circle: FamilyCircle;
+  onSave: (updates: Partial<FamilyCircle>) => void;
+}
+
+function EditBannerDialog({ circle, onSave }: EditBannerDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(circle.name);
+  const [bannerColor, setBannerColor] = useState(
+    circle.bannerColor || BANNER_PRESETS[0].value,
+  );
+  const [bannerImageUrl, setBannerImageUrl] = useState(
+    circle.bannerImageUrl || "",
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-[10px] font-label font-semibold px-2 py-1 rounded border border-white/30 bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1"
+        style={{ color: "rgba(255,255,255,0.9)" }}
+        aria-label="Edit circle banner"
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z" />
+        </svg>
+        Edit Circle
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border rounded-2xl p-5 w-full max-w-sm shadow-xl">
+            <h3 className="font-label font-semibold text-foreground mb-4">
+              Edit Family Circle
+            </h3>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="edit-circle-name"
+                  className="text-xs font-label text-muted-foreground"
+                >
+                  Circle Name
+                </label>
+                <input
+                  id="edit-circle-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full h-9 px-3 text-sm font-label bg-secondary/60 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-xs font-label text-muted-foreground">
+                  Banner Color
+                </span>
+                <div className="flex gap-2 flex-wrap">
+                  {BANNER_PRESETS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className="w-8 h-8 rounded-lg border-2 transition-transform hover:scale-110"
+                      style={{
+                        background: preset.value,
+                        borderColor:
+                          bannerColor === preset.value
+                            ? "oklch(var(--foreground))"
+                            : "transparent",
+                      }}
+                      title={preset.label}
+                      onClick={() => setBannerColor(preset.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="edit-banner-url"
+                  className="text-xs font-label text-muted-foreground"
+                >
+                  Banner Image URL (optional)
+                </label>
+                <input
+                  id="edit-banner-url"
+                  type="url"
+                  value={bannerImageUrl}
+                  onChange={(e) => setBannerImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full h-9 px-3 text-sm font-label bg-secondary/60 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-xs font-label px-3 py-1.5 rounded-lg border border-border hover:bg-secondary/60 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSave({ name: name.trim(), bannerColor, bannerImageUrl });
+                  setOpen(false);
+                  toast.success("Circle updated!");
+                }}
+                className="text-xs font-label font-semibold px-3 py-1.5 rounded-lg text-white transition-colors"
+                style={{ background: bannerColor }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function FamilyCircleBanner({
   circle,
   members,
   isAdmin,
   onManage,
-}: FamilyCircleBannerProps) {
+  onCircleUpdate,
+}: FamilyCircleBannerProps & {
+  onCircleUpdate?: (updates: Partial<FamilyCircle>) => void;
+}) {
   const circleMembers = members.filter((m) =>
     circle?.memberIds.includes(m.id.toString()),
   );
@@ -103,75 +243,136 @@ export function FamilyCircleBanner({
     );
   }
 
+  const bannerBg = circle.bannerImageUrl
+    ? `url(${circle.bannerImageUrl}) center/cover no-repeat`
+    : circle.bannerColor || "oklch(0.55 0.22 280)";
+
   return (
-    <div className="mb-6 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/8 via-primary/4 to-accent/8 p-5">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-            <UsersRound size={20} className="text-primary" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-display font-bold text-foreground truncate">
-                {circle.name}
-              </p>
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 font-label border-primary/30 text-primary bg-primary/8 shrink-0"
-              >
-                Family Circle
-              </Badge>
-            </div>
-            {circle.description && (
-              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">
-                {circle.description}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Avatar row */}
-          <div className="flex items-center">
-            {visibleMembers.map((m, i) => (
-              <Avatar
-                key={m.id.toString()}
-                className="w-7 h-7 border-2 border-background ring-1 ring-primary/20"
-                style={{ marginLeft: i > 0 ? "-10px" : undefined }}
-              >
-                <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
-                  {m.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {extraCount > 0 && (
-              <div
-                className="w-7 h-7 rounded-full border-2 border-background ring-1 ring-primary/20 bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground"
-                style={{ marginLeft: "-10px" }}
-              >
-                +{extraCount}
-              </div>
-            )}
-          </div>
-
-          <div className="text-xs text-muted-foreground font-label">
-            <span className="font-semibold text-foreground">
-              {circleMembers.length}
-            </span>{" "}
-            member{circleMembers.length !== 1 ? "s" : ""}
-          </div>
-
-          {isAdmin && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onManage}
-              className="gap-2 font-label shrink-0 border-primary/30 hover:bg-primary/10 hover:text-primary"
+    <div
+      className="mb-6 rounded-2xl overflow-hidden shadow-md"
+      style={{ background: bannerBg }}
+    >
+      {/* Overlay for image backgrounds */}
+      <div
+        className="p-5"
+        style={{
+          background: circle.bannerImageUrl
+            ? "rgba(0,0,0,0.45)"
+            : `${circle.bannerColor || "oklch(0.55 0.22 280)"}cc`,
+        }}
+      >
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "rgba(255,255,255,0.2)" }}
             >
-              <Users size={13} />
-              Manage Circle
-            </Button>
-          )}
+              <UsersRound
+                size={20}
+                style={{ color: "rgba(255,255,255,0.9)" }}
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p
+                  className="font-display font-bold truncate"
+                  style={{
+                    color: "rgba(255,255,255,0.95)",
+                    fontSize: "1.1rem",
+                  }}
+                >
+                  {circle.name}
+                </p>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 font-label shrink-0"
+                  style={{
+                    borderColor: "rgba(255,255,255,0.4)",
+                    color: "rgba(255,255,255,0.9)",
+                    background: "rgba(255,255,255,0.15)",
+                  }}
+                >
+                  Family Circle
+                </Badge>
+              </div>
+              {circle.description && (
+                <p
+                  className="text-xs mt-0.5 truncate max-w-xs"
+                  style={{ color: "rgba(255,255,255,0.7)" }}
+                >
+                  {circle.description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Avatar row */}
+            <div className="flex items-center">
+              {visibleMembers.map((m, i) => (
+                <Avatar
+                  key={m.id.toString()}
+                  className="w-7 h-7 border-2"
+                  style={{
+                    marginLeft: i > 0 ? "-10px" : undefined,
+                    borderColor: "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <AvatarFallback
+                    className="text-[10px] font-bold"
+                    style={{
+                      background: "rgba(255,255,255,0.2)",
+                      color: "rgba(255,255,255,0.9)",
+                    }}
+                  >
+                    {m.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {extraCount > 0 && (
+                <div
+                  className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
+                  style={{
+                    marginLeft: "-10px",
+                    borderColor: "rgba(255,255,255,0.4)",
+                    background: "rgba(255,255,255,0.2)",
+                    color: "rgba(255,255,255,0.9)",
+                  }}
+                >
+                  +{extraCount}
+                </div>
+              )}
+            </div>
+
+            <div
+              className="text-xs font-label"
+              style={{ color: "rgba(255,255,255,0.8)" }}
+            >
+              <span
+                className="font-semibold"
+                style={{ color: "rgba(255,255,255,0.95)" }}
+              >
+                {circleMembers.length}
+              </span>{" "}
+              member{circleMembers.length !== 1 ? "s" : ""}
+            </div>
+
+            {isAdmin && onCircleUpdate && (
+              <EditBannerDialog circle={circle} onSave={onCircleUpdate} />
+            )}
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={onManage}
+                className="text-[10px] font-label font-semibold px-2 py-1 rounded border border-white/30 bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1"
+                style={{ color: "rgba(255,255,255,0.9)" }}
+              >
+                <Users size={11} />
+                Manage
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import EventsTab from "../components/EventsTab";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -2364,6 +2365,9 @@ export default function JobsPage() {
           <TabsTrigger value="freelancers" className="font-label text-xs">
             Freelancers
           </TabsTrigger>
+          <TabsTrigger value="events" className="font-label text-xs">
+            Events
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="browse">
@@ -2388,6 +2392,12 @@ export default function JobsPage() {
 
         <TabsContent value="freelancers">
           <FreelancersTab jobs={jobs} />
+        </TabsContent>
+
+        <TabsContent value="events">
+          <div className="p-2">
+            <EventsTab moduleName="Jobs" moduleColor="oklch(0.52 0.14 155)" />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
