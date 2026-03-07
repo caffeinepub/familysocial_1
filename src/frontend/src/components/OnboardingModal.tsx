@@ -17,10 +17,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TreePine } from "lucide-react";
+import { Loader2, TreePine, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useSaveUserProfile } from "../hooks/useQueries";
+
+interface OnboardingModalProps {
+  onSkip?: () => void;
+}
 
 const BLOOD_TYPES = [
   "A+",
@@ -34,7 +38,7 @@ const BLOOD_TYPES = [
   "Unknown",
 ];
 
-export default function OnboardingModal() {
+export default function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const [form, setForm] = useState({
     name: "",
     dateOfBirth: "",
@@ -55,7 +59,7 @@ export default function OnboardingModal() {
     }
     try {
       await save.mutateAsync(form);
-      toast.success("Welcome to FamilySocial!");
+      toast.success("Welcome to IndyaCentral!");
     } catch {
       toast.error("Failed to save profile. Please try again.");
     }
@@ -68,18 +72,30 @@ export default function OnboardingModal() {
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <TreePine size={18} className="text-primary-foreground" />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                <TreePine size={18} className="text-primary-foreground" />
+              </div>
+              <div>
+                <DialogTitle className="font-display text-xl">
+                  Welcome to IndyaCentral
+                </DialogTitle>
+                <DialogDescription>
+                  Set up your profile to get started (optional)
+                </DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="font-display text-xl">
-                Welcome to FamilySocial
-              </DialogTitle>
-              <DialogDescription>
-                Let's set up your profile to get started
-              </DialogDescription>
-            </div>
+            {onSkip && (
+              <button
+                type="button"
+                onClick={onSkip}
+                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Skip profile setup"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
         </DialogHeader>
 
@@ -166,15 +182,32 @@ export default function OnboardingModal() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Setting up...
-              </>
-            ) : (
-              "Continue to FamilySocial →"
+          <div className="flex gap-2">
+            {onSkip && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={onSkip}
+              >
+                Skip for now
+              </Button>
             )}
-          </Button>
+            <Button
+              type="submit"
+              className={onSkip ? "flex-1" : "w-full"}
+              disabled={save.isPending}
+            >
+              {save.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Setting
+                  up...
+                </>
+              ) : (
+                "Continue to IndyaCentral →"
+              )}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

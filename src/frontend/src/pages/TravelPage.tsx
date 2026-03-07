@@ -1964,16 +1964,20 @@ function ItineraryTab({
 // Cab Booking Tab
 // ─────────────────────────────────────────────
 function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
-  const [pickup, setPickup] = useState("");
-  const [dropoff, setDropoff] = useState("");
+  const [pickup, setPickup] = useState<string>("none-selected");
+  const [dropoff, setDropoff] = useState<string>("none-selected");
   const [cabType, setCabType] = useState<CabType>("Economy");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [attachItinerary, setAttachItinerary] = useState(false);
-  const [selectedItinerary, setSelectedItinerary] = useState<string>("");
+  const [selectedItinerary, setSelectedItinerary] =
+    useState<string>("none-selected");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const distance = getDistance(pickup, dropoff);
+  const distance = getDistance(
+    pickup === "none-selected" ? "" : pickup,
+    dropoff === "none-selected" ? "" : dropoff,
+  );
   const estimatedTotal = distance ? distance * CAB_RATES[cabType] : null;
 
   const cabCards: {
@@ -2003,12 +2007,16 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
   ];
 
   const handleBook = () => {
-    if (!pickup || !dropoff || !date || !time) {
+    const pickupCity = pickup === "none-selected" ? "" : pickup;
+    const dropoffCity = dropoff === "none-selected" ? "" : dropoff;
+    if (!pickupCity || !dropoffCity || !date || !time) {
       toast.error("Please fill in all required fields.");
       return;
     }
     const attachedName =
-      attachItinerary && selectedItinerary
+      attachItinerary &&
+      selectedItinerary &&
+      selectedItinerary !== "none-selected"
         ? itineraries.find((i) => i.id.toString() === selectedItinerary)?.title
         : null;
     toast.success(
@@ -2063,28 +2071,32 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
           </div>
 
           {/* Distance indicator */}
-          {pickup && dropoff && pickup !== dropoff && (
-            <div
-              className={`flex items-center gap-3 p-3 rounded-xl border ${distance ? "border-primary/30 bg-primary/5" : "border-muted bg-muted/40"}`}
-            >
-              <Route
-                size={16}
-                className={distance ? "text-primary" : "text-muted-foreground"}
-              />
-              {distance ? (
-                <span className="text-sm">
-                  Estimated distance:{" "}
-                  <strong className="text-primary">
-                    {distance.toLocaleString()} km
-                  </strong>
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Distance data not available for this route.
-                </span>
-              )}
-            </div>
-          )}
+          {pickup !== "none-selected" &&
+            dropoff !== "none-selected" &&
+            pickup !== dropoff && (
+              <div
+                className={`flex items-center gap-3 p-3 rounded-xl border ${distance ? "border-primary/30 bg-primary/5" : "border-muted bg-muted/40"}`}
+              >
+                <Route
+                  size={16}
+                  className={
+                    distance ? "text-primary" : "text-muted-foreground"
+                  }
+                />
+                {distance ? (
+                  <span className="text-sm">
+                    Estimated distance:{" "}
+                    <strong className="text-primary">
+                      {distance.toLocaleString()} km
+                    </strong>
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    Distance data not available for this route.
+                  </span>
+                )}
+              </div>
+            )}
 
           {/* Cab type selector */}
           <div>
@@ -2198,8 +2210,14 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
               <div className="space-y-3 py-2 text-sm">
                 <div className="space-y-2">
                   {[
-                    { label: "Pickup", value: pickup || "—" },
-                    { label: "Dropoff", value: dropoff || "—" },
+                    {
+                      label: "Pickup",
+                      value: pickup === "none-selected" ? "—" : pickup || "—",
+                    },
+                    {
+                      label: "Dropoff",
+                      value: dropoff === "none-selected" ? "—" : dropoff || "—",
+                    },
                     {
                       label: "Distance",
                       value: distance ? `${distance.toLocaleString()} km` : "—",

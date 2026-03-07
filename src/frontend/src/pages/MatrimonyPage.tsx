@@ -1616,7 +1616,7 @@ export default function MatrimonyPage() {
   const [shortlisted, setShortlisted] = useState<Set<string>>(new Set());
   const [requests, setRequests] = useState<Request[]>(MOCK_REQUESTS);
   const [filterCaste, setFilterCaste] = useState("");
-  const [filterLiving, setFilterLiving] = useState("");
+  const [filterLiving, setFilterLiving] = useState("all");
   const [filterProfession, setFilterProfession] = useState("");
   const [filterHoroscopeOnly, setFilterHoroscopeOnly] = useState(false);
   const [filterAgeMin, setFilterAgeMin] = useState(18);
@@ -1663,7 +1663,12 @@ export default function MatrimonyPage() {
       !p.caste.toLowerCase().includes(filterCaste.toLowerCase())
     )
       return false;
-    if (filterLiving && p.livingStandard !== filterLiving) return false;
+    if (
+      filterLiving &&
+      filterLiving !== "all" &&
+      p.livingStandard !== filterLiving
+    )
+      return false;
     if (
       filterProfession &&
       !p.occupation.toLowerCase().includes(filterProfession.toLowerCase())
@@ -1855,7 +1860,7 @@ export default function MatrimonyPage() {
                 <SelectValue placeholder="Living Standard" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Standards</SelectItem>
+                <SelectItem value="all">All Standards</SelectItem>
                 {["Lower", "Middle", "Upper-Middle", "Upper"].map((l) => (
                   <SelectItem key={l} value={l}>
                     {l}

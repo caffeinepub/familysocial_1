@@ -16,30 +16,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Award,
   Briefcase,
   Building2,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
+  Eye,
+  EyeOff,
   Globe2,
+  Link2,
   MapPin,
+  Network,
   Package,
   Plus,
   Search,
+  Settings2,
   Star,
   TreePine,
   Truck,
   UserCheck,
+  UserPlus,
   Users,
   X,
   Zap,
@@ -2274,6 +2283,1033 @@ function FreelancersTab({ jobs }: { jobs: JobEnhanced[] }) {
   );
 }
 
+// ─── Tab 7: Professional Network ─────────────────────────────────────────────
+
+interface Connection {
+  id: number;
+  name: string;
+  title: string;
+  company: string;
+  mutualConnections: number;
+  location: string;
+  initials: string;
+  color: string;
+  isConnected: boolean;
+  isSuggested: boolean;
+  endorsedSkills: string[];
+  connectionType: "colleague" | "recruiter" | "mentor" | "client" | "family";
+}
+
+interface NetworkProfile {
+  headline: string;
+  summary: string;
+  openToWork: boolean;
+  openToHire: boolean;
+  profileVisibility: "public" | "connections" | "private";
+  showOnMap: boolean;
+  skills: string[];
+  languages: string[];
+  certifications: string[];
+  contactEmail: string;
+  linkedinUrl: string;
+  portfolioUrl: string;
+  jobAlerts: boolean;
+  weeklyDigest: boolean;
+  connectionRequests: boolean;
+  messageNotifications: boolean;
+}
+
+const SAMPLE_CONNECTIONS: Connection[] = [
+  {
+    id: 1,
+    name: "Usman Khalid",
+    title: "CTO at TechPK Solutions",
+    company: "TechPK Solutions",
+    mutualConnections: 12,
+    location: "Lahore, Punjab",
+    initials: "UK",
+    color: "oklch(0.55 0.22 280)",
+    isConnected: true,
+    isSuggested: false,
+    endorsedSkills: ["React", "Node.js", "Leadership"],
+    connectionType: "colleague",
+  },
+  {
+    id: 2,
+    name: "Amina Siddiqui",
+    title: "HR Manager at Beacon House",
+    company: "Beacon House School",
+    mutualConnections: 7,
+    location: "Islamabad, ICT",
+    initials: "AS",
+    color: "oklch(0.60 0.20 190)",
+    isConnected: true,
+    isSuggested: false,
+    endorsedSkills: ["Recruitment", "HR Strategy"],
+    connectionType: "recruiter",
+  },
+  {
+    id: 3,
+    name: "Hassan Qureshi",
+    title: "CEO at QuickEats",
+    company: "QuickEats",
+    mutualConnections: 5,
+    location: "Karachi, Sindh",
+    initials: "HQ",
+    color: "oklch(0.72 0.17 55)",
+    isConnected: true,
+    isSuggested: false,
+    endorsedSkills: ["Operations", "Logistics", "Strategy"],
+    connectionType: "mentor",
+  },
+  {
+    id: 4,
+    name: "Zainab Mirza",
+    title: "Lead Physician at MediCare",
+    company: "MediCare Clinics",
+    mutualConnections: 3,
+    location: "Lahore, Punjab",
+    initials: "ZM",
+    color: "oklch(0.58 0.22 25)",
+    isConnected: false,
+    isSuggested: true,
+    endorsedSkills: ["Medicine", "Patient Care"],
+    connectionType: "colleague",
+  },
+  {
+    id: 5,
+    name: "Bilal Ahmed",
+    title: "Product Manager at StartupPK",
+    company: "StartupPK",
+    mutualConnections: 9,
+    location: "Lahore, Punjab",
+    initials: "BA",
+    color: "oklch(0.62 0.22 310)",
+    isConnected: false,
+    isSuggested: true,
+    endorsedSkills: ["Product", "Agile", "UX"],
+    connectionType: "colleague",
+  },
+  {
+    id: 6,
+    name: "Sadia Rahman",
+    title: "Senior Developer at TechCorp",
+    company: "TechCorp Pakistan",
+    mutualConnections: 14,
+    location: "Lahore, Punjab",
+    initials: "SR",
+    color: "oklch(0.55 0.22 280)",
+    isConnected: false,
+    isSuggested: true,
+    endorsedSkills: ["React", "TypeScript", "GraphQL"],
+    connectionType: "colleague",
+  },
+];
+
+const DEFAULT_NETWORK_PROFILE: NetworkProfile = {
+  headline: "Software Engineer · Full-Stack Developer · Open to Opportunities",
+  summary:
+    "Experienced full-stack developer with 5+ years building scalable web applications. Passionate about clean code, system design, and mentoring junior developers.",
+  openToWork: true,
+  openToHire: false,
+  profileVisibility: "connections",
+  showOnMap: true,
+  skills: ["React", "TypeScript", "Node.js", "PostgreSQL", "AWS", "GraphQL"],
+  languages: ["English (Fluent)", "Urdu (Native)", "Punjabi (Conversational)"],
+  certifications: ["AWS Solutions Architect", "Google Cloud Professional"],
+  contactEmail: "you@indyacentral.com",
+  linkedinUrl: "",
+  portfolioUrl: "",
+  jobAlerts: true,
+  weeklyDigest: true,
+  connectionRequests: true,
+  messageNotifications: true,
+};
+
+const CONNECTION_TYPE_COLORS: Record<
+  Connection["connectionType"],
+  { bg: string; text: string }
+> = {
+  colleague: {
+    bg: "oklch(0.55 0.22 280 / 0.12)",
+    text: "oklch(0.55 0.22 280)",
+  },
+  recruiter: {
+    bg: "oklch(0.60 0.20 190 / 0.12)",
+    text: "oklch(0.40 0.14 190)",
+  },
+  mentor: { bg: "oklch(0.72 0.17 85 / 0.12)", text: "oklch(0.55 0.14 65)" },
+  client: { bg: "oklch(0.65 0.20 55 / 0.12)", text: "oklch(0.48 0.14 55)" },
+  family: { bg: "oklch(0.62 0.22 350 / 0.12)", text: "oklch(0.55 0.22 350)" },
+};
+
+function NetworkTab() {
+  const [profile, setProfile] = useState<NetworkProfile>(
+    DEFAULT_NETWORK_PROFILE,
+  );
+  const [connections, setConnections] =
+    useState<Connection[]>(SAMPLE_CONNECTIONS);
+  const [activeSection, setActiveSection] = useState<
+    "profile" | "connections" | "settings"
+  >("profile");
+  const [newSkill, setNewSkill] = useState("");
+  const [newCert, setNewCert] = useState("");
+  const [newLang, setNewLang] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [connectionFilter, setConnectionFilter] = useState<
+    "all" | "connected" | "suggested"
+  >("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleConnect = (id: number) => {
+    setConnections((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, isConnected: true, isSuggested: false } : c,
+      ),
+    );
+    const conn = connections.find((c) => c.id === id);
+    toast.success(`Connection request sent to ${conn?.name}`);
+  };
+
+  const handleDisconnect = (id: number) => {
+    setConnections((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, isConnected: false, isSuggested: true } : c,
+      ),
+    );
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim() && !profile.skills.includes(newSkill.trim())) {
+      setProfile((p) => ({ ...p, skills: [...p.skills, newSkill.trim()] }));
+      setNewSkill("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setProfile((p) => ({ ...p, skills: p.skills.filter((s) => s !== skill) }));
+  };
+
+  const addCert = () => {
+    if (newCert.trim() && !profile.certifications.includes(newCert.trim())) {
+      setProfile((p) => ({
+        ...p,
+        certifications: [...p.certifications, newCert.trim()],
+      }));
+      setNewCert("");
+    }
+  };
+
+  const removeCert = (cert: string) => {
+    setProfile((p) => ({
+      ...p,
+      certifications: p.certifications.filter((c) => c !== cert),
+    }));
+  };
+
+  const addLang = () => {
+    if (newLang.trim() && !profile.languages.includes(newLang.trim())) {
+      setProfile((p) => ({
+        ...p,
+        languages: [...p.languages, newLang.trim()],
+      }));
+      setNewLang("");
+    }
+  };
+
+  const handleSave = () => {
+    setSaved(true);
+    toast.success("Network profile saved!");
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const connectedList = connections.filter((c) => c.isConnected);
+  const suggestedList = connections.filter((c) => c.isSuggested);
+
+  const filteredConnections = connections.filter((c) => {
+    if (connectionFilter === "connected" && !c.isConnected) return false;
+    if (connectionFilter === "suggested" && !c.isSuggested) return false;
+    if (
+      searchQuery &&
+      !c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !c.company.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !c.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+      return false;
+    return true;
+  });
+
+  return (
+    <div>
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        {[
+          {
+            label: "Connections",
+            value: connectedList.length,
+            color: "oklch(0.55 0.22 280)",
+            icon: Network,
+          },
+          {
+            label: "Profile Views",
+            value: 142,
+            color: "oklch(0.60 0.20 190)",
+            icon: Eye,
+          },
+          {
+            label: "Suggestions",
+            value: suggestedList.length,
+            color: "oklch(0.65 0.20 55)",
+            icon: UserPlus,
+          },
+          {
+            label: "Endorsements",
+            value: connections.reduce(
+              (acc, c) => acc + c.endorsedSkills.length,
+              0,
+            ),
+            color: "oklch(0.52 0.14 155)",
+            icon: Award,
+          },
+        ].map(({ label, value, color, icon: Icon }) => (
+          <div
+            key={label}
+            className="bg-card border border-border rounded-xl p-4"
+          >
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
+              style={{ background: `${color}15` }}
+            >
+              <Icon size={17} style={{ color }} />
+            </div>
+            <p className="text-2xl font-display font-bold text-foreground">
+              {value}
+            </p>
+            <p className="text-xs text-muted-foreground font-label mt-0.5">
+              {label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Section nav */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {(["profile", "connections", "settings"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setActiveSection(s)}
+            className="px-4 py-2 rounded-lg text-sm font-label font-medium transition-all capitalize"
+            style={
+              activeSection === s
+                ? {
+                    background: "oklch(0.55 0.22 280 / 0.15)",
+                    color: "oklch(0.55 0.22 280)",
+                    border: "1px solid oklch(0.55 0.22 280 / 0.3)",
+                  }
+                : {
+                    background: "transparent",
+                    color: "oklch(var(--muted-foreground))",
+                    border: "1px solid oklch(var(--border))",
+                  }
+            }
+            data-ocid={`network.section.${s}.tab`}
+          >
+            {s === "profile" && (
+              <span className="flex items-center gap-1.5">
+                <Users size={13} />
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </span>
+            )}
+            {s === "connections" && (
+              <span className="flex items-center gap-1.5">
+                <Network size={13} />
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </span>
+            )}
+            {s === "settings" && (
+              <span className="flex items-center gap-1.5">
+                <Settings2 size={13} />
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Profile Section ── */}
+      {activeSection === "profile" && (
+        <div className="space-y-5">
+          {/* Open to work / hire banners */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setProfile((p) => ({ ...p, openToWork: !p.openToWork }))
+              }
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-label font-semibold transition-all"
+              style={
+                profile.openToWork
+                  ? {
+                      background: "oklch(0.52 0.14 155 / 0.12)",
+                      borderColor: "oklch(0.52 0.14 155 / 0.4)",
+                      color: "oklch(0.32 0.085 155)",
+                    }
+                  : {
+                      background: "transparent",
+                      borderColor: "oklch(var(--border))",
+                      color: "oklch(var(--muted-foreground))",
+                    }
+              }
+              data-ocid="network.open_to_work.toggle"
+            >
+              <Briefcase size={14} />
+              {profile.openToWork ? "✓ Open to Work" : "Open to Work"}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setProfile((p) => ({ ...p, openToHire: !p.openToHire }))
+              }
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-label font-semibold transition-all"
+              style={
+                profile.openToHire
+                  ? {
+                      background: "oklch(0.55 0.22 280 / 0.12)",
+                      borderColor: "oklch(0.55 0.22 280 / 0.4)",
+                      color: "oklch(0.55 0.22 280)",
+                    }
+                  : {
+                      background: "transparent",
+                      borderColor: "oklch(var(--border))",
+                      color: "oklch(var(--muted-foreground))",
+                    }
+              }
+              data-ocid="network.open_to_hire.toggle"
+            >
+              <UserCheck size={14} />
+              {profile.openToHire ? "✓ Open to Hire" : "Open to Hire"}
+            </button>
+          </div>
+
+          {/* Profile headline & summary */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-2">
+              <Users size={15} className="text-primary" />
+              Professional Profile
+            </h3>
+            <div className="space-y-2">
+              <Label className="text-xs font-label">Headline</Label>
+              <Input
+                value={profile.headline}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, headline: e.target.value }))
+                }
+                placeholder="e.g. Senior Engineer · Open to Opportunities"
+                data-ocid="network.headline.input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-label">Professional Summary</Label>
+              <Textarea
+                rows={3}
+                className="resize-none"
+                value={profile.summary}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, summary: e.target.value }))
+                }
+                placeholder="Describe your experience and goals..."
+                data-ocid="network.summary.textarea"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Contact Email</Label>
+                <Input
+                  type="email"
+                  value={profile.contactEmail}
+                  onChange={(e) =>
+                    setProfile((p) => ({ ...p, contactEmail: e.target.value }))
+                  }
+                  placeholder="your@email.com"
+                  data-ocid="network.contact_email.input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-label">
+                  Portfolio / Website
+                </Label>
+                <div className="relative">
+                  <Link2
+                    size={13}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    className="pl-8"
+                    value={profile.portfolioUrl}
+                    onChange={(e) =>
+                      setProfile((p) => ({
+                        ...p,
+                        portfolioUrl: e.target.value,
+                      }))
+                    }
+                    placeholder="yourwebsite.com"
+                    data-ocid="network.portfolio_url.input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Skills */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-2">
+              <Zap size={15} className="text-primary" />
+              Skills
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="inline-flex items-center gap-1.5 text-xs font-label px-3 py-1 rounded-full"
+                  style={{
+                    background: "oklch(0.55 0.22 280 / 0.12)",
+                    color: "oklch(0.55 0.22 280)",
+                  }}
+                >
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(skill)}
+                    className="hover:opacity-60 transition-opacity"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                className="h-9 text-xs flex-1"
+                placeholder="Add a skill..."
+                value={newSkill}
+                onChange={(e) => setNewSkill(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSkill();
+                  }
+                }}
+                data-ocid="network.add_skill.input"
+              />
+              <Button
+                size="sm"
+                className="h-9 font-label text-xs"
+                onClick={addSkill}
+                data-ocid="network.add_skill.button"
+              >
+                <Plus size={13} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Certifications */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-2">
+              <Award size={15} className="text-primary" />
+              Certifications
+            </h3>
+            <div className="space-y-2">
+              {profile.certifications.map((cert) => (
+                <div
+                  key={cert}
+                  className="flex items-center justify-between px-3 py-2 bg-secondary/40 rounded-lg"
+                >
+                  <span className="text-sm font-label text-foreground">
+                    {cert}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeCert(cert)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                className="h-9 text-xs flex-1"
+                placeholder="Add a certification..."
+                value={newCert}
+                onChange={(e) => setNewCert(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCert();
+                  }
+                }}
+                data-ocid="network.add_cert.input"
+              />
+              <Button
+                size="sm"
+                className="h-9 font-label text-xs"
+                onClick={addCert}
+                data-ocid="network.add_cert.button"
+              >
+                <Plus size={13} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Languages */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-2">
+              <Globe2 size={15} className="text-primary" />
+              Languages
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.languages.map((lang) => (
+                <span
+                  key={lang}
+                  className="inline-flex items-center gap-1.5 text-xs font-label px-3 py-1 rounded-full bg-secondary text-foreground"
+                >
+                  {lang}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProfile((p) => ({
+                        ...p,
+                        languages: p.languages.filter((l) => l !== lang),
+                      }))
+                    }
+                    className="hover:opacity-60 transition-opacity"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                className="h-9 text-xs flex-1"
+                placeholder="e.g. English (Fluent)"
+                value={newLang}
+                onChange={(e) => setNewLang(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLang();
+                  }
+                }}
+                data-ocid="network.add_language.input"
+              />
+              <Button
+                size="sm"
+                className="h-9 font-label text-xs"
+                onClick={addLang}
+                data-ocid="network.add_language.button"
+              >
+                <Plus size={13} />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSave}
+              className="font-label px-8"
+              data-ocid="network.save_profile.button"
+            >
+              {saved ? "✓ Saved" : "Save Profile"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Connections Section ── */}
+      {activeSection === "connections" && (
+        <div className="space-y-5">
+          {/* Search + filter bar */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                placeholder="Search connections..."
+                className="pl-9 h-9 text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                data-ocid="network.search_connections.input"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(["all", "connected", "suggested"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setConnectionFilter(f)}
+                  className="h-9 px-3 rounded-lg text-xs font-label transition-all capitalize"
+                  style={
+                    connectionFilter === f
+                      ? {
+                          background: "oklch(0.55 0.22 280 / 0.15)",
+                          color: "oklch(0.55 0.22 280)",
+                          border: "1px solid oklch(0.55 0.22 280 / 0.3)",
+                        }
+                      : {
+                          background: "transparent",
+                          border: "1px solid oklch(var(--border))",
+                          color: "oklch(var(--muted-foreground))",
+                        }
+                  }
+                  data-ocid={`network.filter.${f}.tab`}
+                >
+                  {f === "all"
+                    ? `All (${connections.length})`
+                    : f === "connected"
+                      ? `Connected (${connectedList.length})`
+                      : `Suggested (${suggestedList.length})`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredConnections.length === 0 ? (
+            <div className="text-center py-16">
+              <Network
+                size={40}
+                className="mx-auto text-muted-foreground/30 mb-4"
+              />
+              <p className="text-muted-foreground font-label">
+                No connections found
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredConnections.map((conn, i) => {
+                const typeCfg = CONNECTION_TYPE_COLORS[conn.connectionType];
+                return (
+                  <div
+                    key={conn.id}
+                    className="bg-card border border-border rounded-xl p-5 hover:shadow-card-hover transition-all animate-fade-up"
+                    style={{ animationDelay: `${i * 0.04}s` }}
+                    data-ocid={`network.connection.card.${i + 1}`}
+                  >
+                    <div className="flex items-start gap-3 mb-3">
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center font-display font-bold text-white shrink-0"
+                        style={{ background: conn.color }}
+                      >
+                        {conn.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-label font-bold text-foreground text-sm truncate">
+                          {conn.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {conn.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span
+                            className="text-[10px] font-label font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: typeCfg.bg,
+                              color: typeCfg.text,
+                            }}
+                          >
+                            {conn.connectionType}
+                          </span>
+                          {conn.isConnected && (
+                            <span
+                              className="text-[10px] font-label font-semibold px-2 py-0.5 rounded-full"
+                              style={{
+                                background: "oklch(0.52 0.14 155 / 0.12)",
+                                color: "oklch(0.32 0.085 155)",
+                              }}
+                            >
+                              Connected
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 mb-3">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Building2 size={11} />
+                        <span>{conn.company}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <MapPin size={11} />
+                        <span>{conn.location}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Users size={11} />
+                        <span>{conn.mutualConnections} mutual connections</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {conn.endorsedSkills.slice(0, 3).map((s) => (
+                        <span
+                          key={s}
+                          className="text-[10px] font-label px-2 py-0.5 rounded-full bg-secondary text-muted-foreground"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+
+                    {conn.isConnected ? (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs font-label"
+                          onClick={() =>
+                            toast.success(`Message sent to ${conn.name}`)
+                          }
+                          data-ocid={`network.message.${i + 1}.button`}
+                        >
+                          Message
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-xs font-label text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDisconnect(conn.id)}
+                          data-ocid={`network.disconnect.${i + 1}.button`}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="w-full h-8 text-xs font-label gap-1.5"
+                        onClick={() => handleConnect(conn.id)}
+                        data-ocid={`network.connect.${i + 1}.button`}
+                      >
+                        <UserPlus size={12} />
+                        Connect
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Settings Section ── */}
+      {activeSection === "settings" && (
+        <div className="space-y-5 max-w-2xl">
+          {/* Privacy & Visibility */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+            <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-2">
+              <Eye size={15} className="text-primary" />
+              Privacy & Visibility
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-label font-semibold text-foreground">
+                    Profile Visibility
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Who can see your professional profile
+                  </p>
+                </div>
+                <Select
+                  value={profile.profileVisibility}
+                  onValueChange={(v) =>
+                    setProfile((p) => ({
+                      ...p,
+                      profileVisibility:
+                        v as NetworkProfile["profileVisibility"],
+                    }))
+                  }
+                >
+                  <SelectTrigger
+                    className="w-36 h-9 text-xs font-label"
+                    data-ocid="network.visibility.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="connections">
+                      Connections Only
+                    </SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-label font-semibold text-foreground">
+                    Show on Geomap
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Show your professional pin on the Connections Map
+                  </p>
+                </div>
+                <Switch
+                  checked={profile.showOnMap}
+                  onCheckedChange={(v) =>
+                    setProfile((p) => ({ ...p, showOnMap: v }))
+                  }
+                  data-ocid="network.show_on_map.switch"
+                />
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-label font-semibold text-foreground">
+                    Open to Work
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Show the "Open to Work" badge on your profile
+                  </p>
+                </div>
+                <Switch
+                  checked={profile.openToWork}
+                  onCheckedChange={(v) =>
+                    setProfile((p) => ({ ...p, openToWork: v }))
+                  }
+                  data-ocid="network.open_to_work_switch.switch"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-label font-semibold text-foreground">
+                    Open to Hire
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Indicate that you are actively looking for talent
+                  </p>
+                </div>
+                <Switch
+                  checked={profile.openToHire}
+                  onCheckedChange={(v) =>
+                    setProfile((p) => ({ ...p, openToHire: v }))
+                  }
+                  data-ocid="network.open_to_hire_switch.switch"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Notifications */}
+          <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+            <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-2">
+              <Settings2 size={15} className="text-primary" />
+              Notification Preferences
+            </h3>
+            <div className="space-y-4">
+              {[
+                {
+                  key: "jobAlerts" as const,
+                  label: "Job Alerts",
+                  desc: "Get notified about jobs matching your skills and preferences",
+                },
+                {
+                  key: "weeklyDigest" as const,
+                  label: "Weekly Network Digest",
+                  desc: "A weekly summary of your network activity and new opportunities",
+                },
+                {
+                  key: "connectionRequests" as const,
+                  label: "Connection Requests",
+                  desc: "Get notified when someone wants to connect with you",
+                },
+                {
+                  key: "messageNotifications" as const,
+                  label: "Messages",
+                  desc: "Notifications for new messages from connections",
+                },
+              ].map((n, i) => (
+                <div key={n.key}>
+                  {i > 0 && <Separator className="mb-4" />}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-label font-semibold text-foreground">
+                        {n.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground max-w-xs">
+                        {n.desc}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profile[n.key]}
+                      onCheckedChange={(v) =>
+                        setProfile((p) => ({ ...p, [n.key]: v }))
+                      }
+                      data-ocid={`network.${n.key}.switch`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Danger zone */}
+          <div className="bg-card border border-destructive/20 rounded-xl p-5 space-y-4">
+            <h3 className="font-display font-bold text-destructive text-sm flex items-center gap-2">
+              <EyeOff size={15} />
+              Danger Zone
+            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-label font-semibold text-foreground">
+                  Hide Professional Profile
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Temporarily hide your profile from recruiters and connections.
+                  You can re-enable it at any time.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs font-label text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() =>
+                  toast.info("Profile hidden from professional network")
+                }
+                data-ocid="network.hide_profile.button"
+              >
+                Hide Profile
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSave}
+              className="font-label px-8"
+              data-ocid="network.save_settings.button"
+            >
+              {saved ? "✓ Saved" : "Save Settings"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main JobsPage ────────────────────────────────────────────────────────────
 
 export default function JobsPage() {
@@ -2368,6 +3404,9 @@ export default function JobsPage() {
           <TabsTrigger value="events" className="font-label text-xs">
             Events
           </TabsTrigger>
+          <TabsTrigger value="network" className="font-label text-xs">
+            Network
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="browse">
@@ -2398,6 +3437,10 @@ export default function JobsPage() {
           <div className="p-2">
             <EventsTab moduleName="Jobs" moduleColor="oklch(0.52 0.14 155)" />
           </div>
+        </TabsContent>
+
+        <TabsContent value="network">
+          <NetworkTab />
         </TabsContent>
       </Tabs>
     </div>

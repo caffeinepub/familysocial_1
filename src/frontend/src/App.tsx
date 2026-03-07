@@ -48,13 +48,18 @@ export default function App() {
     isFetched,
   } = useGetCallerUserProfile();
   const [currentPage, setCurrentPage] = useState("family-tree");
+  const [skippedOnboarding, setSkippedOnboarding] = useState(false);
 
+  // Only show onboarding for Internet Identity users who have no backend profile yet
+  // Email-only users never see it since they don't have a backend profile
   const showProfileSetup =
     !!identity &&
+    !emailUser &&
     isAuthenticated &&
     !profileLoading &&
     isFetched &&
-    userProfile === null;
+    userProfile === null &&
+    !skippedOnboarding;
 
   const handleEmailLogin = (user: EmailUser) => {
     setEmailUser(user);
@@ -145,7 +150,9 @@ export default function App() {
 
   return (
     <>
-      {showProfileSetup && <OnboardingModal />}
+      {showProfileSetup && (
+        <OnboardingModal onSkip={() => setSkippedOnboarding(true)} />
+      )}
       <AppShell
         currentPage={currentPage}
         onNavigate={setCurrentPage}

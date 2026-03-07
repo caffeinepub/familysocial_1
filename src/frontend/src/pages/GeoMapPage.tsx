@@ -1,3 +1,4 @@
+import "leaflet/dist/leaflet.css";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import L from "leaflet";
 import {
   BookOpen,
   Briefcase,
@@ -39,6 +40,23 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  CircleMarker,
+  MapContainer,
+  Popup,
+  TileLayer,
+  useMap,
+} from "react-leaflet";
+
+// Fix Leaflet default marker icons
+(L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl =
+  undefined;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 // ── Layer definitions ────────────────────────────────────────────────────────
 
@@ -117,19 +135,17 @@ const LAYER_HEX: Record<string, string> = {
   dating: "#8b5cf6",
 };
 
-// ── Mock pin data ────────────────────────────────────────────────────────────
+// ── Mock pin data with real lat/lng ─────────────────────────────────────────
 
 interface GeoPin {
   id: number;
   name: string;
   layer: string;
-  // Normalized 0-100 coordinates for the CSS map (x from left, y from top)
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
   preview: string;
   privacy: "private" | "family" | "community" | "friends" | "public";
   timestamp: string;
-  // Matrimony / Dating extras
   shareLevel?: "hidden" | "nickname" | "basic" | "full";
   isNew?: boolean;
   compatScore?: number;
@@ -137,14 +153,14 @@ interface GeoPin {
   ageRange?: string;
 }
 
-// Coordinates normalised to a 0-100 grid representing Lahore area (roughly)
+// Lahore: ~31.5, 74.3 | Karachi: ~24.86, 67.01 | Islamabad: ~33.72, 73.06
 const MAP_PINS: GeoPin[] = [
   {
     id: 1,
     name: "Khalid Hassan",
     layer: "family",
-    x: 58,
-    y: 38,
+    lat: 31.548,
+    lng: 74.358,
     preview: "Father · Hassan Textiles owner",
     privacy: "family",
     timestamp: "2 hrs ago",
@@ -153,8 +169,8 @@ const MAP_PINS: GeoPin[] = [
     id: 2,
     name: "Fatima Hassan",
     layer: "family",
-    x: 53,
-    y: 42,
+    lat: 31.523,
+    lng: 74.312,
     preview: "Mother · DHA Phase 5",
     privacy: "family",
     timestamp: "4 hrs ago",
@@ -163,8 +179,8 @@ const MAP_PINS: GeoPin[] = [
     id: 3,
     name: "Omar Hassan",
     layer: "family",
-    x: 64,
-    y: 31,
+    lat: 31.487,
+    lng: 74.276,
     preview: "Brother · Johar Town, Lahore",
     privacy: "family",
     timestamp: "1 day ago",
@@ -173,8 +189,8 @@ const MAP_PINS: GeoPin[] = [
     id: 4,
     name: "Hamza Raza",
     layer: "friends",
-    x: 38,
-    y: 52,
+    lat: 31.511,
+    lng: 74.339,
     preview: "5 mutual connections · Gulberg",
     privacy: "friends",
     timestamp: "30 min ago",
@@ -183,8 +199,8 @@ const MAP_PINS: GeoPin[] = [
     id: 5,
     name: "Sana Malik",
     layer: "friends",
-    x: 74,
-    y: 23,
+    lat: 31.462,
+    lng: 74.301,
     preview: "University friend · Model Town",
     privacy: "friends",
     timestamp: "3 hrs ago",
@@ -193,8 +209,8 @@ const MAP_PINS: GeoPin[] = [
     id: 6,
     name: "Bilal Chaudhry",
     layer: "friends",
-    x: 68,
-    y: 65,
+    lat: 31.418,
+    lng: 74.227,
     preview: "Colleague · Bahria Town",
     privacy: "public",
     timestamp: "Yesterday",
@@ -203,8 +219,8 @@ const MAP_PINS: GeoPin[] = [
     id: 7,
     name: "DHA Phase 5 Society",
     layer: "community",
-    x: 29,
-    y: 78,
+    lat: 31.475,
+    lng: 74.393,
     preview: "Gate entry system active · 1,240 residents",
     privacy: "community",
     timestamp: "Live",
@@ -213,8 +229,8 @@ const MAP_PINS: GeoPin[] = [
     id: 8,
     name: "Green Valley Society",
     layer: "community",
-    x: 41,
-    y: 70,
+    lat: 31.533,
+    lng: 74.382,
     preview: "Community announcement: Maintenance 8AM",
     privacy: "community",
     timestamp: "2 hrs ago",
@@ -223,8 +239,8 @@ const MAP_PINS: GeoPin[] = [
     id: 9,
     name: "Asif Javed",
     layer: "community",
-    x: 48,
-    y: 57,
+    lat: 31.491,
+    lng: 74.355,
     preview: "Active community member · Allama Iqbal Town",
     privacy: "community",
     timestamp: "5 hrs ago",
@@ -233,8 +249,8 @@ const MAP_PINS: GeoPin[] = [
     id: 10,
     name: "TechCorp Pakistan",
     layer: "jobs",
-    x: 46,
-    y: 54,
+    lat: 31.508,
+    lng: 74.344,
     preview: "Senior Software Engineer · PKR 3.5L/mo",
     privacy: "public",
     timestamp: "4 hrs ago",
@@ -243,8 +259,8 @@ const MAP_PINS: GeoPin[] = [
     id: 11,
     name: "StartupPK Office",
     layer: "jobs",
-    x: 61,
-    y: 43,
+    lat: 31.519,
+    lng: 74.329,
     preview: "Product Manager position open",
     privacy: "public",
     timestamp: "1 day ago",
@@ -253,8 +269,8 @@ const MAP_PINS: GeoPin[] = [
     id: 12,
     name: "Graphic Studio Karachi",
     layer: "jobs",
-    x: 82,
-    y: 88,
+    lat: 24.875,
+    lng: 67.022,
     preview: "Part-time designer role · Karachi",
     privacy: "public",
     timestamp: "1 day ago",
@@ -263,8 +279,8 @@ const MAP_PINS: GeoPin[] = [
     id: 13,
     name: "DHA Phase 6 Apartment",
     layer: "real-estate",
-    x: 25,
-    y: 83,
+    lat: 31.468,
+    lng: 74.409,
     preview: "3BR · 1800 sqft · PKR 2.8 Cr",
     privacy: "public",
     timestamp: "3 hrs ago",
@@ -273,8 +289,8 @@ const MAP_PINS: GeoPin[] = [
     id: 14,
     name: "Gulberg III House",
     layer: "real-estate",
-    x: 43,
-    y: 56,
+    lat: 31.513,
+    lng: 74.345,
     preview: "5 Marla · Renovated · PKR 1.95 Cr",
     privacy: "public",
     timestamp: "2 days ago",
@@ -283,8 +299,8 @@ const MAP_PINS: GeoPin[] = [
     id: 15,
     name: "Model Town Property",
     layer: "real-estate",
-    x: 35,
-    y: 50,
+    lat: 31.462,
+    lng: 74.301,
     preview: "10 Marla corner plot · PKR 4.2 Cr",
     privacy: "public",
     timestamp: "3 days ago",
@@ -293,8 +309,8 @@ const MAP_PINS: GeoPin[] = [
     id: 16,
     name: "Dr. Ayesha Clinic",
     layer: "healthcare",
-    x: 52,
-    y: 48,
+    lat: 31.503,
+    lng: 74.362,
     preview: "General Physician · DHA Phase 4",
     privacy: "public",
     timestamp: "Live",
@@ -303,8 +319,8 @@ const MAP_PINS: GeoPin[] = [
     id: 17,
     name: "Shaukat Khanum Hospital",
     layer: "healthcare",
-    x: 28,
-    y: 68,
+    lat: 31.437,
+    lng: 74.259,
     preview: "Cancer care & general medicine",
     privacy: "public",
     timestamp: "Live",
@@ -313,8 +329,8 @@ const MAP_PINS: GeoPin[] = [
     id: 18,
     name: "Fairy Meadows Tour",
     layer: "travel",
-    x: 65,
-    y: 8,
+    lat: 35.375,
+    lng: 74.585,
     preview: "Group tour July 12–18 · PKR 45K",
     privacy: "public",
     timestamp: "Posted 1 day ago",
@@ -323,8 +339,8 @@ const MAP_PINS: GeoPin[] = [
     id: 19,
     name: "Lahore Airport",
     layer: "travel",
-    x: 72,
-    y: 46,
+    lat: 31.522,
+    lng: 74.404,
     preview: "Maldives Honeymoon Package departs here",
     privacy: "public",
     timestamp: "Upcoming",
@@ -333,8 +349,8 @@ const MAP_PINS: GeoPin[] = [
     id: 20,
     name: "Imran Qureshi",
     layer: "blog",
-    x: 60,
-    y: 34,
+    lat: 31.488,
+    lng: 74.336,
     preview: "'Digital Family Trees in South Asia' — 50 reads",
     privacy: "public",
     timestamp: "8 hrs ago",
@@ -343,8 +359,8 @@ const MAP_PINS: GeoPin[] = [
     id: 21,
     name: "Eid Bazaar 2026",
     layer: "events",
-    x: 49,
-    y: 55,
+    lat: 31.557,
+    lng: 74.316,
     preview: "Annual community market · Liberty Roundabout",
     privacy: "public",
     timestamp: "Tomorrow",
@@ -353,20 +369,19 @@ const MAP_PINS: GeoPin[] = [
     id: 22,
     name: "Tech Summit Lahore",
     layer: "events",
-    x: 66,
-    y: 27,
+    lat: 31.474,
+    lng: 74.392,
     preview: "Annual technology conference · Expo Centre",
     privacy: "public",
     timestamp: "March 15",
   },
-  // Recruiter / Company pins (jobs layer, green #22c55e)
   {
     id: 23,
     name: "TechPK Solutions – Lahore HQ",
     layer: "jobs",
-    x: 55,
-    y: 45,
-    preview: "6 open roles · Senior Engineer, Frontend Dev, Full-Stack",
+    lat: 31.527,
+    lng: 74.348,
+    preview: "6 open roles · Senior Engineer, Frontend Dev",
     privacy: "public",
     timestamp: "Hiring now",
   },
@@ -374,8 +389,8 @@ const MAP_PINS: GeoPin[] = [
     id: 24,
     name: "MediCare Clinics – Karachi",
     layer: "jobs",
-    x: 25,
-    y: 82,
+    lat: 24.855,
+    lng: 67.01,
     preview: "5 open roles · General Physician, Receptionist",
     privacy: "public",
     timestamp: "Hiring now",
@@ -384,8 +399,8 @@ const MAP_PINS: GeoPin[] = [
     id: 25,
     name: "Beacon House School – Islamabad",
     layer: "jobs",
-    x: 32,
-    y: 22,
+    lat: 33.718,
+    lng: 73.063,
     preview: "4 open roles · Teacher, Admin, Library Staff",
     privacy: "public",
     timestamp: "Hiring now",
@@ -394,19 +409,18 @@ const MAP_PINS: GeoPin[] = [
     id: 26,
     name: "QuickEats HQ – Rawalpindi",
     layer: "jobs",
-    x: 37,
-    y: 28,
+    lat: 33.597,
+    lng: 73.048,
     preview: "12 open roles · Delivery Riders, Ops Manager",
     privacy: "public",
     timestamp: "Urgent hiring",
   },
-  // Applicant / Employee pins (jobs layer, teal #06b6d4)
   {
     id: 27,
     name: "Hamza Raza – Software Engineer",
     layer: "jobs",
-    x: 47,
-    y: 50,
+    lat: 31.499,
+    lng: 74.337,
     preview: "Shortlisted · TechPK Solutions",
     privacy: "friends",
     timestamp: "Applied 2 days ago",
@@ -415,59 +429,19 @@ const MAP_PINS: GeoPin[] = [
     id: 28,
     name: "Sana Malik – Frontend Dev",
     layer: "jobs",
-    x: 60,
-    y: 40,
+    lat: 31.517,
+    lng: 74.318,
     preview: "Interview Scheduled · TechPK Solutions",
     privacy: "friends",
     timestamp: "Interview Mar 5",
   },
-  {
-    id: 29,
-    name: "Nadia Hussain – Physician",
-    layer: "jobs",
-    x: 22,
-    y: 78,
-    preview: "Interview Scheduled · MediCare Clinics",
-    privacy: "friends",
-    timestamp: "Interview Mar 8",
-  },
-  {
-    id: 30,
-    name: "Omar Qureshi – Finance",
-    layer: "jobs",
-    x: 52,
-    y: 58,
-    preview: "Shortlisted · Hassan Textiles",
-    privacy: "friends",
-    timestamp: "Applied 3 days ago",
-  },
-  {
-    id: 31,
-    name: "Ayesha Tariq – Designer",
-    layer: "jobs",
-    x: 72,
-    y: 35,
-    preview: "Hired · TechPK Solutions – Joining Mar 15",
-    privacy: "friends",
-    timestamp: "Hired",
-  },
-  {
-    id: 32,
-    name: "Zara Siddiqui – Teacher",
-    layer: "jobs",
-    x: 28,
-    y: 19,
-    preview: "Applied · Beacon House School",
-    privacy: "friends",
-    timestamp: "Applied recently",
-  },
-  // ── Matrimony pins ──────────────────────────────────────────────────────────
+  // Matrimony pins
   {
     id: 101,
     name: "Aisha F.",
     layer: "matrimony",
-    x: 22,
-    y: 35,
+    lat: 31.558,
+    lng: 74.284,
     preview: "Lahore · Doctor · 26 yrs",
     privacy: "public",
     timestamp: "Today",
@@ -480,8 +454,8 @@ const MAP_PINS: GeoPin[] = [
     id: 102,
     name: "Zara K.",
     layer: "matrimony",
-    x: 45,
-    y: 20,
+    lat: 24.891,
+    lng: 67.036,
     preview: "Karachi · Software Engineer · 25 yrs",
     privacy: "friends",
     timestamp: "Today",
@@ -494,8 +468,8 @@ const MAP_PINS: GeoPin[] = [
     id: 103,
     name: "Hina N.",
     layer: "matrimony",
-    x: 70,
-    y: 72,
+    lat: 33.733,
+    lng: 73.079,
     preview: "Islamabad · Teacher · 28 yrs",
     privacy: "family",
     timestamp: "2 hrs ago",
@@ -508,8 +482,8 @@ const MAP_PINS: GeoPin[] = [
     id: 104,
     name: "Maryam A.",
     layer: "matrimony",
-    x: 33,
-    y: 60,
+    lat: 31.482,
+    lng: 74.323,
     preview: "Lahore · Architect · 27 yrs",
     privacy: "public",
     timestamp: "Today",
@@ -522,8 +496,8 @@ const MAP_PINS: GeoPin[] = [
     id: 105,
     name: "Saira B.",
     layer: "matrimony",
-    x: 80,
-    y: 30,
+    lat: 33.612,
+    lng: 73.062,
     preview: "Rawalpindi · Dentist · 24 yrs",
     privacy: "friends",
     timestamp: "Yesterday",
@@ -532,55 +506,13 @@ const MAP_PINS: GeoPin[] = [
     compatScore: 71,
     ageRange: "22-26",
   },
-  {
-    id: 106,
-    name: "Noor M.",
-    layer: "matrimony",
-    x: 56,
-    y: 15,
-    preview: "Karachi · Business Owner · 30 yrs",
-    privacy: "public",
-    timestamp: "3 hrs ago",
-    shareLevel: "basic",
-    isNew: false,
-    compatScore: 68,
-    ageRange: "28-33",
-  },
-  {
-    id: 107,
-    name: "Amna R.",
-    layer: "matrimony",
-    x: 18,
-    y: 55,
-    preview: "Lahore · Pharmacist · 25 yrs",
-    privacy: "family",
-    timestamp: "5 hrs ago",
-    shareLevel: "nickname",
-    isNew: false,
-    compatScore: 65,
-    ageRange: "23-28",
-  },
-  {
-    id: 108,
-    name: "Saba Q.",
-    layer: "matrimony",
-    x: 88,
-    y: 65,
-    preview: "Islamabad · Lecturer · 29 yrs",
-    privacy: "public",
-    timestamp: "1 day ago",
-    shareLevel: "full",
-    isNew: false,
-    compatScore: 79,
-    ageRange: "27-32",
-  },
-  // ── Dating pins ─────────────────────────────────────────────────────────────
+  // Dating pins
   {
     id: 201,
     name: "Zara K.",
     layer: "dating",
-    x: 27,
-    y: 42,
+    lat: 31.542,
+    lng: 74.296,
     preview: "Lahore · Creative · Adventurous",
     privacy: "public",
     timestamp: "Today",
@@ -594,8 +526,8 @@ const MAP_PINS: GeoPin[] = [
     id: 202,
     name: "Ali M.",
     layer: "dating",
-    x: 50,
-    y: 30,
+    lat: 24.867,
+    lng: 67.008,
     preview: "Karachi · Tech enthusiast · Social",
     privacy: "public",
     timestamp: "Today",
@@ -609,8 +541,8 @@ const MAP_PINS: GeoPin[] = [
     id: 203,
     name: "Iqra N.",
     layer: "dating",
-    x: 75,
-    y: 55,
+    lat: 33.741,
+    lng: 73.095,
     preview: "Islamabad · Artist · Homebody",
     privacy: "friends",
     timestamp: "Today",
@@ -624,8 +556,8 @@ const MAP_PINS: GeoPin[] = [
     id: 204,
     name: "Kamran S.",
     layer: "dating",
-    x: 38,
-    y: 80,
+    lat: 31.448,
+    lng: 74.268,
     preview: "Lahore · Foodie · Night Owl",
     privacy: "public",
     timestamp: "2 hrs ago",
@@ -634,66 +566,6 @@ const MAP_PINS: GeoPin[] = [
     compatScore: 72,
     relationshipGoal: "Casual Dating",
     ageRange: "24-29",
-  },
-  {
-    id: 205,
-    name: "Sara T.",
-    layer: "dating",
-    x: 62,
-    y: 18,
-    preview: "Rawalpindi · Fitness lover · Extrovert",
-    privacy: "public",
-    timestamp: "4 hrs ago",
-    shareLevel: "basic",
-    isNew: false,
-    compatScore: 65,
-    relationshipGoal: "Serious Relationship",
-    ageRange: "21-26",
-  },
-  {
-    id: 206,
-    name: "Raza H.",
-    layer: "dating",
-    x: 84,
-    y: 42,
-    preview: "Karachi · Intellectual · Ambivert",
-    privacy: "friends",
-    timestamp: "Yesterday",
-    shareLevel: "nickname",
-    isNew: false,
-    compatScore: 55,
-    relationshipGoal: "Friendship First",
-    ageRange: "26-32",
-  },
-  {
-    id: 207,
-    name: "Nadia F.",
-    layer: "dating",
-    x: 20,
-    y: 70,
-    preview: "Lahore · Traveler · Morning Person",
-    privacy: "public",
-    timestamp: "6 hrs ago",
-    shareLevel: "basic",
-    isNew: false,
-    compatScore: 83,
-    relationshipGoal: "Marriage",
-    ageRange: "23-27",
-  },
-  {
-    id: 208,
-    name: "Hassan B.",
-    layer: "dating",
-    x: 44,
-    y: 88,
-    preview: "Islamabad · Chef · Vegetarian",
-    privacy: "public",
-    timestamp: "3 hrs ago",
-    shareLevel: "full",
-    isNew: false,
-    compatScore: 90,
-    relationshipGoal: "Marriage",
-    ageRange: "27-33",
   },
 ];
 
@@ -743,7 +615,6 @@ const SHARE_LEVEL_LABELS: Record<string, string> = {
   full: "Full Profile",
 };
 
-// ── Matrimony filter state ────────────────────────────────────────────────────
 interface MatrimonyFilters {
   caste: string;
   religion: string;
@@ -784,16 +655,27 @@ const DEFAULT_DATING_FILTERS: DatingFilters = {
   drinkingHabits: "any",
 };
 
+// ── Map view resetter ─────────────────────────────────────────────────────────
+
+function MapInvalidator() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      (map as unknown as { invalidateSize: () => void }).invalidateSize();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function GeoMapPage() {
   const [activeLayers, setActiveLayers] = useState<Set<string>>(
     new Set(LAYERS.map((l) => l.id)),
   );
   const [privacyFilter, setPrivacyFilter] = useState("all");
-  const [showRecentPosts, setShowRecentPosts] = useState(false);
   const [layersPanelOpen, setLayersPanelOpen] = useState(true);
-  const [hoveredPin, setHoveredPin] = useState<GeoPin | null>(null);
-
-  // New state
   const [dailyMatchesOpen, setDailyMatchesOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
@@ -804,8 +686,6 @@ export default function GeoMapPage() {
   const [shareSettingsOpen, setShareSettingsOpen] = useState<
     "matrimony" | "dating" | null
   >(null);
-
-  // Filters state
   const [matrimonyFilters, setMatrimonyFilters] = useState<MatrimonyFilters>(
     DEFAULT_MATRIMONY_FILTERS,
   );
@@ -813,7 +693,6 @@ export default function GeoMapPage() {
     DEFAULT_DATING_FILTERS,
   );
 
-  // ── Self-pin state: read from FamilyTree lifestyle localStorage key ──
   const readLifestyle = (): { matrimony: boolean; dating: boolean } => {
     try {
       const key = Object.keys(localStorage).find((k) =>
@@ -837,7 +716,6 @@ export default function GeoMapPage() {
     () => readLifestyle().dating,
   );
 
-  // Keep self-pin in sync if the toggle changes in another tab or the same page
   useEffect(() => {
     const handleStorage = () => {
       try {
@@ -853,7 +731,7 @@ export default function GeoMapPage() {
         setUserMatrimonyEnabled(parsed.matrimony ?? false);
         setUserDatingEnabled(parsed.dating ?? false);
       } catch {
-        // ignore parse errors
+        // ignore
       }
     };
     window.addEventListener("storage", handleStorage);
@@ -878,7 +756,6 @@ export default function GeoMapPage() {
     }));
   };
 
-  // Derived data
   const showLocationPrompt =
     !locationPromptDismissed &&
     (activeLayers.has("matrimony") || activeLayers.has("dating"));
@@ -891,14 +768,14 @@ export default function GeoMapPage() {
   );
   const totalNewMatches = newMatrimonyPins.length + newDatingPins.length;
 
-  // Build self-pins derived from lifestyle toggles
+  // Self-pins: Lahore center
   const selfMatrimonyPin: GeoPin | null = userMatrimonyEnabled
     ? {
         id: 9001,
         name: "You",
         layer: "matrimony",
-        x: 50,
-        y: 50,
+        lat: 31.513,
+        lng: 74.341,
         preview: "Your matrimony profile is active",
         privacy: "private",
         timestamp: "Active now",
@@ -914,8 +791,8 @@ export default function GeoMapPage() {
         id: 9002,
         name: "You",
         layer: "dating",
-        x: 50,
-        y: 50,
+        lat: 31.513,
+        lng: 74.344,
         preview: "Your dating profile is active",
         privacy: "private",
         timestamp: "Active now",
@@ -936,57 +813,33 @@ export default function GeoMapPage() {
   const isSelfPin = (pin: GeoPin) => pin.id >= 9000;
 
   const filteredPins = ALL_PINS.filter((pin) => {
-    // Self-pins are never filtered out (only hidden by layer toggle)
-    if (isSelfPin(pin)) {
-      return activeLayers.has(pin.layer);
-    }
-
+    if (isSelfPin(pin)) return activeLayers.has(pin.layer);
     if (!activeLayers.has(pin.layer)) return false;
-    // Never show hidden pins
     if (pin.shareLevel === "hidden") return false;
     if (privacyFilter !== "all" && pin.privacy !== privacyFilter) return false;
-
-    // Matrimony filters
-    if (pin.layer === "matrimony") {
+    if (pin.layer === "matrimony" && pin.ageRange) {
+      const [minAge] = pin.ageRange.split("-").map(Number);
       if (
-        matrimonyFilters.caste &&
-        !pin.preview
-          .toLowerCase()
-          .includes(matrimonyFilters.caste.toLowerCase())
-      ) {
-        // caste is metadata we don't have fully modeled; skip strict filter
-      }
-      // age range filter (parse ageRange like "24-28")
-      if (pin.ageRange) {
-        const [minAge] = pin.ageRange.split("-").map(Number);
-        if (
-          minAge < matrimonyFilters.ageRange[0] ||
-          minAge > matrimonyFilters.ageRange[1]
-        ) {
-          return false;
-        }
-      }
+        minAge < matrimonyFilters.ageRange[0] ||
+        minAge > matrimonyFilters.ageRange[1]
+      )
+        return false;
     }
-
-    // Dating filters
     if (pin.layer === "dating") {
       if (
         datingFilters.relationshipGoal !== "any" &&
         pin.relationshipGoal !== datingFilters.relationshipGoal
-      ) {
+      )
         return false;
-      }
       if (pin.ageRange) {
         const [minAge] = pin.ageRange.split("-").map(Number);
         if (
           minAge < datingFilters.ageRange[0] ||
           minAge > datingFilters.ageRange[1]
-        ) {
+        )
           return false;
-        }
       }
     }
-
     return true;
   });
 
@@ -1008,20 +861,6 @@ export default function GeoMapPage() {
       className="relative w-full h-full flex flex-col"
       style={{ minHeight: "100%" }}
     >
-      {/* Pulse animation style */}
-      <style>{`
-        @keyframes pinPulse {
-          0%, 100% { box-shadow: 0 0 0 0px rgba(244, 63, 94, 0.5); }
-          50% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); }
-        }
-        @keyframes pinPulseDating {
-          0%, 100% { box-shadow: 0 0 0 0px rgba(139, 92, 246, 0.5); }
-          50% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
-        }
-        .pin-pulse-matrimony { animation: pinPulse 2s infinite; }
-        .pin-pulse-dating { animation: pinPulseDating 2s infinite; }
-      `}</style>
-
       {/* Page header */}
       <div className="px-6 py-4 border-b border-border bg-card shrink-0 flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -1034,7 +873,6 @@ export default function GeoMapPage() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Privacy filter */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-label text-muted-foreground hidden sm:inline">
               Showing:
@@ -1043,6 +881,7 @@ export default function GeoMapPage() {
               value={privacyFilter}
               onChange={(e) => setPrivacyFilter(e.target.value)}
               className="h-8 text-xs font-label rounded-md border border-border bg-card px-2 pr-6 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              data-ocid="geomap.privacy_filter.select"
             >
               {PRIVACY_LEVELS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -1052,9 +891,9 @@ export default function GeoMapPage() {
             </select>
           </div>
 
-          {/* Daily Matches button */}
           <button
             type="button"
+            data-ocid="geomap.daily_matches.button"
             onClick={() => setDailyMatchesOpen(true)}
             className="relative h-8 px-3 text-xs font-label rounded-md border transition-colors flex items-center gap-1.5"
             style={{
@@ -1075,45 +914,23 @@ export default function GeoMapPage() {
             )}
           </button>
 
-          {/* Filters button */}
           <Button
             variant="outline"
             size="sm"
             className="h-8 gap-1.5 text-xs font-label"
             onClick={() => setFiltersOpen(true)}
+            data-ocid="geomap.filters.button"
           >
             <Filter size={13} />
             <span className="hidden sm:inline">Filters</span>
           </Button>
 
-          {/* Recent posts toggle */}
-          <button
-            type="button"
-            onClick={() => setShowRecentPosts((v) => !v)}
-            className="h-8 px-3 text-xs font-label rounded-md border transition-colors"
-            style={
-              showRecentPosts
-                ? {
-                    background: "oklch(0.65 0.25 335 / 0.15)",
-                    color: "oklch(0.65 0.25 335)",
-                    borderColor: "oklch(0.65 0.25 335 / 0.3)",
-                  }
-                : {
-                    background: "oklch(var(--secondary))",
-                    color: "oklch(var(--foreground))",
-                    borderColor: "oklch(var(--border))",
-                  }
-            }
-          >
-            Recent Posts
-          </button>
-
-          {/* Layers toggle */}
           <Button
             variant="outline"
             size="sm"
             className="h-8 gap-1.5 text-xs font-label"
             onClick={() => setLayersPanelOpen((v) => !v)}
+            data-ocid="geomap.layers.toggle"
           >
             <Layers size={13} />
             <span className="hidden sm:inline">Layers</span>
@@ -1121,7 +938,7 @@ export default function GeoMapPage() {
         </div>
       </div>
 
-      {/* Location accuracy prompt banner */}
+      {/* Location accuracy prompt */}
       {showLocationPrompt && (
         <div
           className="shrink-0 px-6 py-2.5 flex items-center gap-3 flex-wrap"
@@ -1146,6 +963,7 @@ export default function GeoMapPage() {
               border: "1px solid oklch(0.75 0.18 85 / 0.4)",
             }}
             onClick={() => setLocationDialogOpen(true)}
+            data-ocid="geomap.set_location.button"
           >
             Set Location
           </button>
@@ -1164,506 +982,305 @@ export default function GeoMapPage() {
         className="relative flex-1 overflow-hidden"
         style={{ minHeight: "500px" }}
       >
-        {/* SVG map background */}
-        <div
-          className="absolute inset-0 w-full h-full"
+        {/* Real Leaflet Map */}
+        <MapContainer
+          center={[30.5, 73.0]}
+          zoom={6}
           style={{
-            background:
-              "linear-gradient(135deg, oklch(0.18 0.02 240) 0%, oklch(0.14 0.03 260) 50%, oklch(0.16 0.02 220) 100%)",
+            width: "100%",
+            height: "100%",
+            position: "absolute",
+            inset: 0,
           }}
+          zoomControl={true}
+          scrollWheelZoom={true}
+          data-ocid="geomap.map_container"
         >
-          {/* Grid lines */}
-          <svg
-            aria-hidden="true"
-            width="100%"
-            height="100%"
-            className="absolute inset-0 opacity-10"
-          >
-            <line
-              x1="0%"
-              y1="0%"
-              x2="0%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="10%"
-              y1="0%"
-              x2="10%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="20%"
-              y1="0%"
-              x2="20%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="30%"
-              y1="0%"
-              x2="30%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="40%"
-              y1="0%"
-              x2="40%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="50%"
-              y1="0%"
-              x2="50%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="60%"
-              y1="0%"
-              x2="60%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="70%"
-              y1="0%"
-              x2="70%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="80%"
-              y1="0%"
-              x2="80%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="90%"
-              y1="0%"
-              x2="90%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="100%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="0%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="10%"
-              x2="100%"
-              y2="10%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="20%"
-              x2="100%"
-              y2="20%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="30%"
-              x2="100%"
-              y2="30%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="40%"
-              x2="100%"
-              y2="40%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="50%"
-              x2="100%"
-              y2="50%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="60%"
-              x2="100%"
-              y2="60%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="70%"
-              x2="100%"
-              y2="70%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="80%"
-              x2="100%"
-              y2="80%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="90%"
-              x2="100%"
-              y2="90%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-            <line
-              x1="0%"
-              y1="100%"
-              x2="100%"
-              y2="100%"
-              stroke="oklch(0.7 0.1 260)"
-              strokeWidth="1"
-            />
-          </svg>
+          <MapInvalidator />
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          />
 
-          {/* Decorative "road" lines */}
-          <svg
-            aria-hidden="true"
-            width="100%"
-            height="100%"
-            className="absolute inset-0 opacity-20"
-          >
-            <path
-              d="M 0% 45% Q 30% 43% 50% 50% T 100% 48%"
-              stroke="oklch(0.6 0.05 240)"
-              strokeWidth="2"
-              fill="none"
-            />
-            <path
-              d="M 0% 65% Q 40% 62% 60% 60% T 100% 62%"
-              stroke="oklch(0.6 0.05 240)"
-              strokeWidth="1.5"
-              fill="none"
-            />
-            <path
-              d="M 48% 0% Q 52% 35% 50% 55% T 49% 100%"
-              stroke="oklch(0.6 0.05 240)"
-              strokeWidth="2"
-              fill="none"
-            />
-            <path
-              d="M 65% 0% Q 67% 40% 66% 60% T 68% 100%"
-              stroke="oklch(0.6 0.05 240)"
-              strokeWidth="1.5"
-              fill="none"
-            />
-            <path
-              d="M 0% 30% Q 20% 28% 35% 32% T 70% 30% Q 85% 28% 100% 32%"
-              stroke="oklch(0.6 0.05 240)"
-              strokeWidth="1"
-              fill="none"
-            />
-          </svg>
-
-          {/* Subtle region blobs */}
-          <svg
-            aria-hidden="true"
-            width="100%"
-            height="100%"
-            className="absolute inset-0 opacity-8"
-          >
-            <ellipse
-              cx="50%"
-              cy="55%"
-              rx="18%"
-              ry="12%"
-              fill="oklch(0.55 0.1 260)"
-            />
-            <ellipse
-              cx="30%"
-              cy="72%"
-              rx="12%"
-              ry="8%"
-              fill="oklch(0.50 0.08 200)"
-            />
-            <ellipse
-              cx="70%"
-              cy="40%"
-              rx="10%"
-              ry="7%"
-              fill="oklch(0.52 0.08 230)"
-            />
-          </svg>
-
-          {/* Pins */}
           {filteredPins.map((pin) => {
             const hex = LAYER_HEX[pin.layer] ?? "#7c3aed";
             const layer = LAYERS.find((l) => l.id === pin.layer);
-            const LayerIcon = layer?.icon ?? MapPinIcon;
-            const isHovered = hoveredPin?.id === pin.id;
             const isMatrimonyOrDating =
               pin.layer === "matrimony" || pin.layer === "dating";
             const isNewPin = pin.isNew && isMatrimonyOrDating;
             const isSelf = isSelfPin(pin);
-            const pulseClass = isNewPin
-              ? pin.layer === "matrimony"
-                ? "pin-pulse-matrimony"
-                : "pin-pulse-dating"
-              : isSelf
-                ? pin.layer === "matrimony"
-                  ? "pin-pulse-matrimony"
-                  : "pin-pulse-dating"
-                : "";
             const shareBadge = pin.shareLevel
               ? getShareBadgeColor(pin.shareLevel)
               : null;
 
             return (
-              <button
+              <CircleMarker
                 key={pin.id}
-                type="button"
-                className="absolute group transition-all duration-150 focus:outline-none"
-                style={{
-                  left: `${pin.x}%`,
-                  top: `${pin.y}%`,
-                  transform: "translate(-50%, -50%)",
-                  zIndex: isSelf ? 40 : isHovered ? 30 : 10,
+                center={[pin.lat, pin.lng]}
+                radius={isSelf ? 12 : isNewPin ? 10 : 8}
+                pathOptions={{
+                  color: "#fff",
+                  weight: isSelf ? 3 : 2,
+                  fillColor: hex,
+                  fillOpacity: 0.9,
+                  opacity: 1,
                 }}
-                onMouseEnter={() => setHoveredPin(pin)}
-                onMouseLeave={() => setHoveredPin(null)}
-                onClick={() =>
-                  setHoveredPin((prev) => (prev?.id === pin.id ? null : pin))
-                }
-                aria-label={`${pin.name} – ${layer?.label ?? pin.layer}`}
+                data-ocid={`geomap.map_marker.${pin.id}`}
               >
-                {/* "New" badge */}
-                {isNewPin && (
-                  <span
-                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[8px] font-bold px-1 py-0.5 rounded whitespace-nowrap"
-                    style={{ background: hex, color: "#fff" }}
-                  >
-                    New
-                  </span>
-                )}
-
-                {/* "You" label for self-pins */}
-                {isSelf && (
-                  <span
-                    className="absolute -top-4 left-1/2 -translate-x-1/2 text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap border"
-                    style={{
-                      background: `${hex}22`,
-                      color: hex,
-                      borderColor: `${hex}55`,
-                    }}
-                  >
-                    ★ You
-                  </span>
-                )}
-
-                {/* Pin dot — self-pin is larger */}
-                <div
-                  className={`rounded-full border-2 border-white shadow-lg transition-transform duration-150 ${pulseClass}`}
-                  style={{
-                    width: isSelf ? "20px" : "16px",
-                    height: isSelf ? "20px" : "16px",
-                    background: hex,
-                    boxShadow: `0 0 0 ${isHovered || isSelf ? "6px" : "3px"} ${hex}30`,
-                    transform: isHovered
-                      ? "scale(1.4)"
-                      : isSelf
-                        ? "scale(1.2)"
-                        : "scale(1)",
-                  }}
-                />
-
-                {/* Popup */}
-                {isHovered && (
+                <Popup
+                  className="leaflet-popup-custom"
+                  maxWidth={240}
+                  minWidth={200}
+                >
                   <div
-                    className="absolute z-50 rounded-xl border shadow-elevated text-left pointer-events-none"
                     style={{
-                      background: "oklch(0.15 0.02 260)",
-                      borderColor: isSelf ? hex : `${hex}50`,
-                      width: "220px",
-                      top: "calc(100% + 8px)",
-                      left: "50%",
-                      transform: "translateX(-50%)",
+                      background: "#1a1a2e",
+                      border: `1px solid ${isSelf ? hex : `${hex}55`}`,
+                      borderRadius: "12px",
+                      padding: "12px",
+                      minWidth: "190px",
                     }}
                   >
-                    <div className="p-3">
-                      {/* Self-pin header */}
-                      {isSelf && (
+                    {isSelf && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          marginBottom: "8px",
+                          paddingBottom: "8px",
+                          borderBottom: `1px solid ${hex}30`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: hex,
+                            fontSize: "11px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          ★ You
+                        </span>
+                        <span
+                          style={{
+                            color: "rgba(255,255,255,0.5)",
+                            fontSize: "10px",
+                          }}
+                        >
+                          — This is your pin
+                        </span>
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "6px",
+                          background: `${hex}25`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          marginTop: "2px",
+                        }}
+                      >
+                        <span style={{ color: hex, fontSize: "10px" }}>●</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p
+                          style={{
+                            color: isSelf ? hex : "#fff",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            margin: 0,
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {isSelf ? "★ You" : pin.name}
+                        </p>
                         <div
-                          className="flex items-center gap-1.5 mb-2 pb-2 border-b"
-                          style={{ borderColor: `${hex}30` }}
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "4px",
+                            marginTop: "4px",
+                          }}
                         >
                           <span
-                            className="text-[11px] font-bold"
-                            style={{ color: hex }}
+                            style={{
+                              background: `${hex}25`,
+                              color: hex,
+                              fontSize: "9px",
+                              fontWeight: "bold",
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                            }}
                           >
-                            ★ You
+                            {layer?.label ?? pin.layer}
                           </span>
-                          <span className="text-[10px] text-white/50">
-                            — This is your pin
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-start gap-2 mb-2">
-                        <div
-                          className="w-5 h-5 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                          style={{ background: `${hex}25` }}
-                        >
-                          <LayerIcon size={11} style={{ color: hex }} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-white truncate">
-                            {isSelf ? (
-                              <span style={{ color: hex }}>★ You</span>
-                            ) : (
-                              pin.name
-                            )}
-                          </p>
-                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          {isNewPin && (
                             <span
-                              className="text-[9px] font-bold px-1 py-0.5 rounded"
-                              style={{ background: `${hex}25`, color: hex }}
-                            >
-                              {layer?.label ?? pin.layer}
-                            </span>
-                            {isNewPin && (
-                              <span
-                                className="text-[9px] font-bold px-1 py-0.5 rounded"
-                                style={{
-                                  background: "#f43f5e20",
-                                  color: "#f43f5e",
-                                }}
-                              >
-                                New Today
-                              </span>
-                            )}
-                            <span
-                              className="text-[9px] px-1 py-0.5 rounded"
                               style={{
-                                background:
-                                  pin.privacy === "public"
-                                    ? "#22c55e20"
-                                    : pin.privacy === "family"
-                                      ? "#7c3aed20"
-                                      : pin.privacy === "friends"
-                                        ? "#3b82f620"
-                                        : "#06b6d420",
-                                color:
-                                  pin.privacy === "public"
-                                    ? "#22c55e"
-                                    : pin.privacy === "family"
-                                      ? "#a78bfa"
-                                      : pin.privacy === "friends"
-                                        ? "#60a5fa"
-                                        : "#22d3ee",
+                                background: "#f43f5e20",
+                                color: "#f43f5e",
+                                fontSize: "9px",
+                                fontWeight: "bold",
+                                padding: "1px 5px",
+                                borderRadius: "4px",
                               }}
                             >
-                              {pin.privacy}
+                              New Today
                             </span>
-                          </div>
+                          )}
+                          <span
+                            style={{
+                              background:
+                                pin.privacy === "public"
+                                  ? "#22c55e20"
+                                  : pin.privacy === "family"
+                                    ? "#7c3aed20"
+                                    : pin.privacy === "friends"
+                                      ? "#3b82f620"
+                                      : "#06b6d420",
+                              color:
+                                pin.privacy === "public"
+                                  ? "#22c55e"
+                                  : pin.privacy === "family"
+                                    ? "#a78bfa"
+                                    : pin.privacy === "friends"
+                                      ? "#60a5fa"
+                                      : "#22d3ee",
+                              fontSize: "9px",
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            {pin.privacy}
+                          </span>
                         </div>
                       </div>
+                    </div>
 
-                      <p className="text-[10px] text-white/60 leading-relaxed">
-                        {pin.preview}
-                      </p>
+                    <p
+                      style={{
+                        color: "rgba(255,255,255,0.6)",
+                        fontSize: "10px",
+                        lineHeight: 1.5,
+                        margin: 0,
+                      }}
+                    >
+                      {pin.preview}
+                    </p>
 
-                      {/* Matrimony/Dating extras */}
-                      {isMatrimonyOrDating && !isSelf && (
-                        <div className="mt-2 space-y-1">
-                          {pin.compatScore !== undefined && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 h-1 rounded-full bg-white/10">
-                                <div
-                                  className="h-1 rounded-full"
-                                  style={{
-                                    width: `${pin.compatScore}%`,
-                                    background: hex,
-                                  }}
-                                />
-                              </div>
-                              <span
-                                className="text-[9px] font-bold"
-                                style={{ color: hex }}
-                              >
-                                {pin.compatScore}% Match
-                              </span>
-                            </div>
-                          )}
-                          {pin.ageRange && (
-                            <p className="text-[9px] text-white/50">
-                              Age range: {pin.ageRange}
-                            </p>
-                          )}
-                          {pin.relationshipGoal && (
-                            <p className="text-[9px] text-white/50">
-                              Goal: {pin.relationshipGoal}
-                            </p>
-                          )}
-                          {shareBadge && pin.shareLevel && (
-                            <span
-                              className="inline-block text-[9px] px-1 py-0.5 rounded"
+                    {isMatrimonyOrDating && !isSelf && (
+                      <div style={{ marginTop: "8px" }}>
+                        {pin.compatScore !== undefined && (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            <div
                               style={{
-                                background: shareBadge.bg,
-                                color: shareBadge.color,
+                                flex: 1,
+                                height: "4px",
+                                borderRadius: "2px",
+                                background: "rgba(255,255,255,0.1)",
                               }}
                             >
-                              {SHARE_LEVEL_LABELS[pin.shareLevel]}
+                              <div
+                                style={{
+                                  height: "4px",
+                                  borderRadius: "2px",
+                                  width: `${pin.compatScore}%`,
+                                  background: hex,
+                                }}
+                              />
+                            </div>
+                            <span
+                              style={{
+                                color: hex,
+                                fontSize: "9px",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {pin.compatScore}% Match
                             </span>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                        {pin.ageRange && (
+                          <p
+                            style={{
+                              color: "rgba(255,255,255,0.4)",
+                              fontSize: "9px",
+                              margin: "2px 0",
+                            }}
+                          >
+                            Age range: {pin.ageRange}
+                          </p>
+                        )}
+                        {pin.relationshipGoal && (
+                          <p
+                            style={{
+                              color: "rgba(255,255,255,0.4)",
+                              fontSize: "9px",
+                              margin: "2px 0",
+                            }}
+                          >
+                            Goal: {pin.relationshipGoal}
+                          </p>
+                        )}
+                        {shareBadge && pin.shareLevel && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              background: shareBadge.bg,
+                              color: shareBadge.color,
+                              fontSize: "9px",
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                              marginTop: "4px",
+                            }}
+                          >
+                            {SHARE_LEVEL_LABELS[pin.shareLevel]}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                      <p className="text-[9px] text-white/40 mt-1">
-                        {pin.timestamp}
-                      </p>
-                    </div>
+                    <p
+                      style={{
+                        color: "rgba(255,255,255,0.35)",
+                        fontSize: "9px",
+                        marginTop: "6px",
+                        marginBottom: 0,
+                      }}
+                    >
+                      {pin.timestamp}
+                    </p>
                   </div>
-                )}
-              </button>
+                </Popup>
+              </CircleMarker>
             );
           })}
-        </div>
+        </MapContainer>
 
         {/* Layers panel */}
         {layersPanelOpen && (
           <div
-            className="absolute top-3 left-3 z-20 rounded-xl border shadow-elevated overflow-hidden"
+            className="absolute top-3 left-3 z-[1000] rounded-xl border shadow-elevated overflow-hidden"
             style={{
               background: "oklch(var(--card))",
               borderColor: "oklch(var(--border))",
@@ -1710,6 +1327,7 @@ export default function GeoMapPage() {
                       onClick={() => toggleLayer(layer.id)}
                       className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-label transition-colors hover:bg-secondary/50"
                       style={{ opacity: isActive ? 1 : 0.45 }}
+                      data-ocid={`geomap.layer.${layer.id}.toggle`}
                     >
                       <div
                         className="w-3 h-3 rounded-full shrink-0"
@@ -1735,7 +1353,6 @@ export default function GeoMapPage() {
                         )}
                       </div>
                     </button>
-                    {/* Visibility settings for matrimony/dating */}
                     {isMatchLayer && isActive && (
                       <button
                         type="button"
@@ -1773,765 +1390,327 @@ export default function GeoMapPage() {
           <button
             type="button"
             onClick={() => setLayersPanelOpen(true)}
-            className="absolute top-3 left-3 z-20 w-9 h-9 rounded-xl flex items-center justify-center shadow-elevated border border-border transition-colors hover:bg-secondary/50"
-            style={{ background: "oklch(var(--card))" }}
+            className="absolute top-3 left-3 z-[1000] w-9 h-9 rounded-xl bg-card border border-border shadow-elevated flex items-center justify-center hover:bg-secondary transition-colors"
             aria-label="Open layers panel"
+            data-ocid="geomap.layers_open.button"
           >
-            <Layers size={16} className="text-foreground" />
+            <Layers size={15} className="text-foreground/70" />
           </button>
         )}
-
-        {/* Legend */}
-        <div
-          className="absolute bottom-4 right-3 z-20 rounded-xl border shadow-elevated px-3 py-2"
-          style={{
-            background: "oklch(var(--card) / 0.92)",
-            borderColor: "oklch(var(--border))",
-          }}
-        >
-          <p className="text-[10px] font-label font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
-            Legend
-          </p>
-          <div className="space-y-1">
-            {LAYERS.filter((l) => activeLayers.has(l.id))
-              .slice(0, 5)
-              .map((l) => (
-                <div key={l.id} className="flex items-center gap-2">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ background: LAYER_HEX[l.id] }}
-                  />
-                  <span className="text-[10px] font-label text-foreground">
-                    {l.label}
-                  </span>
-                </div>
-              ))}
-            {activeLayers.size > 5 && (
-              <p className="text-[10px] text-muted-foreground">
-                +{activeLayers.size - 5} more
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Recent posts badge */}
-        {showRecentPosts && (
-          <div
-            className="absolute top-3 right-3 z-20 rounded-xl border shadow-elevated px-3 py-2 text-xs font-label"
-            style={{
-              background: "oklch(0.65 0.25 335 / 0.12)",
-              borderColor: "oklch(0.65 0.25 335 / 0.3)",
-              color: "oklch(0.65 0.25 335)",
-            }}
-          >
-            📍 Recent posts shown on map
-          </div>
-        )}
       </div>
 
-      {/* Stats bar */}
-      <div className="shrink-0 border-t border-border bg-card px-6 py-2 flex items-center gap-6 overflow-x-auto">
-        <div className="flex items-center gap-2 shrink-0">
-          <MapPinIcon size={13} className="text-muted-foreground" />
-          <span className="text-xs font-label text-muted-foreground">
-            <span className="font-semibold text-foreground">
-              {filteredPins.length}
-            </span>{" "}
-            pins
-          </span>
-        </div>
-        {LAYERS.filter((l) => activeLayers.has(l.id)).map((l) => {
-          const count = filteredPins.filter((p) => p.layer === l.id).length;
-          if (count === 0) return null;
-          return (
-            <div key={l.id} className="flex items-center gap-1.5 shrink-0">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: LAYER_HEX[l.id] }}
-              />
-              <span className="text-xs font-label text-muted-foreground">
-                <span className="font-semibold text-foreground">{count}</span>{" "}
-                {l.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Daily Matches Sheet (right slide-in) ──────────────────────────────── */}
+      {/* Daily Matches Sheet */}
       <Sheet open={dailyMatchesOpen} onOpenChange={setDailyMatchesOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] p-0">
-          <SheetHeader className="px-5 py-4 border-b border-border">
-            <SheetTitle className="flex items-center gap-2">
-              <Sparkles size={16} className="text-rose-500" />
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto"
+        >
+          <SheetHeader className="mb-5">
+            <SheetTitle className="font-display flex items-center gap-2">
+              <Sparkles size={18} style={{ color: "#f43f5e" }} />
               Daily Matches
-              {totalNewMatches > 0 && (
-                <Badge
-                  className="text-white text-[10px] px-1.5 py-0"
-                  style={{ background: "#f43f5e" }}
-                >
-                  {totalNewMatches} New
-                </Badge>
-              )}
             </SheetTitle>
           </SheetHeader>
-
-          <Tabs
-            defaultValue="matrimony"
-            className="flex flex-col h-[calc(100%-68px)]"
-          >
-            <TabsList className="mx-5 mt-4 mb-2 grid grid-cols-2">
-              <TabsTrigger value="matrimony" className="gap-1.5">
-                <Heart size={12} />
-                Matrimony
-                {newMatrimonyPins.length > 0 && (
-                  <span
-                    className="ml-1 text-[9px] font-bold px-1 rounded"
-                    style={{ background: "#f43f5e20", color: "#f43f5e" }}
-                  >
-                    {newMatrimonyPins.length}
-                  </span>
-                )}
+          <Tabs defaultValue="matrimony">
+            <TabsList className="w-full mb-4">
+              <TabsTrigger
+                value="matrimony"
+                className="flex-1 font-label text-xs"
+              >
+                Matrimony ({newMatrimonyPins.length})
               </TabsTrigger>
-              <TabsTrigger value="dating" className="gap-1.5">
-                <Zap size={12} />
-                Dating
-                {newDatingPins.length > 0 && (
-                  <span
-                    className="ml-1 text-[9px] font-bold px-1 rounded"
-                    style={{ background: "#8b5cf620", color: "#8b5cf6" }}
-                  >
-                    {newDatingPins.length}
-                  </span>
-                )}
+              <TabsTrigger value="dating" className="flex-1 font-label text-xs">
+                Dating ({newDatingPins.length})
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent
-              value="matrimony"
-              className="flex-1 overflow-hidden m-0"
-            >
-              <ScrollArea className="h-full px-5 pb-4">
-                {newMatrimonyPins.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No new matrimony matches today
-                  </p>
-                ) : (
-                  <div className="space-y-3 pt-1">
-                    {[...newMatrimonyPins]
-                      .sort(
-                        (a, b) => (b.compatScore ?? 0) - (a.compatScore ?? 0),
-                      )
-                      .map((pin) => (
-                        <div
-                          key={pin.id}
-                          className="rounded-xl border border-border p-3 flex items-start gap-3"
-                          style={{ background: "#f43f5e08" }}
+            <TabsContent value="matrimony" className="space-y-3">
+              {newMatrimonyPins
+                .sort((a, b) => (b.compatScore ?? 0) - (a.compatScore ?? 0))
+                .map((pin) => (
+                  <div
+                    key={pin.id}
+                    className="bg-card border border-border rounded-xl p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-label font-semibold text-sm text-foreground">
+                        {pin.name}
+                      </p>
+                      {pin.compatScore !== undefined && (
+                        <span
+                          className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: "#f43f5e20", color: "#f43f5e" }}
                         >
-                          <div
-                            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold text-white"
-                            style={{ background: "#f43f5e" }}
-                          >
-                            {pin.name.charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-foreground">
-                                {pin.name}
-                              </p>
-                              {pin.compatScore !== undefined && (
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                                  style={{ background: "#f43f5e" }}
-                                >
-                                  {pin.compatScore}%
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {pin.preview}
-                            </p>
-                            {pin.ageRange && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
-                                Age range: {pin.ageRange}
-                              </p>
-                            )}
-                            <button
-                              type="button"
-                              className="mt-2 text-[10px] font-label font-semibold px-2 py-1 rounded-md transition-colors"
-                              style={{
-                                background: "#f43f5e15",
-                                color: "#f43f5e",
-                                border: "1px solid #f43f5e30",
-                              }}
-                              onClick={() => {
-                                setDailyMatchesOpen(false);
-                                setActiveLayers(
-                                  (prev) => new Set([...prev, "matrimony"]),
-                                );
-                              }}
-                            >
-                              View on Map
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                          {pin.compatScore}% Match
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {pin.preview}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary" className="text-[10px]">
+                        New Today
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        {pin.ageRange && `Age: ${pin.ageRange}`}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </ScrollArea>
+                ))}
             </TabsContent>
-
-            <TabsContent value="dating" className="flex-1 overflow-hidden m-0">
-              <ScrollArea className="h-full px-5 pb-4">
-                {newDatingPins.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No new dating matches today
-                  </p>
-                ) : (
-                  <div className="space-y-3 pt-1">
-                    {[...newDatingPins]
-                      .sort(
-                        (a, b) => (b.compatScore ?? 0) - (a.compatScore ?? 0),
-                      )
-                      .map((pin) => (
-                        <div
-                          key={pin.id}
-                          className="rounded-xl border border-border p-3 flex items-start gap-3"
-                          style={{ background: "#8b5cf608" }}
+            <TabsContent value="dating" className="space-y-3">
+              {newDatingPins
+                .sort((a, b) => (b.compatScore ?? 0) - (a.compatScore ?? 0))
+                .map((pin) => (
+                  <div
+                    key={pin.id}
+                    className="bg-card border border-border rounded-xl p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-label font-semibold text-sm text-foreground">
+                        {pin.name}
+                      </p>
+                      {pin.compatScore !== undefined && (
+                        <span
+                          className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: "#8b5cf620", color: "#8b5cf6" }}
                         >
-                          <div
-                            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold text-white"
-                            style={{ background: "#8b5cf6" }}
-                          >
-                            {pin.name.charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-foreground">
-                                {pin.name}
-                              </p>
-                              {pin.compatScore !== undefined && (
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                                  style={{ background: "#8b5cf6" }}
-                                >
-                                  {pin.compatScore}%
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {pin.preview}
-                            </p>
-                            {pin.relationshipGoal && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
-                                Goal: {pin.relationshipGoal}
-                              </p>
-                            )}
-                            <button
-                              type="button"
-                              className="mt-2 text-[10px] font-label font-semibold px-2 py-1 rounded-md transition-colors"
-                              style={{
-                                background: "#8b5cf615",
-                                color: "#8b5cf6",
-                                border: "1px solid #8b5cf630",
-                              }}
-                              onClick={() => {
-                                setDailyMatchesOpen(false);
-                                setActiveLayers(
-                                  (prev) => new Set([...prev, "dating"]),
-                                );
-                              }}
-                            >
-                              View on Map
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                          {pin.compatScore}% Match
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {pin.preview}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary" className="text-[10px]">
+                        New Today
+                      </Badge>
+                      {pin.relationshipGoal && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Goal: {pin.relationshipGoal}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
-              </ScrollArea>
+                ))}
             </TabsContent>
           </Tabs>
         </SheetContent>
       </Sheet>
 
-      {/* ── Filters Sheet (left slide-in) ─────────────────────────────────────── */}
+      {/* Filters Sheet */}
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="left" className="w-full sm:w-[380px] p-0">
-          <SheetHeader className="px-5 py-4 border-b border-border">
-            <SheetTitle className="flex items-center gap-2">
+        <SheetContent
+          side="left"
+          className="w-full sm:max-w-sm overflow-y-auto"
+        >
+          <SheetHeader className="mb-5">
+            <SheetTitle className="font-display flex items-center gap-2">
               <Filter size={16} />
               Map Filters
             </SheetTitle>
           </SheetHeader>
-
-          <Tabs
-            defaultValue="matrimony"
-            className="flex flex-col h-[calc(100%-68px)]"
-          >
-            <TabsList className="mx-5 mt-4 mb-2 grid grid-cols-2">
-              <TabsTrigger value="matrimony" className="gap-1.5">
-                <Heart size={12} />
+          <Tabs defaultValue="matrimony">
+            <TabsList className="w-full mb-5">
+              <TabsTrigger
+                value="matrimony"
+                className="flex-1 font-label text-xs"
+              >
                 Matrimony
               </TabsTrigger>
-              <TabsTrigger value="dating" className="gap-1.5">
-                <Zap size={12} />
+              <TabsTrigger value="dating" className="flex-1 font-label text-xs">
                 Dating
               </TabsTrigger>
             </TabsList>
-
-            {/* Matrimony Filters */}
-            <TabsContent
-              value="matrimony"
-              className="flex-1 overflow-hidden m-0"
-            >
-              <ScrollArea className="h-full px-5 pb-4">
-                <div className="space-y-4 pt-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">Caste</Label>
-                    <input
-                      type="text"
-                      value={matrimonyFilters.caste}
-                      onChange={(e) =>
-                        setMatrimonyFilters((p) => ({
-                          ...p,
-                          caste: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g. Rajput, Arain..."
-                      className="w-full h-8 text-xs rounded-md border border-border bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">
-                      Religion / Sect
-                    </Label>
-                    <Select
-                      value={matrimonyFilters.religion}
-                      onValueChange={(v) =>
-                        setMatrimonyFilters((p) => ({ ...p, religion: v }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="sunni">Sunni</SelectItem>
-                        <SelectItem value="shia">Shia</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-label">
-                      Age Range:{" "}
-                      <span className="font-semibold text-foreground">
-                        {matrimonyFilters.ageRange[0]} –{" "}
-                        {matrimonyFilters.ageRange[1]}
-                      </span>
-                    </Label>
-                    <Slider
-                      min={18}
-                      max={60}
-                      step={1}
-                      value={matrimonyFilters.ageRange}
-                      onValueChange={(v) =>
-                        setMatrimonyFilters((p) => ({
-                          ...p,
-                          ageRange: v as [number, number],
-                        }))
-                      }
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">Profession</Label>
-                    <input
-                      type="text"
-                      value={matrimonyFilters.profession}
-                      onChange={(e) =>
-                        setMatrimonyFilters((p) => ({
-                          ...p,
-                          profession: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g. Doctor, Engineer..."
-                      className="w-full h-8 text-xs rounded-md border border-border bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">
-                      Living Standard
-                    </Label>
-                    <Select
-                      value={matrimonyFilters.livingStandard}
-                      onValueChange={(v) =>
-                        setMatrimonyFilters((p) => ({
-                          ...p,
-                          livingStandard: v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="lower">Lower</SelectItem>
-                        <SelectItem value="middle">Middle</SelectItem>
-                        <SelectItem value="upper-middle">
-                          Upper-Middle
-                        </SelectItem>
-                        <SelectItem value="upper">Upper</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">Horoscope Sign</Label>
-                    <Select
-                      value={matrimonyFilters.horoscope}
-                      onValueChange={(v) =>
-                        setMatrimonyFilters((p) => ({ ...p, horoscope: v }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {HOROSCOPE_SIGNS.map((sign) => (
-                          <SelectItem key={sign} value={sign}>
-                            {sign}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">Height Range</Label>
-                    <Select
-                      value={matrimonyFilters.heightRange}
-                      onValueChange={(v) =>
-                        setMatrimonyFilters((p) => ({ ...p, heightRange: v }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="under-52">Under 5'2"</SelectItem>
-                        <SelectItem value="52-55">5'2" – 5'5"</SelectItem>
-                        <SelectItem value="55-58">5'5" – 5'8"</SelectItem>
-                        <SelectItem value="over-58">Over 5'8"</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() =>
-                      setMatrimonyFilters(DEFAULT_MATRIMONY_FILTERS)
-                    }
-                  >
-                    Reset Matrimony Filters
-                  </Button>
-                </div>
-              </ScrollArea>
+            <TabsContent value="matrimony" className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Age Range</Label>
+                <Slider
+                  value={matrimonyFilters.ageRange}
+                  onValueChange={(v) =>
+                    setMatrimonyFilters((p) => ({
+                      ...p,
+                      ageRange: v as [number, number],
+                    }))
+                  }
+                  min={18}
+                  max={60}
+                  step={1}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {matrimonyFilters.ageRange[0]} –{" "}
+                  {matrimonyFilters.ageRange[1]} years
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Horoscope</Label>
+                <Select
+                  value={matrimonyFilters.horoscope}
+                  onValueChange={(v) =>
+                    setMatrimonyFilters((p) => ({ ...p, horoscope: v }))
+                  }
+                >
+                  <SelectTrigger className="h-9 text-xs font-label">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HOROSCOPE_SIGNS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Living Standard</Label>
+                <Select
+                  value={matrimonyFilters.livingStandard}
+                  onValueChange={(v) =>
+                    setMatrimonyFilters((p) => ({ ...p, livingStandard: v }))
+                  }
+                >
+                  <SelectTrigger className="h-9 text-xs font-label">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any</SelectItem>
+                    <SelectItem value="middle">Middle Class</SelectItem>
+                    <SelectItem value="upper-middle">Upper Middle</SelectItem>
+                    <SelectItem value="upper">Upper Class</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-label"
+                onClick={() => setMatrimonyFilters(DEFAULT_MATRIMONY_FILTERS)}
+              >
+                Reset Matrimony Filters
+              </Button>
             </TabsContent>
-
-            {/* Dating Filters */}
-            <TabsContent value="dating" className="flex-1 overflow-hidden m-0">
-              <ScrollArea className="h-full px-5 pb-4">
-                <div className="space-y-4 pt-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-label">
-                      Habits (select all that apply)
-                    </Label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {DATING_HABITS.map((habit) => {
-                        const isSelected = datingFilters.habits.includes(habit);
-                        return (
-                          <button
-                            key={habit}
-                            type="button"
-                            onClick={() => toggleDatingHabit(habit)}
-                            className="text-[10px] font-label px-2 py-1 rounded-full border transition-all"
-                            style={
-                              isSelected
-                                ? {
-                                    background: "#8b5cf620",
-                                    color: "#8b5cf6",
-                                    borderColor: "#8b5cf640",
-                                  }
-                                : {
-                                    background: "transparent",
-                                    color: "oklch(var(--muted-foreground))",
-                                    borderColor: "oklch(var(--border))",
-                                  }
+            <TabsContent value="dating" className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Age Range</Label>
+                <Slider
+                  value={datingFilters.ageRange}
+                  onValueChange={(v) =>
+                    setDatingFilters((p) => ({
+                      ...p,
+                      ageRange: v as [number, number],
+                    }))
+                  }
+                  min={18}
+                  max={60}
+                  step={1}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {datingFilters.ageRange[0]} – {datingFilters.ageRange[1]}{" "}
+                  years
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Relationship Goal</Label>
+                <Select
+                  value={datingFilters.relationshipGoal}
+                  onValueChange={(v) =>
+                    setDatingFilters((p) => ({ ...p, relationshipGoal: v }))
+                  }
+                >
+                  <SelectTrigger className="h-9 text-xs font-label">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any</SelectItem>
+                    <SelectItem value="Serious Relationship">
+                      Serious Relationship
+                    </SelectItem>
+                    <SelectItem value="Marriage">Marriage</SelectItem>
+                    <SelectItem value="Friendship First">
+                      Friendship First
+                    </SelectItem>
+                    <SelectItem value="Casual Dating">Casual Dating</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-label">Habits</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DATING_HABITS.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => toggleDatingHabit(h)}
+                      className="text-[10px] font-label px-2 py-1 rounded-full transition-all border"
+                      style={
+                        datingFilters.habits.includes(h)
+                          ? {
+                              background: "oklch(0.55 0.22 280 / 0.2)",
+                              borderColor: "oklch(0.55 0.22 280)",
+                              color: "oklch(0.55 0.22 280)",
                             }
-                          >
-                            {habit}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">Lifestyle</Label>
-                    <Select
-                      value={datingFilters.lifestyle}
-                      onValueChange={(v) =>
-                        setDatingFilters((p) => ({ ...p, lifestyle: v }))
+                          : {
+                              background: "transparent",
+                              borderColor: "oklch(var(--border))",
+                              color: "oklch(var(--muted-foreground))",
+                            }
                       }
                     >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="active">
-                          Active & Outdoorsy
-                        </SelectItem>
-                        <SelectItem value="creative">
-                          Creative & Artistic
-                        </SelectItem>
-                        <SelectItem value="intellectual">
-                          Intellectual
-                        </SelectItem>
-                        <SelectItem value="social">Social & Party</SelectItem>
-                        <SelectItem value="homebody">Homebody</SelectItem>
-                        <SelectItem value="adventurous">Adventurous</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">
-                      Relationship Goal
-                    </Label>
-                    <Select
-                      value={datingFilters.relationshipGoal}
-                      onValueChange={(v) =>
-                        setDatingFilters((p) => ({
-                          ...p,
-                          relationshipGoal: v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="Serious Relationship">
-                          Serious Relationship
-                        </SelectItem>
-                        <SelectItem value="Marriage">Marriage</SelectItem>
-                        <SelectItem value="Friendship First">
-                          Friendship First
-                        </SelectItem>
-                        <SelectItem value="Casual Dating">
-                          Casual Dating
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-label">
-                      Age Range:{" "}
-                      <span className="font-semibold text-foreground">
-                        {datingFilters.ageRange[0]} –{" "}
-                        {datingFilters.ageRange[1]}
-                      </span>
-                    </Label>
-                    <Slider
-                      min={18}
-                      max={60}
-                      step={1}
-                      value={datingFilters.ageRange}
-                      onValueChange={(v) =>
-                        setDatingFilters((p) => ({
-                          ...p,
-                          ageRange: v as [number, number],
-                        }))
-                      }
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">
-                      Personality Type
-                    </Label>
-                    <Select
-                      value={datingFilters.personalityType}
-                      onValueChange={(v) =>
-                        setDatingFilters((p) => ({
-                          ...p,
-                          personalityType: v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="introvert">Introvert</SelectItem>
-                        <SelectItem value="extrovert">Extrovert</SelectItem>
-                        <SelectItem value="ambivert">Ambivert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">Eating Habits</Label>
-                    <Select
-                      value={datingFilters.eatingHabits}
-                      onValueChange={(v) =>
-                        setDatingFilters((p) => ({ ...p, eatingHabits: v }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                        <SelectItem value="vegan">Vegan</SelectItem>
-                        <SelectItem value="non-vegetarian">
-                          Non-Vegetarian
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-label">
-                      Drinking Habits
-                    </Label>
-                    <Select
-                      value={datingFilters.drinkingHabits}
-                      onValueChange={(v) =>
-                        setDatingFilters((p) => ({
-                          ...p,
-                          drinkingHabits: v,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="non-drinker">Non-Drinker</SelectItem>
-                        <SelectItem value="social-drinker">
-                          Social Drinker
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setDatingFilters(DEFAULT_DATING_FILTERS)}
-                  >
-                    Reset Dating Filters
-                  </Button>
+                      {h}
+                    </button>
+                  ))}
                 </div>
-              </ScrollArea>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-label"
+                onClick={() => setDatingFilters(DEFAULT_DATING_FILTERS)}
+              >
+                Reset Dating Filters
+              </Button>
             </TabsContent>
           </Tabs>
         </SheetContent>
       </Sheet>
 
-      {/* ── Location precision dialog ─────────────────────────────────────────── */}
+      {/* Location precision dialog */}
       <Dialog open={locationDialogOpen} onOpenChange={setLocationDialogOpen}>
-        <DialogContent className="sm:max-w-[360px]">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Set Location Precision</DialogTitle>
+            <DialogTitle className="font-display">
+              Set Your Location
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-xs text-muted-foreground">
-              Choose how precisely your location is shown on the map. More
-              precise settings improve match quality. Your exact address is
-              never shared.
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground">
+              Choose how precisely to share your location for better matches.
+              Your exact address is never shared.
             </p>
             <div className="space-y-2">
-              {[
-                {
-                  value: "city",
-                  label: "City Only",
-                  desc: "e.g. Lahore",
-                },
-                {
-                  value: "district",
-                  label: "District",
-                  desc: "e.g. Gulberg, DHA",
-                },
-                {
-                  value: "neighborhood",
-                  label: "Neighborhood",
-                  desc: "e.g. DHA Phase 5, Block D",
-                },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setLocationPrecision(opt.value)}
-                  className="w-full flex items-start gap-3 p-3 rounded-lg border transition-all text-left"
-                  style={
-                    locationPrecision === opt.value
-                      ? {
-                          borderColor: "#f43f5e",
-                          background: "#f43f5e10",
-                        }
-                      : {
-                          borderColor: "oklch(var(--border))",
-                          background: "transparent",
-                        }
-                  }
-                >
-                  <div
-                    className="w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0"
-                    style={{
-                      borderColor:
-                        locationPrecision === opt.value
-                          ? "#f43f5e"
-                          : "oklch(var(--border))",
-                    }}
-                  >
-                    {locationPrecision === opt.value && (
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ background: "#f43f5e" }}
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {opt.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{opt.desc}</p>
-                  </div>
-                </button>
-              ))}
+              <Label className="text-xs font-label">Location Precision</Label>
+              <Select
+                value={locationPrecision}
+                onValueChange={setLocationPrecision}
+              >
+                <SelectTrigger className="h-9 text-xs font-label">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="city">City only (e.g. Lahore)</SelectItem>
+                  <SelectItem value="district">
+                    District (e.g. DHA, Gulberg)
+                  </SelectItem>
+                  <SelectItem value="neighborhood">
+                    Neighborhood (e.g. DHA Phase 5)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button
-              className="w-full"
+              className="w-full font-label"
               onClick={() => {
                 setLocationDialogOpen(false);
                 setLocationPromptDismissed(true);
@@ -2543,99 +1722,80 @@ export default function GeoMapPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Share visibility settings dialog ─────────────────────────────────── */}
+      {/* Share settings dialog */}
       <Dialog
         open={shareSettingsOpen !== null}
-        onOpenChange={(open) => !open && setShareSettingsOpen(null)}
+        onOpenChange={() => setShareSettingsOpen(null)}
       >
-        <DialogContent className="sm:max-w-[340px]">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="font-display">
               {shareSettingsOpen === "matrimony" ? "Matrimony" : "Dating"}{" "}
               Visibility
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-xs text-muted-foreground">
-              Choose how much of your profile is visible to others on the map.
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground">
+              Control how much of your profile other users can see when they
+              click your pin on the map.
             </p>
             <div className="space-y-2">
-              {(["hidden", "nickname", "basic", "full"] as const).map(
-                (level) => {
-                  const current =
-                    shareSettingsOpen === "matrimony"
-                      ? matrimonyShareLevel
-                      : datingShareLevel;
-                  return (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => {
-                        if (shareSettingsOpen === "matrimony") {
-                          setMatrimonyShareLevel(level);
-                        } else {
-                          setDatingShareLevel(level);
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left"
-                      style={
-                        current === level
-                          ? {
-                              borderColor:
-                                shareSettingsOpen === "matrimony"
-                                  ? "#f43f5e"
-                                  : "#8b5cf6",
-                              background:
-                                shareSettingsOpen === "matrimony"
-                                  ? "#f43f5e10"
-                                  : "#8b5cf610",
-                            }
-                          : {
-                              borderColor: "oklch(var(--border))",
-                              background: "transparent",
-                            }
-                      }
-                    >
-                      <div
-                        className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
-                        style={{
-                          borderColor:
-                            current === level
-                              ? shareSettingsOpen === "matrimony"
-                                ? "#f43f5e"
-                                : "#8b5cf6"
-                              : "oklch(var(--border))",
-                        }}
-                      >
-                        {current === level && (
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{
-                              background:
-                                shareSettingsOpen === "matrimony"
-                                  ? "#f43f5e"
-                                  : "#8b5cf6",
-                            }}
-                          />
-                        )}
-                      </div>
-                      <span className="text-sm font-semibold text-foreground">
-                        {SHARE_LEVEL_LABELS[level]}
-                      </span>
-                    </button>
-                  );
-                },
-              )}
+              <Label className="text-xs font-label">Share Level</Label>
+              <Select
+                value={
+                  shareSettingsOpen === "matrimony"
+                    ? matrimonyShareLevel
+                    : datingShareLevel
+                }
+                onValueChange={(v) => {
+                  if (shareSettingsOpen === "matrimony")
+                    setMatrimonyShareLevel(v);
+                  else setDatingShareLevel(v);
+                }}
+              >
+                <SelectTrigger className="h-9 text-xs font-label">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hidden">
+                    Hidden — not visible on map
+                  </SelectItem>
+                  <SelectItem value="nickname">Nickname Only</SelectItem>
+                  <SelectItem value="basic">
+                    Basic Profile (age, city, profession)
+                  </SelectItem>
+                  <SelectItem value="full">Full Profile</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button
-              className="w-full"
+              className="w-full font-label"
               onClick={() => setShareSettingsOpen(null)}
             >
-              Save
+              Save Settings
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Custom popup styles */}
+      <style>{`
+        .leaflet-popup-content-wrapper {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+        }
+        .leaflet-popup-content {
+          margin: 0 !important;
+        }
+        .leaflet-popup-tip-container {
+          display: none !important;
+        }
+        .leaflet-container {
+          font-family: inherit;
+        }
+      `}</style>
     </div>
   );
 }

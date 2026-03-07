@@ -1576,10 +1576,10 @@ export default function DatingPage() {
   const [passed, setPassed] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set(["3", "7"]));
   const [matches] = useState<Set<string>>(new Set(["4", "11"]));
-  const [filterHabit, setFilterHabit] = useState<string>("");
-  const [filterLifestyle, setFilterLifestyle] = useState<string>("");
-  const [filterPersonality, setFilterPersonality] = useState<string>("");
-  const [filterGoal, setFilterGoal] = useState<string>("");
+  const [filterHabit, setFilterHabit] = useState<string>("all");
+  const [filterLifestyle, setFilterLifestyle] = useState<string>("all");
+  const [filterPersonality, setFilterPersonality] = useState<string>("all");
+  const [filterGoal, setFilterGoal] = useState<string>("all");
   const [filterAgeMin, setFilterAgeMin] = useState(18);
   const [filterAgeMax, setFilterAgeMax] = useState(40);
   const [showFilters, setShowFilters] = useState(false);
@@ -1633,11 +1633,22 @@ export default function DatingPage() {
 
   const filteredProfiles = MOCK_PROFILES.filter((p) => {
     if (passed.has(p.id)) return false;
-    if (filterHabit && !p.habits.includes(filterHabit)) return false;
-    if (filterLifestyle && p.lifestyle !== filterLifestyle) return false;
-    if (filterPersonality && p.personalityType !== filterPersonality)
+    if (filterHabit && filterHabit !== "all" && !p.habits.includes(filterHabit))
       return false;
-    if (filterGoal && p.relationshipGoal !== filterGoal) return false;
+    if (
+      filterLifestyle &&
+      filterLifestyle !== "all" &&
+      p.lifestyle !== filterLifestyle
+    )
+      return false;
+    if (
+      filterPersonality &&
+      filterPersonality !== "all" &&
+      p.personalityType !== filterPersonality
+    )
+      return false;
+    if (filterGoal && filterGoal !== "all" && p.relationshipGoal !== filterGoal)
+      return false;
     if (p.age < filterAgeMin || p.age > filterAgeMax) return false;
     return true;
   });
@@ -1796,7 +1807,7 @@ export default function DatingPage() {
                 <SelectValue placeholder="Filter by Habit" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Habits</SelectItem>
+                <SelectItem value="all">All Habits</SelectItem>
                 {HABIT_OPTIONS.map((h) => (
                   <SelectItem key={h} value={h}>
                     {h}
@@ -1809,7 +1820,7 @@ export default function DatingPage() {
                 <SelectValue placeholder="Lifestyle" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Lifestyles</SelectItem>
+                <SelectItem value="all">All Lifestyles</SelectItem>
                 {[
                   "Active & Outdoorsy",
                   "Creative & Artistic",
@@ -1832,7 +1843,7 @@ export default function DatingPage() {
                 <SelectValue placeholder="Personality" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 {["Introvert", "Extrovert", "Ambivert"].map((p) => (
                   <SelectItem key={p} value={p}>
                     {p}
@@ -1845,7 +1856,7 @@ export default function DatingPage() {
                 <SelectValue placeholder="Looking For" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Goal</SelectItem>
+                <SelectItem value="all">Any Goal</SelectItem>
                 {[
                   "Casual Dating",
                   "Serious Relationship",
