@@ -126,7 +126,7 @@ importers:
         specifier: ~1.131.8
         version: 1.131.50(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@types/leaflet':
-        specifier: ^1.9.12
+        specifier: ^1.9.21
         version: 1.9.21
       class-variance-authority:
         specifier: ^0.7.0

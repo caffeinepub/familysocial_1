@@ -6,25 +6,43 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  Briefcase,
   Calendar,
+  CalendarPlus,
   Check,
   ChevronDown,
   CreditCard,
   History,
   Minus,
   Package,
+  PackagePlus,
   Percent,
   Plus,
   Printer,
   ShoppingCart,
   Trash2,
   Wrench,
+  WrenchIcon,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -299,13 +317,13 @@ function ReceiptModal({
               My Store
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              FamilySocial POS
+              IndyaCentral POS
             </p>
             <p className="text-xs font-label font-semibold text-primary mt-2">
               {sale.id}
             </p>
             <p className="text-xs text-muted-foreground">
-              {new Date(sale.date).toLocaleString("en-PK")}
+              {new Date(sale.date).toLocaleString()}
             </p>
           </div>
 
@@ -579,6 +597,581 @@ function CartItemRow({
   );
 }
 
+// ─── POS Quick-Create Dialogs ─────────────────────────────────────────────────
+
+const ALL_MODULES = [
+  "Products & Services",
+  "Family Tree",
+  "Social Feed",
+  "Community",
+  "Gated Community",
+  "Jobs",
+  "Healthcare",
+  "Real Estate",
+  "Education",
+  "Travel",
+  "Blog",
+  "Matrimony",
+  "Dating",
+];
+
+function QuickAddProductDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    category: "Electronics",
+    stockQty: "",
+    supplierName: "",
+    description: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    toast.success(`Product "${form.name}" added to catalog`);
+    setForm({
+      name: "",
+      price: "",
+      category: "Electronics",
+      stockQty: "",
+      supplierName: "",
+      description: "",
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <PackagePlus size={16} className="text-primary" /> Quick Add Product
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3 mt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Product Name *</Label>
+            <Input
+              placeholder="e.g. Laptop Bag"
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              required
+              className="h-9"
+              data-ocid="pos.product.input"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Price</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.price}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, price: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Stock Qty</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.stockQty}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, stockQty: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Category</Label>
+            <Select
+              value={form.category}
+              onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "Electronics",
+                  "Vehicles",
+                  "Fashion",
+                  "Events",
+                  "Furniture",
+                  "Other",
+                ].map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Supplier Name</Label>
+            <Input
+              placeholder="Supplier / vendor"
+              value={form.supplierName}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, supplierName: e.target.value }))
+              }
+              className="h-9"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 font-label h-9"
+              onClick={onClose}
+              data-ocid="pos.product.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 font-label h-9"
+              data-ocid="pos.product.submit_button"
+            >
+              Add Product
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickAddServiceDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: "",
+    pricePerHour: "",
+    category: "Home Services",
+    description: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    toast.success(`Service "${form.name}" added to catalog`);
+    setForm({
+      name: "",
+      pricePerHour: "",
+      category: "Home Services",
+      description: "",
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <WrenchIcon size={16} className="text-primary" /> Quick Add Service
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3 mt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Service Name *</Label>
+            <Input
+              placeholder="e.g. Plumbing Repair"
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              required
+              className="h-9"
+              data-ocid="pos.service.input"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Price / Hour</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.pricePerHour}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, pricePerHour: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Category</Label>
+              <Select
+                value={form.category}
+                onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Home Services",
+                    "Education",
+                    "Beauty & Events",
+                    "Professional",
+                    "Health",
+                    "Technology",
+                    "Other",
+                  ].map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Description</Label>
+            <Textarea
+              rows={2}
+              className="resize-none text-xs"
+              placeholder="Brief description..."
+              value={form.description}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 font-label h-9"
+              onClick={onClose}
+              data-ocid="pos.service.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 font-label h-9"
+              data-ocid="pos.service.submit_button"
+            >
+              Add Service
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickAddEventDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: "",
+    module: "Products & Services",
+    date: "",
+    time: "",
+    location: "",
+    type: "public" as "public" | "private" | "ticket",
+    ticketPrice: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    toast.success(`Event "${form.title}" created`);
+    setForm({
+      title: "",
+      module: "Products & Services",
+      date: "",
+      time: "",
+      location: "",
+      type: "public",
+      ticketPrice: "",
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <CalendarPlus size={16} className="text-primary" /> Create Event
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3 mt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Event Title *</Label>
+            <Input
+              placeholder="e.g. Summer Sale Launch"
+              value={form.title}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
+              required
+              className="h-9"
+              data-ocid="pos.event.input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Module</Label>
+            <Select
+              value={form.module}
+              onValueChange={(v) => setForm((p) => ({ ...p, module: v }))}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ALL_MODULES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Date</Label>
+              <Input
+                type="date"
+                value={form.date}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, date: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Time</Label>
+              <Input
+                type="time"
+                value={form.time}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, time: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Location</Label>
+            <Input
+              placeholder="Venue or Online"
+              value={form.location}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, location: e.target.value }))
+              }
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Event Type</Label>
+            <Select
+              value={form.type}
+              onValueChange={(v) =>
+                setForm((p) => ({ ...p, type: v as typeof form.type }))
+              }
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+                <SelectItem value="ticket">Ticket-based</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.type === "ticket" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ticket Price</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.ticketPrice}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, ticketPrice: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+          )}
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 font-label h-9"
+              onClick={onClose}
+              data-ocid="pos.event.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 font-label h-9"
+              data-ocid="pos.event.submit_button"
+            >
+              Create Event
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickAddJobDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: "",
+    company: "",
+    location: "",
+    jobType: "full_time" as
+      | "full_time"
+      | "part_time"
+      | "freelance"
+      | "contract",
+    salary: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    toast.success(`Job "${form.title}" posted`);
+    setForm({
+      title: "",
+      company: "",
+      location: "",
+      jobType: "full_time",
+      salary: "",
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <Briefcase size={16} className="text-primary" /> Post a Job
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3 mt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Job Title *</Label>
+            <Input
+              placeholder="e.g. Senior Developer"
+              value={form.title}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
+              required
+              className="h-9"
+              data-ocid="pos.job.input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Company</Label>
+            <Input
+              placeholder="Company name"
+              value={form.company}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, company: e.target.value }))
+              }
+              className="h-9"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Location</Label>
+              <Input
+                placeholder="City or Remote"
+                value={form.location}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, location: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Salary / Rate</Label>
+              <Input
+                placeholder="e.g. 50,000/mo"
+                value={form.salary}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, salary: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Job Type</Label>
+            <Select
+              value={form.jobType}
+              onValueChange={(v) =>
+                setForm((p) => ({ ...p, jobType: v as typeof form.jobType }))
+              }
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="full_time">Full Time</SelectItem>
+                <SelectItem value="part_time">Part Time</SelectItem>
+                <SelectItem value="freelance">Freelance</SelectItem>
+                <SelectItem value="contract">Contract</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 font-label h-9"
+              onClick={onClose}
+              data-ocid="pos.job.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 font-label h-9"
+              data-ocid="pos.job.submit_button"
+            >
+              Post Job
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main POS Page ────────────────────────────────────────────────────────────
 
 export default function POSPage() {
@@ -587,6 +1180,12 @@ export default function POSPage() {
     "new-sale",
   );
   const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
+
+  // Quick-create dialog states
+  const [quickProductOpen, setQuickProductOpen] = useState(false);
+  const [quickServiceOpen, setQuickServiceOpen] = useState(false);
+  const [quickEventOpen, setQuickEventOpen] = useState(false);
+  const [quickJobOpen, setQuickJobOpen] = useState(false);
 
   // Catalog state
   const [searchQuery, setSearchQuery] = useState("");
@@ -1026,7 +1625,7 @@ export default function POSPage() {
                     {sale.id}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(sale.date).toLocaleString("en-PK")}
+                    {new Date(sale.date).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-right">
@@ -1066,41 +1665,88 @@ export default function POSPage() {
           </p>
         </div>
 
-        {/* Top-level tab: New Sale vs History */}
-        <div className="flex rounded-lg overflow-hidden border border-border">
-          <button
-            type="button"
-            onClick={() => setActiveTab("new-sale")}
-            className={`px-4 py-2 text-sm font-label font-medium transition-colors flex items-center gap-1.5
-              ${activeTab === "new-sale" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
-          >
-            <ShoppingCart size={14} /> New Sale
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("history")}
-            className={`px-4 py-2 text-sm font-label font-medium transition-colors flex items-center gap-1.5
-              ${activeTab === "history" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
-          >
-            <History size={14} /> History
-            {salesHistory.length > 0 && (
-              <span
-                className="text-[10px] rounded-full px-1.5 py-0.5 font-bold"
-                style={{
-                  background:
-                    activeTab === "history"
-                      ? "oklch(1 0 0 / 0.25)"
-                      : "oklch(0.65 0.25 335 / 0.2)",
-                  color:
-                    activeTab === "history"
-                      ? "oklch(1 0 0)"
-                      : "oklch(0.55 0.22 280)",
-                }}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Create New FAB */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="font-label gap-1.5 text-sm border-primary/40 text-primary hover:bg-primary/5"
+                data-ocid="pos.create.open_modal_button"
               >
-                {salesHistory.length}
-              </span>
-            )}
-          </button>
+                <Plus size={14} /> Create New
+                <ChevronDown size={12} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem
+                onClick={() => setQuickProductOpen(true)}
+                className="gap-2 font-label text-sm"
+                data-ocid="pos.create.product.button"
+              >
+                <PackagePlus size={14} /> Add Product
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setQuickServiceOpen(true)}
+                className="gap-2 font-label text-sm"
+                data-ocid="pos.create.service.button"
+              >
+                <WrenchIcon size={14} /> Add Service
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setQuickEventOpen(true)}
+                className="gap-2 font-label text-sm"
+                data-ocid="pos.create.event.button"
+              >
+                <CalendarPlus size={14} /> Add Event
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setQuickJobOpen(true)}
+                className="gap-2 font-label text-sm"
+                data-ocid="pos.create.job.button"
+              >
+                <Briefcase size={14} /> Post Job
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Top-level tab: New Sale vs History */}
+          <div className="flex rounded-lg overflow-hidden border border-border">
+            <button
+              type="button"
+              onClick={() => setActiveTab("new-sale")}
+              className={`px-4 py-2 text-sm font-label font-medium transition-colors flex items-center gap-1.5
+                ${activeTab === "new-sale" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+            >
+              <ShoppingCart size={14} /> New Sale
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className={`px-4 py-2 text-sm font-label font-medium transition-colors flex items-center gap-1.5
+                ${activeTab === "history" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+            >
+              <History size={14} /> History
+              {salesHistory.length > 0 && (
+                <span
+                  className="text-[10px] rounded-full px-1.5 py-0.5 font-bold"
+                  style={{
+                    background:
+                      activeTab === "history"
+                        ? "oklch(1 0 0 / 0.25)"
+                        : "oklch(0.65 0.25 335 / 0.2)",
+                    color:
+                      activeTab === "history"
+                        ? "oklch(1 0 0)"
+                        : "oklch(0.55 0.22 280)",
+                  }}
+                >
+                  {salesHistory.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1181,6 +1827,24 @@ export default function POSPage() {
             ? undefined
             : handleNewSale
         }
+      />
+
+      {/* Quick-create dialogs */}
+      <QuickAddProductDialog
+        open={quickProductOpen}
+        onClose={() => setQuickProductOpen(false)}
+      />
+      <QuickAddServiceDialog
+        open={quickServiceOpen}
+        onClose={() => setQuickServiceOpen(false)}
+      />
+      <QuickAddEventDialog
+        open={quickEventOpen}
+        onClose={() => setQuickEventOpen(false)}
+      />
+      <QuickAddJobDialog
+        open={quickJobOpen}
+        onClose={() => setQuickJobOpen(false)}
       />
     </div>
   );

@@ -18,11 +18,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  AlertTriangle,
+  BarChart3,
   Calendar,
   CalendarDays,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ImagePlus,
   Layers,
@@ -30,6 +42,7 @@ import {
   Plus,
   Star,
   Trash2,
+  Truck,
   Wrench,
   X,
 } from "lucide-react";
@@ -51,6 +64,21 @@ interface VariantGroup {
   options: VariantOption[];
 }
 
+export interface ProductInventory {
+  purchasePrice: number;
+  stockQty: number;
+  reorderLevel: number;
+  sku: string;
+}
+
+export interface ProductSupplier {
+  name: string;
+  type: "raw_material" | "manufacturer" | "job_work" | "inhouse";
+  contact: string;
+  rawMaterialSupplier?: string;
+  jobWorkParty?: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -65,6 +93,8 @@ export interface Product {
   variants: VariantGroup[];
   rentalStartDate?: string;
   rentalEndDate?: string;
+  inventory?: ProductInventory;
+  supplier?: ProductSupplier;
 }
 
 export interface Service {
@@ -106,6 +136,19 @@ export const SAMPLE_PRODUCTS: Product[] = [
     ],
     rentalStartDate: "2026-03-01",
     rentalEndDate: "2026-06-30",
+    inventory: {
+      purchasePrice: 3800000,
+      stockQty: 2,
+      reorderLevel: 1,
+      sku: "VEH-HC-2022",
+    },
+    supplier: {
+      name: "Honda Pakistan Ltd.",
+      type: "manufacturer",
+      contact: "+92-21-111-466-322",
+      rawMaterialSupplier: undefined,
+      jobWorkParty: undefined,
+    },
   },
   {
     id: 2,
@@ -134,6 +177,17 @@ export const SAMPLE_PRODUCTS: Product[] = [
         ],
       },
     ],
+    inventory: {
+      purchasePrice: 265000,
+      stockQty: 5,
+      reorderLevel: 2,
+      sku: "ELEC-MBP-16-M2",
+    },
+    supplier: {
+      name: "Apple Authorized Distributor",
+      type: "manufacturer",
+      contact: "+92-51-2345678",
+    },
   },
   {
     id: 3,
@@ -159,6 +213,18 @@ export const SAMPLE_PRODUCTS: Product[] = [
     ],
     rentalStartDate: "2026-03-15",
     rentalEndDate: "2026-12-31",
+    inventory: {
+      purchasePrice: 48000,
+      stockQty: 3,
+      reorderLevel: 5,
+      sku: "FASH-BLS-RED-M",
+    },
+    supplier: {
+      name: "Rang Mahal Fabrics",
+      type: "raw_material",
+      contact: "+92-42-7654321",
+      rawMaterialSupplier: "Gul Ahmed Textile Mills",
+    },
   },
   {
     id: 4,
@@ -184,6 +250,18 @@ export const SAMPLE_PRODUCTS: Product[] = [
     ],
     rentalStartDate: "2026-03-01",
     rentalEndDate: "2026-12-31",
+    inventory: {
+      purchasePrice: 320000,
+      stockQty: 4,
+      reorderLevel: 1,
+      sku: "EVT-TENT-FULL",
+    },
+    supplier: {
+      name: "Decorex Pakistan",
+      type: "job_work",
+      contact: "+92-300-1234567",
+      jobWorkParty: "Malik Tent Works Lahore",
+    },
   },
 ];
 
@@ -774,6 +852,23 @@ export default function ProductsServicesPage() {
     rentalEndDate: "",
   });
 
+  // Inventory & Supplier form state
+  const [showInventorySection, setShowInventorySection] = useState(false);
+  const [showSupplierSection, setShowSupplierSection] = useState(false);
+  const [inventoryForm, setInventoryForm] = useState({
+    sku: "",
+    purchasePrice: "",
+    stockQty: "",
+    reorderLevel: "",
+  });
+  const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    type: "manufacturer" as ProductSupplier["type"],
+    contact: "",
+    rawMaterialSupplier: "",
+    jobWorkParty: "",
+  });
+
   // Service form state
   const [servicePhotos, setServicePhotos] = useState<string[]>([]);
   const [serviceVariants, setServiceVariants] = useState<VariantGroup[]>([]);
@@ -816,6 +911,21 @@ export default function ProductsServicesPage() {
     setShowColorPrompt(false);
     setColorVariants([]);
     setColorDetecting(false);
+    setInventoryForm({
+      sku: "",
+      purchasePrice: "",
+      stockQty: "",
+      reorderLevel: "",
+    });
+    setSupplierForm({
+      name: "",
+      type: "manufacturer",
+      contact: "",
+      rawMaterialSupplier: "",
+      jobWorkParty: "",
+    });
+    setShowInventorySection(false);
+    setShowSupplierSection(false);
   };
 
   // Called when photos are added
@@ -869,6 +979,8 @@ export default function ProductsServicesPage() {
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!productForm.name.trim()) return;
+    const hasInventory = inventoryForm.sku || inventoryForm.stockQty;
+    const hasSupplier = supplierForm.name;
     const p: Product = {
       id: Date.now(),
       name: productForm.name,
@@ -888,6 +1000,29 @@ export default function ProductsServicesPage() {
         : undefined,
       rentalEndDate: productForm.isRental
         ? productForm.rentalEndDate
+        : undefined,
+      inventory: hasInventory
+        ? {
+            sku: inventoryForm.sku,
+            purchasePrice: Number.parseFloat(inventoryForm.purchasePrice) || 0,
+            stockQty: Number.parseInt(inventoryForm.stockQty) || 0,
+            reorderLevel: Number.parseInt(inventoryForm.reorderLevel) || 5,
+          }
+        : undefined,
+      supplier: hasSupplier
+        ? {
+            name: supplierForm.name,
+            type: supplierForm.type,
+            contact: supplierForm.contact,
+            rawMaterialSupplier:
+              supplierForm.type === "raw_material"
+                ? supplierForm.rawMaterialSupplier
+                : undefined,
+            jobWorkParty:
+              supplierForm.type === "job_work"
+                ? supplierForm.jobWorkParty
+                : undefined,
+          }
         : undefined,
     };
     setProducts((prev) => [p, ...prev]);
@@ -931,14 +1066,33 @@ export default function ProductsServicesPage() {
       <Tabs defaultValue="products">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <TabsList>
-            <TabsTrigger value="products" className="font-label gap-2">
+            <TabsTrigger
+              value="products"
+              className="font-label gap-2"
+              data-ocid="products.products.tab"
+            >
               <Package size={14} /> Products
             </TabsTrigger>
-            <TabsTrigger value="services" className="font-label gap-2">
+            <TabsTrigger
+              value="services"
+              className="font-label gap-2"
+              data-ocid="products.services.tab"
+            >
               <Wrench size={14} /> Services
             </TabsTrigger>
-            <TabsTrigger value="events" className="font-label gap-2">
+            <TabsTrigger
+              value="events"
+              className="font-label gap-2"
+              data-ocid="products.events.tab"
+            >
               <CalendarDays size={14} /> Events
+            </TabsTrigger>
+            <TabsTrigger
+              value="inventory"
+              className="font-label gap-2"
+              data-ocid="products.inventory.tab"
+            >
+              <BarChart3 size={14} /> Inventory
             </TabsTrigger>
           </TabsList>
 
@@ -1282,6 +1436,238 @@ export default function ProductsServicesPage() {
                       variants={productVariants}
                       onChange={setProductVariants}
                     />
+
+                    {/* Inventory & Pricing Section */}
+                    <div className="rounded-xl border border-border overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setShowInventorySection((v) => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-secondary/40 hover:bg-secondary/60 transition-colors"
+                        data-ocid="product.inventory.toggle"
+                      >
+                        <div className="flex items-center gap-2">
+                          <BarChart3 size={14} className="text-primary" />
+                          <span className="text-sm font-label font-semibold text-foreground">
+                            Inventory & Pricing
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            (optional)
+                          </span>
+                        </div>
+                        {showInventorySection ? (
+                          <ChevronUp
+                            size={14}
+                            className="text-muted-foreground"
+                          />
+                        ) : (
+                          <ChevronDown
+                            size={14}
+                            className="text-muted-foreground"
+                          />
+                        )}
+                      </button>
+                      {showInventorySection && (
+                        <div className="p-4 space-y-3 bg-secondary/10">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">SKU Code</Label>
+                              <Input
+                                placeholder="e.g. ELEC-001"
+                                value={inventoryForm.sku}
+                                onChange={(e) =>
+                                  setInventoryForm((p) => ({
+                                    ...p,
+                                    sku: e.target.value,
+                                  }))
+                                }
+                                className="h-8 text-xs"
+                                data-ocid="product.inventory.input"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Purchase Price</Label>
+                              <Input
+                                type="number"
+                                placeholder="Cost price"
+                                value={inventoryForm.purchasePrice}
+                                onChange={(e) =>
+                                  setInventoryForm((p) => ({
+                                    ...p,
+                                    purchasePrice: e.target.value,
+                                  }))
+                                }
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Stock Quantity</Label>
+                              <Input
+                                type="number"
+                                placeholder="Units in stock"
+                                value={inventoryForm.stockQty}
+                                onChange={(e) =>
+                                  setInventoryForm((p) => ({
+                                    ...p,
+                                    stockQty: e.target.value,
+                                  }))
+                                }
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Reorder Level</Label>
+                              <Input
+                                type="number"
+                                placeholder="Low stock threshold"
+                                value={inventoryForm.reorderLevel}
+                                onChange={(e) =>
+                                  setInventoryForm((p) => ({
+                                    ...p,
+                                    reorderLevel: e.target.value,
+                                  }))
+                                }
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Supplier / Vendor Section */}
+                    <div className="rounded-xl border border-border overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setShowSupplierSection((v) => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-secondary/40 hover:bg-secondary/60 transition-colors"
+                        data-ocid="product.supplier.toggle"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Truck size={14} className="text-primary" />
+                          <span className="text-sm font-label font-semibold text-foreground">
+                            Supplier / Vendor
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            (optional)
+                          </span>
+                        </div>
+                        {showSupplierSection ? (
+                          <ChevronUp
+                            size={14}
+                            className="text-muted-foreground"
+                          />
+                        ) : (
+                          <ChevronDown
+                            size={14}
+                            className="text-muted-foreground"
+                          />
+                        )}
+                      </button>
+                      {showSupplierSection && (
+                        <div className="p-4 space-y-3 bg-secondary/10">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">
+                              Supplier / Vendor Name
+                            </Label>
+                            <Input
+                              placeholder="e.g. ABC Suppliers Ltd."
+                              value={supplierForm.name}
+                              onChange={(e) =>
+                                setSupplierForm((p) => ({
+                                  ...p,
+                                  name: e.target.value,
+                                }))
+                              }
+                              className="h-8 text-xs"
+                              data-ocid="product.supplier.input"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Supplier Type</Label>
+                            <Select
+                              value={supplierForm.type}
+                              onValueChange={(v) =>
+                                setSupplierForm((p) => ({
+                                  ...p,
+                                  type: v as ProductSupplier["type"],
+                                }))
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-8 text-xs"
+                                data-ocid="product.supplier.select"
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="raw_material">
+                                  Raw Material Supplier
+                                </SelectItem>
+                                <SelectItem value="manufacturer">
+                                  Manufacturer
+                                </SelectItem>
+                                <SelectItem value="job_work">
+                                  Job Work Party
+                                </SelectItem>
+                                <SelectItem value="inhouse">
+                                  In-house Manufacturing
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Contact</Label>
+                            <Input
+                              placeholder="Phone / email"
+                              value={supplierForm.contact}
+                              onChange={(e) =>
+                                setSupplierForm((p) => ({
+                                  ...p,
+                                  contact: e.target.value,
+                                }))
+                              }
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          {supplierForm.type === "raw_material" && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">
+                                Raw Material Supplier Name
+                              </Label>
+                              <Input
+                                placeholder="Name of raw material supplier"
+                                value={supplierForm.rawMaterialSupplier}
+                                onChange={(e) =>
+                                  setSupplierForm((p) => ({
+                                    ...p,
+                                    rawMaterialSupplier: e.target.value,
+                                  }))
+                                }
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          )}
+                          {supplierForm.type === "job_work" && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Job Work Party</Label>
+                              <Input
+                                placeholder="Name of job work party / contractor"
+                                value={supplierForm.jobWorkParty}
+                                onChange={(e) =>
+                                  setSupplierForm((p) => ({
+                                    ...p,
+                                    jobWorkParty: e.target.value,
+                                  }))
+                                }
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </form>
                 </ScrollArea>
                 <div className="pt-3 border-t border-border mt-2">
@@ -1289,6 +1675,7 @@ export default function ProductsServicesPage() {
                     type="submit"
                     form="add-product-form"
                     className="w-full font-label"
+                    data-ocid="product.submit_button"
                   >
                     List Product
                   </Button>
@@ -1464,7 +1851,177 @@ export default function ProductsServicesPage() {
             moduleColor="oklch(0.65 0.25 335)"
           />
         </TabsContent>
+
+        <TabsContent value="inventory">
+          <InventoryTab products={products} />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── Inventory Tab ────────────────────────────────────────────────────────────
+
+function InventoryTab({ products }: { products: Product[] }) {
+  const { formatPrice } = useCurrency();
+  const productsWithInventory = products.filter((p) => p.inventory);
+
+  if (productsWithInventory.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center py-16 text-center"
+        data-ocid="inventory.empty_state"
+      >
+        <BarChart3
+          size={40}
+          className="text-muted-foreground mb-4 opacity-40"
+        />
+        <p className="text-base font-label font-semibold text-muted-foreground">
+          No inventory data yet
+        </p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Add products with inventory details to see them here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-xl border border-border overflow-hidden"
+      data-ocid="inventory.table"
+    >
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-secondary/40">
+            <TableHead className="font-label text-xs font-semibold">
+              Product
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold">
+              SKU
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold text-right">
+              Stock
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold text-right">
+              Reorder At
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold text-right">
+              Purchase Price
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold text-right">
+              Selling Price
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold text-right">
+              Margin
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold">
+              Supplier
+            </TableHead>
+            <TableHead className="font-label text-xs font-semibold">
+              Status
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {productsWithInventory.map((product, i) => {
+            const inv = product.inventory!;
+            const isLowStock = inv.stockQty <= inv.reorderLevel;
+            const margin =
+              inv.purchasePrice > 0
+                ? Math.round(
+                    ((product.price - inv.purchasePrice) / product.price) * 100,
+                  )
+                : null;
+
+            return (
+              <TableRow
+                key={product.id}
+                className={
+                  isLowStock ? "bg-amber-500/5 hover:bg-amber-500/10" : ""
+                }
+                data-ocid={`inventory.row.${i + 1}`}
+              >
+                <TableCell>
+                  <div>
+                    <p className="text-sm font-label font-semibold text-foreground truncate max-w-[160px]">
+                      {product.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {product.category}
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <code className="text-xs bg-secondary/60 px-2 py-0.5 rounded font-mono">
+                    {inv.sku || "—"}
+                  </code>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span
+                    className={`text-sm font-label font-bold ${isLowStock ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}
+                  >
+                    {inv.stockQty}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm text-muted-foreground">
+                    {inv.reorderLevel}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm font-label text-muted-foreground">
+                    {inv.purchasePrice > 0
+                      ? formatPrice(inv.purchasePrice)
+                      : "—"}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm font-label font-semibold text-foreground">
+                    {product.price > 0 ? formatPrice(product.price) : "—"}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  {margin !== null ? (
+                    <span
+                      className={`text-sm font-label font-bold ${margin >= 20 ? "text-emerald-600 dark:text-emerald-400" : margin >= 0 ? "text-foreground" : "text-destructive"}`}
+                    >
+                      {margin}%
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {product.supplier ? (
+                    <div>
+                      <p className="text-xs font-label font-medium text-foreground truncate max-w-[120px]">
+                        {product.supplier.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground capitalize">
+                        {product.supplier.type.replace("_", " ")}
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isLowStock ? (
+                    <Badge className="text-[10px] px-1.5 py-0 font-label bg-amber-500/15 text-amber-600 dark:text-amber-400 border-0 gap-1">
+                      <AlertTriangle size={9} /> Low Stock
+                    </Badge>
+                  ) : (
+                    <Badge className="text-[10px] px-1.5 py-0 font-label bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0">
+                      In Stock
+                    </Badge>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }

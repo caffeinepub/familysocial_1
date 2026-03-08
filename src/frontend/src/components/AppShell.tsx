@@ -77,6 +77,7 @@ const ProductsServicesPage = lazy(
 );
 const RealEstatePage = lazy(() => import("../pages/RealEstatePage"));
 const SettingsPage = lazy(() => import("../pages/SettingsPage"));
+const ShopPage = lazy(() => import("../pages/ShopPage"));
 const SocialFeedPage = lazy(() => import("../pages/SocialFeedPage"));
 const TimelinePage = lazy(() => import("../pages/TimelinePage"));
 const TravelPage = lazy(() => import("../pages/TravelPage"));
@@ -160,6 +161,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "community", label: "Community", icon: Users },
   { id: "gated-community", label: "Gated Community", icon: Building2 },
   { id: "products", label: "Products & Services", icon: ShoppingBag },
+  { id: "shop", label: "Shop", icon: ShoppingBag },
   { id: "pos", label: "Point of Sale", icon: CreditCard },
   { id: "jobs", label: "Jobs", icon: Briefcase },
   { id: "healthcare", label: "Healthcare", icon: Heart },
@@ -243,6 +245,8 @@ export default function AppShell({
         return <GatedCommunityPage />;
       case "products":
         return <ProductsServicesPage />;
+      case "shop":
+        return <ShopPage />;
       case "pos":
         return <POSPage />;
       case "jobs":
