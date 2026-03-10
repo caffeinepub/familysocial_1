@@ -1,4 +1,3 @@
-import "leaflet/dist/leaflet.css";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +22,6 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import L from "leaflet";
 import {
   BookOpen,
   Briefcase,
@@ -39,24 +37,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import {
-  CircleMarker,
-  MapContainer,
-  Popup,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
-
-// Fix Leaflet default marker icons
-(L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl =
-  undefined;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import { useEffect, useRef, useState } from "react";
 
 // ── Layer definitions ────────────────────────────────────────────────────────
 
@@ -655,22 +636,26 @@ const DEFAULT_DATING_FILTERS: DatingFilters = {
   drinkingHabits: "any",
 };
 
-// ── Map view resetter ─────────────────────────────────────────────────────────
+// ── Map coordinate projection helpers ────────────────────────────────────────
+// Pakistan bounding box: lat 23-37, lng 60-77 (roughly)
+const MAP_BOUNDS = { minLat: 23, maxLat: 37, minLng: 60, maxLng: 77 };
 
-function MapInvalidator() {
-  const map = useMap();
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      (map as unknown as { invalidateSize: () => void }).invalidateSize();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [map]);
-  return null;
+function latLngToPercent(lat: number, lng: number): { x: number; y: number } {
+  const x =
+    ((lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * 100;
+  const y =
+    ((MAP_BOUNDS.maxLat - lat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * 100;
+  return { x, y };
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function GeoMapPage() {
+  const [activePinId, setActivePinId] = useState<number | null>(null);
+  const [pinAnchor, setPinAnchor] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [activeLayers, setActiveLayers] = useState<Set<string>>(
     new Set(LAYERS.map((l) => l.id)),
   );
@@ -979,30 +964,132 @@ export default function GeoMapPage() {
 
       {/* Map area */}
       <div
+        ref={mapContainerRef}
         className="relative flex-1 overflow-hidden"
-        style={{ minHeight: "500px" }}
+        style={{ minHeight: "500px", background: "#0d1117" }}
+        data-ocid="geomap.map_container"
+        onClick={() => {
+          setActivePinId(null);
+          setPinAnchor(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setActivePinId(null);
+            setPinAnchor(null);
+          }
+        }}
       >
-        {/* Real Leaflet Map */}
-        <MapContainer
-          center={[30.5, 73.0]}
-          zoom={6}
+        {/* OpenStreetMap iframe base layer */}
+        <iframe
+          title="IndyaCentral Connections Map"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=60%2C23%2C77%2C37&layer=carto-dark&marker=30.5%2C73.0"
           style={{
-            width: "100%",
-            height: "100%",
             position: "absolute",
             inset: 0,
+            width: "100%",
+            height: "100%",
+            border: "none",
+            opacity: 0.85,
+            pointerEvents: "none",
           }}
-          zoomControl={true}
-          scrollWheelZoom={true}
-          data-ocid="geomap.map_container"
-        >
-          <MapInvalidator />
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          />
+        />
 
+        {/* Dark overlay for atmosphere */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(135deg, rgba(10,8,24,0.55) 0%, rgba(10,8,24,0.3) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* SVG pin layer */}
+        <svg
+          role="img"
+          aria-label="Connection pins on map"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            overflow: "visible",
+          }}
+          preserveAspectRatio="none"
+          viewBox="0 0 100 100"
+        >
           {filteredPins.map((pin) => {
+            const hex = LAYER_HEX[pin.layer] ?? "#7c3aed";
+            const isMatrimonyOrDating =
+              pin.layer === "matrimony" || pin.layer === "dating";
+            const isNewPin = pin.isNew && isMatrimonyOrDating;
+            const isSelf = isSelfPin(pin);
+            const { x, y } = latLngToPercent(pin.lat, pin.lng);
+            const r = isSelf ? 1.6 : isNewPin ? 1.3 : 1.0;
+
+            return (
+              <g key={pin.id}>
+                {/* Pulse ring for new / self pins */}
+                {(isNewPin || isSelf) && (
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={r + 1.2}
+                    fill="none"
+                    stroke={hex}
+                    strokeWidth="0.3"
+                    opacity="0.4"
+                  />
+                )}
+                {/* biome-ignore lint/a11y/useKeyWithClickEvents: SVG circle pins don't support keyboard events natively */}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={r}
+                  fill={hex}
+                  stroke="#fff"
+                  strokeWidth={isSelf ? "0.5" : "0.3"}
+                  opacity="0.92"
+                  style={{ cursor: "pointer" }}
+                  data-ocid="geomap.map_marker"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect =
+                      mapContainerRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setPinAnchor({
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top,
+                      });
+                    }
+                    setActivePinId(pin.id);
+                  }}
+                />
+                {isSelf && (
+                  <text
+                    x={x}
+                    y={y - r - 0.6}
+                    textAnchor="middle"
+                    fontSize="1.2"
+                    fill={hex}
+                    fontWeight="bold"
+                    style={{ pointerEvents: "none", userSelect: "none" }}
+                  >
+                    ★
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Popup for active pin */}
+        {activePinId !== null &&
+          pinAnchor &&
+          (() => {
+            const pin = filteredPins.find((p) => p.id === activePinId);
+            if (!pin) return null;
             const hex = LAYER_HEX[pin.layer] ?? "#7c3aed";
             const layer = LAYERS.find((l) => l.id === pin.layer);
             const isMatrimonyOrDating =
@@ -1012,270 +1099,290 @@ export default function GeoMapPage() {
             const shareBadge = pin.shareLevel
               ? getShareBadgeColor(pin.shareLevel)
               : null;
+            const containerW = mapContainerRef.current?.offsetWidth ?? 800;
+            const containerH = mapContainerRef.current?.offsetHeight ?? 500;
+            const popupW = 220;
+            const popupLeft =
+              pinAnchor.x + popupW + 12 > containerW
+                ? pinAnchor.x - popupW - 8
+                : pinAnchor.x + 12;
+            const popupTop = Math.max(
+              8,
+              Math.min(pinAnchor.y - 20, containerH - 260),
+            );
 
             return (
-              <CircleMarker
-                key={pin.id}
-                center={[pin.lat, pin.lng]}
-                radius={isSelf ? 12 : isNewPin ? 10 : 8}
-                pathOptions={{
-                  color: "#fff",
-                  weight: isSelf ? 3 : 2,
-                  fillColor: hex,
-                  fillOpacity: 0.9,
-                  opacity: 1,
+              <div
+                style={{
+                  position: "absolute",
+                  left: popupLeft,
+                  top: popupTop,
+                  zIndex: 1000,
+                  background: "#13111f",
+                  border: `1px solid ${isSelf ? hex : `${hex}55`}`,
+                  borderRadius: "12px",
+                  padding: "12px",
+                  width: `${popupW}px`,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  pointerEvents: "auto",
                 }}
-                data-ocid={`geomap.map_marker.${pin.id}`}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               >
-                <Popup
-                  className="leaflet-popup-custom"
-                  maxWidth={240}
-                  minWidth={200}
+                <button
+                  type="button"
+                  style={{
+                    position: "absolute",
+                    top: "6px",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    color: "rgba(255,255,255,0.4)",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    lineHeight: 1,
+                  }}
+                  onClick={() => {
+                    setActivePinId(null);
+                    setPinAnchor(null);
+                  }}
+                  aria-label="Close popup"
+                >
+                  ×
+                </button>
+
+                {isSelf && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginBottom: "8px",
+                      paddingBottom: "8px",
+                      borderBottom: `1px solid ${hex}30`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: hex,
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      ★ You
+                    </span>
+                    <span
+                      style={{
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: "10px",
+                      }}
+                    >
+                      — This is your pin
+                    </span>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                    marginBottom: "8px",
+                  }}
                 >
                   <div
                     style={{
-                      background: "#1a1a2e",
-                      border: `1px solid ${isSelf ? hex : `${hex}55`}`,
-                      borderRadius: "12px",
-                      padding: "12px",
-                      minWidth: "190px",
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "6px",
+                      background: `${hex}25`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      marginTop: "2px",
                     }}
                   >
-                    {isSelf && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          marginBottom: "8px",
-                          paddingBottom: "8px",
-                          borderBottom: `1px solid ${hex}30`,
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: hex,
-                            fontSize: "11px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          ★ You
-                        </span>
-                        <span
-                          style={{
-                            color: "rgba(255,255,255,0.5)",
-                            fontSize: "10px",
-                          }}
-                        >
-                          — This is your pin
-                        </span>
-                      </div>
-                    )}
-
+                    <span style={{ color: hex, fontSize: "10px" }}>●</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        color: isSelf ? hex : "#fff",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        margin: 0,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {isSelf ? "★ You" : pin.name}
+                    </p>
                     <div
                       style={{
                         display: "flex",
-                        alignItems: "flex-start",
-                        gap: "8px",
-                        marginBottom: "8px",
+                        flexWrap: "wrap",
+                        gap: "4px",
+                        marginTop: "4px",
                       }}
                     >
-                      <div
+                      <span
                         style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "6px",
                           background: `${hex}25`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          marginTop: "2px",
+                          color: hex,
+                          fontSize: "9px",
+                          fontWeight: "bold",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
                         }}
                       >
-                        <span style={{ color: hex, fontSize: "10px" }}>●</span>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p
+                        {layer?.label ?? pin.layer}
+                      </span>
+                      {isNewPin && (
+                        <span
                           style={{
-                            color: isSelf ? hex : "#fff",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            margin: 0,
-                            lineHeight: 1.3,
+                            background: "#f43f5e20",
+                            color: "#f43f5e",
+                            fontSize: "9px",
+                            fontWeight: "bold",
+                            padding: "1px 5px",
+                            borderRadius: "4px",
                           }}
                         >
-                          {isSelf ? "★ You" : pin.name}
-                        </p>
+                          New Today
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          background:
+                            pin.privacy === "public"
+                              ? "#22c55e20"
+                              : pin.privacy === "family"
+                                ? "#7c3aed20"
+                                : pin.privacy === "friends"
+                                  ? "#3b82f620"
+                                  : "#06b6d420",
+                          color:
+                            pin.privacy === "public"
+                              ? "#22c55e"
+                              : pin.privacy === "family"
+                                ? "#a78bfa"
+                                : pin.privacy === "friends"
+                                  ? "#60a5fa"
+                                  : "#22d3ee",
+                          fontSize: "9px",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {pin.privacy}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.6)",
+                    fontSize: "10px",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  {pin.preview}
+                </p>
+
+                {isMatrimonyOrDating && !isSelf && (
+                  <div style={{ marginTop: "8px" }}>
+                    {pin.compatScore !== undefined && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "4px",
+                        }}
+                      >
                         <div
                           style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "4px",
-                            marginTop: "4px",
+                            flex: 1,
+                            height: "4px",
+                            borderRadius: "2px",
+                            background: "rgba(255,255,255,0.1)",
                           }}
                         >
-                          <span
-                            style={{
-                              background: `${hex}25`,
-                              color: hex,
-                              fontSize: "9px",
-                              fontWeight: "bold",
-                              padding: "1px 5px",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            {layer?.label ?? pin.layer}
-                          </span>
-                          {isNewPin && (
-                            <span
-                              style={{
-                                background: "#f43f5e20",
-                                color: "#f43f5e",
-                                fontSize: "9px",
-                                fontWeight: "bold",
-                                padding: "1px 5px",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              New Today
-                            </span>
-                          )}
-                          <span
-                            style={{
-                              background:
-                                pin.privacy === "public"
-                                  ? "#22c55e20"
-                                  : pin.privacy === "family"
-                                    ? "#7c3aed20"
-                                    : pin.privacy === "friends"
-                                      ? "#3b82f620"
-                                      : "#06b6d420",
-                              color:
-                                pin.privacy === "public"
-                                  ? "#22c55e"
-                                  : pin.privacy === "family"
-                                    ? "#a78bfa"
-                                    : pin.privacy === "friends"
-                                      ? "#60a5fa"
-                                      : "#22d3ee",
-                              fontSize: "9px",
-                              padding: "1px 5px",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            {pin.privacy}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p
-                      style={{
-                        color: "rgba(255,255,255,0.6)",
-                        fontSize: "10px",
-                        lineHeight: 1.5,
-                        margin: 0,
-                      }}
-                    >
-                      {pin.preview}
-                    </p>
-
-                    {isMatrimonyOrDating && !isSelf && (
-                      <div style={{ marginTop: "8px" }}>
-                        {pin.compatScore !== undefined && (
                           <div
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              marginBottom: "4px",
+                              height: "4px",
+                              borderRadius: "2px",
+                              width: `${pin.compatScore}%`,
+                              background: hex,
                             }}
-                          >
-                            <div
-                              style={{
-                                flex: 1,
-                                height: "4px",
-                                borderRadius: "2px",
-                                background: "rgba(255,255,255,0.1)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  height: "4px",
-                                  borderRadius: "2px",
-                                  width: `${pin.compatScore}%`,
-                                  background: hex,
-                                }}
-                              />
-                            </div>
-                            <span
-                              style={{
-                                color: hex,
-                                fontSize: "9px",
-                                fontWeight: "bold",
-                              }}
-                            >
-                              {pin.compatScore}% Match
-                            </span>
-                          </div>
-                        )}
-                        {pin.ageRange && (
-                          <p
-                            style={{
-                              color: "rgba(255,255,255,0.4)",
-                              fontSize: "9px",
-                              margin: "2px 0",
-                            }}
-                          >
-                            Age range: {pin.ageRange}
-                          </p>
-                        )}
-                        {pin.relationshipGoal && (
-                          <p
-                            style={{
-                              color: "rgba(255,255,255,0.4)",
-                              fontSize: "9px",
-                              margin: "2px 0",
-                            }}
-                          >
-                            Goal: {pin.relationshipGoal}
-                          </p>
-                        )}
-                        {shareBadge && pin.shareLevel && (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              background: shareBadge.bg,
-                              color: shareBadge.color,
-                              fontSize: "9px",
-                              padding: "1px 5px",
-                              borderRadius: "4px",
-                              marginTop: "4px",
-                            }}
-                          >
-                            {SHARE_LEVEL_LABELS[pin.shareLevel]}
-                          </span>
-                        )}
+                          />
+                        </div>
+                        <span
+                          style={{
+                            color: hex,
+                            fontSize: "9px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {pin.compatScore}% Match
+                        </span>
                       </div>
                     )}
-
-                    <p
-                      style={{
-                        color: "rgba(255,255,255,0.35)",
-                        fontSize: "9px",
-                        marginTop: "6px",
-                        marginBottom: 0,
-                      }}
-                    >
-                      {pin.timestamp}
-                    </p>
+                    {pin.ageRange && (
+                      <p
+                        style={{
+                          color: "rgba(255,255,255,0.4)",
+                          fontSize: "9px",
+                          margin: "2px 0",
+                        }}
+                      >
+                        Age range: {pin.ageRange}
+                      </p>
+                    )}
+                    {pin.relationshipGoal && (
+                      <p
+                        style={{
+                          color: "rgba(255,255,255,0.4)",
+                          fontSize: "9px",
+                          margin: "2px 0",
+                        }}
+                      >
+                        Goal: {pin.relationshipGoal}
+                      </p>
+                    )}
+                    {shareBadge && pin.shareLevel && (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          background: shareBadge.bg,
+                          color: shareBadge.color,
+                          fontSize: "9px",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          marginTop: "4px",
+                        }}
+                      >
+                        {SHARE_LEVEL_LABELS[pin.shareLevel]}
+                      </span>
+                    )}
                   </div>
-                </Popup>
-              </CircleMarker>
+                )}
+
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.35)",
+                    fontSize: "9px",
+                    marginTop: "6px",
+                    marginBottom: 0,
+                  }}
+                >
+                  {pin.timestamp}
+                </p>
+              </div>
             );
-          })}
-        </MapContainer>
+          })()}
 
         {/* Layers panel */}
         {layersPanelOpen && (
@@ -1777,25 +1884,6 @@ export default function GeoMapPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Custom popup styles */}
-      <style>{`
-        .leaflet-popup-content-wrapper {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          padding: 0 !important;
-        }
-        .leaflet-popup-content {
-          margin: 0 !important;
-        }
-        .leaflet-popup-tip-container {
-          display: none !important;
-        }
-        .leaflet-container {
-          font-family: inherit;
-        }
-      `}</style>
     </div>
   );
 }

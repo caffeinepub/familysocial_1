@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Suggestion {
   id: number;
@@ -205,25 +206,9 @@ export default function SuggestionsPanel({
   onClose,
   onNavigateHome,
 }: Props) {
-  const panelRef = useRef<HTMLDialogElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [connected, setConnected] = useState<Set<number>>(new Set());
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    const timer = setTimeout(() => {
-      document.addEventListener("mousedown", handleClick);
-    }, 50);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -262,29 +247,28 @@ export default function SuggestionsPanel({
     });
   };
 
-  return (
+  if (!open) return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]"
-        style={{
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 0.25s ease",
-        }}
         aria-hidden="true"
+        onClick={onClose}
+        onKeyDown={(e) => e.key === "Escape" && onClose()}
       />
 
       {/* Panel */}
-      <dialog
+      <div
         ref={panelRef}
+        // biome-ignore lint/a11y/useSemanticElements: panel uses div to avoid native dialog open-attr rendering issues
+        role="dialog"
         aria-label="Suggestions"
-        open={open}
-        className="fixed top-0 right-0 h-full z-50 flex flex-col bg-card border-l border-border shadow-2xl p-0 m-0 max-h-none max-w-none"
+        aria-modal="true"
+        className="fixed top-0 right-0 h-full z-50 flex flex-col bg-card border-l border-border shadow-2xl"
         style={{
           width: "min(400px, 100vw)",
-          transform: open ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         {/* Header */}
@@ -458,7 +442,8 @@ export default function SuggestionsPanel({
             Explore all connections
           </Button>
         </div>
-      </dialog>
-    </>
+      </div>
+    </>,
+    document.body,
   );
 }

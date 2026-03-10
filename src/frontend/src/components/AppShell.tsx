@@ -477,7 +477,11 @@ export default function AppShell({
             variant="ghost"
             size="icon"
             className="h-9 w-9 relative"
-            onClick={() => setTipsOpen((v) => !v)}
+            onClick={() => {
+              setTipsOpen((v) => !v);
+              setNotifOpen(false);
+              setSuggestOpen(false);
+            }}
             aria-label="Tips for this page"
           >
             <HelpCircle size={17} />
@@ -488,7 +492,11 @@ export default function AppShell({
             variant="ghost"
             size="icon"
             className="h-9 w-9 relative"
-            onClick={() => setSuggestOpen((v) => !v)}
+            onClick={() => {
+              setSuggestOpen((v) => !v);
+              setNotifOpen(false);
+              setTipsOpen(false);
+            }}
             aria-label="Suggestions"
           >
             <Sparkles size={17} />
@@ -508,7 +516,11 @@ export default function AppShell({
             variant="ghost"
             size="icon"
             className="h-9 w-9 relative"
-            onClick={() => setNotifOpen((v) => !v)}
+            onClick={() => {
+              setNotifOpen((v) => !v);
+              setSuggestOpen(false);
+              setTipsOpen(false);
+            }}
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
           >
             <Bell size={17} />
