@@ -65,6 +65,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend.d";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─────────────────────────────────────────────
 // Types
@@ -2552,6 +2553,8 @@ export default function HealthcarePage({ userProfile }: Props) {
           View Jobs
         </Button>
       </div>
+
+      <QuickAddBar moduleName="Healthcare" />
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 animate-fade-up animate-fade-up-1">

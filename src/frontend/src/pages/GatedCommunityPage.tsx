@@ -59,6 +59,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─────────────────────────────────────────────
 // Types
@@ -2630,6 +2631,8 @@ export default function GatedCommunityPage() {
       </div>
 
       {/* Tabs */}
+      <QuickAddBar moduleName="Gated Community" />
+
       <Tabs defaultValue="overview" className="w-full">
         <div className="border-b border-border bg-card/50 px-6 overflow-x-auto">
           <TabsList className="bg-transparent gap-0 h-auto p-0 rounded-none">

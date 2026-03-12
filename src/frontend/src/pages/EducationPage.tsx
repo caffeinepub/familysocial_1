@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -59,6 +60,7 @@ import {
   Play,
   Plus,
   School,
+  Search,
   Send,
   ShoppingCart,
   Star,
@@ -76,6 +78,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -2798,9 +2801,53 @@ function TeacherView() {
 
 // ─── School Admin View ────────────────────────────────────────────────────────
 
+interface SchoolRecord {
+  id: number;
+  name: string;
+  city: string;
+  type: "School" | "Academy" | "College" | "University";
+  established: string;
+}
+
+const INITIAL_SCHOOLS: SchoolRecord[] = [
+  {
+    id: 1,
+    name: "Beacon House School System",
+    city: "Lahore",
+    type: "School",
+    established: "1975",
+  },
+  {
+    id: 2,
+    name: "The City Academy",
+    city: "Karachi",
+    type: "Academy",
+    established: "2002",
+  },
+  {
+    id: 3,
+    name: "Knowledge College",
+    city: "Delhi",
+    type: "College",
+    established: "1990",
+  },
+];
+
 function AdminView() {
+  const [schools, setSchools] = useState<SchoolRecord[]>(INITIAL_SCHOOLS);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number>(1);
+  const [createSchoolOpen, setCreateSchoolOpen] = useState(false);
+  const [newSchool, setNewSchool] = useState({
+    name: "",
+    city: "",
+    type: "School" as SchoolRecord["type"],
+    established: "",
+  });
   const [addBranchOpen, setAddBranchOpen] = useState(false);
   const [addDeptOpen, setAddDeptOpen] = useState(false);
+
+  const selectedSchool =
+    schools.find((s) => s.id === selectedSchoolId) ?? schools[0];
   const [leaveDecisions, setLeaveDecisions] = useState<
     Record<number, "approved" | "rejected" | null>
   >({ 1: null, 2: null });
@@ -2814,8 +2861,137 @@ function AdminView() {
 
   const makeEnrollKey = (type: string, id: number) => `${type}-${id}`;
 
+  const handleCreateSchool = () => {
+    if (!newSchool.name.trim()) {
+      return;
+    }
+    const id = Date.now();
+    setSchools((prev) => [...prev, { ...newSchool, id }]);
+    setSelectedSchoolId(id);
+    setNewSchool({ name: "", city: "", type: "School", established: "" });
+    setCreateSchoolOpen(false);
+    toast.success(`${newSchool.name} created!`);
+  };
+
   return (
     <div className="p-4">
+      {/* School Selector Header */}
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-card border border-border rounded-xl">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <School size={16} style={{ color: "oklch(var(--primary))" }} />
+          <Select
+            value={String(selectedSchoolId)}
+            onValueChange={(v) => setSelectedSchoolId(Number(v))}
+          >
+            <SelectTrigger
+              className="h-8 text-sm font-medium flex-1 max-w-xs"
+              data-ocid="education.school.select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {schools.map((s) => (
+                <SelectItem key={s.id} value={String(s.id)}>
+                  {s.name} — {s.city} ({s.type})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Dialog open={createSchoolOpen} onOpenChange={setCreateSchoolOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              className="h-8 text-xs gap-1"
+              data-ocid="education.create_school.button"
+            >
+              <Plus size={13} />
+              Create School/Academy
+            </Button>
+          </DialogTrigger>
+          <DialogContent
+            className="max-w-md"
+            data-ocid="education.create_school.dialog"
+          >
+            <DialogHeader>
+              <DialogTitle>Create New School / Academy</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. Sunrise International School"
+                  value={newSchool.name}
+                  onChange={(e) =>
+                    setNewSchool((p) => ({ ...p, name: e.target.value }))
+                  }
+                  data-ocid="education.school.name_input"
+                />
+              </div>
+              <div>
+                <Label>City</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. Mumbai"
+                  value={newSchool.city}
+                  onChange={(e) =>
+                    setNewSchool((p) => ({ ...p, city: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <Label>Type</Label>
+                <Select
+                  value={newSchool.type}
+                  onValueChange={(v) =>
+                    setNewSchool((p) => ({
+                      ...p,
+                      type: v as SchoolRecord["type"],
+                    }))
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="School">School</SelectItem>
+                    <SelectItem value="Academy">Academy</SelectItem>
+                    <SelectItem value="College">College</SelectItem>
+                    <SelectItem value="University">University</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Established Year</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. 2010"
+                  value={newSchool.established}
+                  onChange={(e) =>
+                    setNewSchool((p) => ({ ...p, established: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setCreateSchoolOpen(false)}
+                data-ocid="education.create_school.cancel_button"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateSchool}
+                data-ocid="education.create_school.submit_button"
+              >
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
       <Tabs defaultValue="profile">
         <ScrollArea>
           <TabsList className="mb-4 flex-wrap">
@@ -2868,14 +3044,11 @@ function AdminView() {
               <CardContent className="space-y-3">
                 <div>
                   <Label>School Name</Label>
-                  <Input
-                    defaultValue="Beacon House School System"
-                    className="mt-1"
-                  />
+                  <Input defaultValue={selectedSchool.name} className="mt-1" />
                 </div>
                 <div>
                   <Label>City</Label>
-                  <Input defaultValue="Lahore" className="mt-1" />
+                  <Input defaultValue={selectedSchool.city} className="mt-1" />
                 </div>
                 <div>
                   <Label>Address</Label>
@@ -3566,6 +3739,7 @@ function AdminView() {
                 Outgoing ({TRANSFER_REQUESTS.length})
               </TabsTrigger>
               <TabsTrigger value="incoming">Incoming (1)</TabsTrigger>
+              <TabsTrigger value="cross-school">Between Schools</TabsTrigger>
             </TabsList>
             <TabsContent value="outgoing">
               <div className="space-y-3">
@@ -3691,6 +3865,75 @@ function AdminView() {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="cross-school">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">
+                    Transfer Between Schools/Academies
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">From School</Label>
+                      <Select defaultValue={String(selectedSchoolId)}>
+                        <SelectTrigger className="mt-1 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {schools.map((s) => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">To School</Label>
+                      <Select defaultValue="2">
+                        <SelectTrigger className="mt-1 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {schools.map((s) => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Student/Staff Name</Label>
+                    <Input
+                      className="mt-1 h-8 text-xs"
+                      placeholder="Search member..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Transfer Reason</Label>
+                    <Textarea
+                      className="mt-1 text-xs"
+                      placeholder="Reason for cross-school transfer..."
+                      rows={2}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full h-8 text-xs"
+                    onClick={() =>
+                      toast.success(
+                        "Cross-school transfer request submitted for admin approval!",
+                      )
+                    }
+                  >
+                    Submit Transfer Request
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </TabsContent>
 
@@ -3713,12 +3956,241 @@ function AdminView() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
+// ─── School Directory ────────────────────────────────────────────────────────────────────
+
+const SCHOOL_DIRECTORY = [
+  {
+    id: "sch-1",
+    name: "Greenwood International School",
+    location: "Mumbai, Maharashtra",
+    type: "Secondary" as const,
+    branches: 3,
+    enrollment: 1840,
+    description:
+      "CBSE affiliated institution offering world-class education from KG to Class 12 with STEM focus.",
+    accessible: true,
+  },
+  {
+    id: "sch-2",
+    name: "Delhi Public School",
+    location: "New Delhi, NCT",
+    type: "Primary" as const,
+    branches: 7,
+    enrollment: 3200,
+    description:
+      "One of India's premier school networks with strong academics, sports, and cultural programs.",
+    accessible: true,
+  },
+  {
+    id: "sch-3",
+    name: "Sunrise Academy of Sciences",
+    location: "Bengaluru, Karnataka",
+    type: "University" as const,
+    branches: 2,
+    enrollment: 5600,
+    description:
+      "A leading science and technology academy offering undergraduate and postgraduate programs.",
+    accessible: false,
+  },
+  {
+    id: "sch-4",
+    name: "Little Stars Montessori",
+    location: "Pune, Maharashtra",
+    type: "Primary" as const,
+    branches: 4,
+    enrollment: 620,
+    description:
+      "Early childhood education using the Montessori method, nurturing creativity and independence.",
+    accessible: false,
+  },
+  {
+    id: "sch-5",
+    name: "IndyaCentral Tech Academy",
+    location: "Hyderabad, Telangana",
+    type: "Academy" as const,
+    branches: 1,
+    enrollment: 980,
+    description:
+      "Vocational and professional training in technology, design, and digital marketing.",
+    accessible: true,
+  },
+  {
+    id: "sch-6",
+    name: "Heritage Convent School",
+    location: "Chennai, Tamil Nadu",
+    type: "Secondary" as const,
+    branches: 2,
+    enrollment: 1450,
+    description:
+      "An established institution with 70+ years of academic excellence and holistic development.",
+    accessible: false,
+  },
+];
+
+type SchoolDirType = "Primary" | "Secondary" | "University" | "Academy";
+
+function SchoolDirectoryView({
+  onEnterSchool,
+}: { onEnterSchool: (name: string) => void }) {
+  const [requested, setRequested] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+
+  const typeColor: Record<SchoolDirType, string> = {
+    Primary: "oklch(0.62 0.18 145)",
+    Secondary: "oklch(0.55 0.18 240)",
+    University: "oklch(0.58 0.20 290)",
+    Academy: "oklch(0.62 0.18 50)",
+  };
+
+  const filtered = SCHOOL_DIRECTORY.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.location.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="p-6 space-y-5">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="font-display font-bold text-foreground text-xl flex-1">
+          School Directory
+        </h2>
+        <div className="relative w-full sm:w-64">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            placeholder="Search schools..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-sm"
+            data-ocid="education.directory.search_input"
+          />
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground -mt-2">
+        {filtered.length} institution{filtered.length !== 1 ? "s" : ""} · Login
+        available for accessible schools only
+      </p>
+      {filtered.length === 0 ? (
+        <div
+          className="text-center py-16 text-muted-foreground"
+          data-ocid="education.directory.empty_state"
+        >
+          <School size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No schools found for &ldquo;{search}&rdquo;</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((school, idx) => {
+            const color = typeColor[school.type as SchoolDirType];
+            const isRequested = requested.includes(school.id);
+            return (
+              <div
+                key={school.id}
+                className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col"
+                data-ocid={`education.directory.item.${idx + 1}`}
+              >
+                <div
+                  className="h-2 w-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${color}60, ${color}20)`,
+                  }}
+                />
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: `${color}18` }}
+                    >
+                      <School size={18} style={{ color }} />
+                    </div>
+                    <Badge
+                      className="text-[10px] px-2 py-0 shrink-0"
+                      style={{ background: `${color}15`, color }}
+                    >
+                      {school.type}
+                    </Badge>
+                  </div>
+                  <h3 className="font-label font-bold text-foreground text-sm leading-tight mb-1">
+                    {school.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                    <MapPin size={10} />
+                    {school.location}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2 flex-1">
+                    {school.description}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                    <div className="bg-secondary/50 rounded-lg p-2 text-center">
+                      <p className="font-label font-bold text-foreground">
+                        {school.branches}
+                      </p>
+                      <p className="text-muted-foreground">Branches</p>
+                    </div>
+                    <div className="bg-secondary/50 rounded-lg p-2 text-center">
+                      <p className="font-label font-bold text-foreground">
+                        {school.enrollment.toLocaleString()}
+                      </p>
+                      <p className="text-muted-foreground">Students</p>
+                    </div>
+                  </div>
+                  {school.accessible ? (
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs font-label gap-1.5"
+                      onClick={() => onEnterSchool(school.name)}
+                      data-ocid={`education.directory.enter_button.${idx + 1}`}
+                    >
+                      <LogIn size={12} />
+                      Enter School
+                    </Button>
+                  ) : isRequested ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-8 text-xs font-label gap-1.5"
+                      disabled
+                      data-ocid={`education.directory.requested_button.${idx + 1}`}
+                    >
+                      <CheckCircle2 size={12} className="text-emerald-500" />
+                      Request Sent
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-8 text-xs font-label gap-1.5"
+                      onClick={() => {
+                        setRequested((prev) => [...prev, school.id]);
+                        toast.success(`Access request sent to ${school.name}`);
+                      }}
+                      data-ocid={`education.directory.request_button.${idx + 1}`}
+                    >
+                      <Send size={12} />
+                      Request Access
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EducationPage() {
   const [role, setRole] = useState<Role>(null);
+  const [activeSchool, setActiveSchool] = useState<string | null>(null);
+  const [mainTab, setMainTab] = useState("directory");
 
-  if (role === null) {
-    return <RoleSelector onSelect={setRole} />;
-  }
+  const handleEnterSchool = (schoolName: string) => {
+    setActiveSchool(schoolName);
+    setMainTab("school");
+  };
 
   const roleLabel: Record<NonNullable<Role>, string> = {
     student: "Student",
@@ -3729,7 +4201,6 @@ export default function EducationPage() {
 
   return (
     <div className="min-h-full bg-background">
-      {/* Role header bar */}
       <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-2 flex items-center gap-3">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -3738,60 +4209,114 @@ export default function EducationPage() {
           <GraduationCap size={15} style={{ color: "oklch(var(--primary))" }} />
         </div>
         <span className="text-sm font-semibold">Education Hub</span>
-        <ChevronRight size={13} className="text-muted-foreground" />
-        <span
-          className="text-sm font-medium"
-          style={{ color: "oklch(var(--primary))" }}
-        >
-          {roleLabel[role]}
-        </span>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="ml-auto text-xs h-7 text-muted-foreground"
-          onClick={() => setRole(null)}
-        >
-          Switch Role
-        </Button>
+        {activeSchool && (
+          <>
+            <ChevronRight size={13} className="text-muted-foreground" />
+            <span
+              className="text-sm font-medium"
+              style={{ color: "oklch(var(--primary))" }}
+            >
+              {activeSchool}
+            </span>
+          </>
+        )}
+        {role && (
+          <>
+            <ChevronRight size={13} className="text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {roleLabel[role]}
+            </span>
+          </>
+        )}
+        {(activeSchool || role) && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto text-xs h-7 text-muted-foreground"
+            onClick={() => {
+              setRole(null);
+              setActiveSchool(null);
+              setMainTab("directory");
+            }}
+          >
+            ← Directory
+          </Button>
+        )}
       </div>
 
-      {/* Jobs banner */}
-      <div
-        className="mx-4 mt-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border"
-        style={{
-          background: "oklch(0.60 0.20 190 / 0.06)",
-          borderColor: "oklch(0.60 0.20 190 / 0.2)",
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Briefcase size={14} style={{ color: "oklch(0.60 0.20 190)" }} />
-          <span className="text-xs font-label text-foreground font-medium">
-            Teaching &amp; Admin Jobs Available
-          </span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            — full-time, part-time &amp; freelance teaching roles
-          </span>
+      <Tabs value={mainTab} onValueChange={setMainTab}>
+        <div className="px-4 pt-4">
+          <TabsList>
+            <TabsTrigger value="directory" data-ocid="education.directory.tab">
+              <Grid size={13} className="mr-1.5" />
+              School Directory
+            </TabsTrigger>
+            <TabsTrigger value="school" data-ocid="education.school.tab">
+              <School size={13} className="mr-1.5" />
+              My School
+            </TabsTrigger>
+            <TabsTrigger value="events" data-ocid="education.events.tab">
+              <CalendarDays size={13} className="mr-1.5" />
+              Events
+            </TabsTrigger>
+          </TabsList>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs font-label shrink-0"
-          onClick={() => toast.info("Navigating to Jobs...")}
-        >
-          View Jobs
-        </Button>
-      </div>
 
-      {/* Role content */}
-      {role === "student" && <StudentView />}
-      {role === "parent" && <ParentView />}
-      {role === "teacher" && <TeacherView />}
-      {role === "admin" && <AdminView />}
+        <TabsContent value="directory">
+          <SchoolDirectoryView onEnterSchool={handleEnterSchool} />
+        </TabsContent>
 
-      {/* Events */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <EventsTab moduleName="Education" moduleColor="oklch(0.55 0.18 240)" />
-      </div>
+        <TabsContent value="school">
+          {role === null ? (
+            <RoleSelector onSelect={setRole} />
+          ) : (
+            <div>
+              <div
+                className="mx-4 mt-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border"
+                style={{
+                  background: "oklch(0.60 0.20 190 / 0.06)",
+                  borderColor: "oklch(0.60 0.20 190 / 0.2)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Briefcase
+                    size={14}
+                    style={{ color: "oklch(0.60 0.20 190)" }}
+                  />
+                  <span className="text-xs font-label text-foreground font-medium">
+                    Teaching &amp; Admin Jobs Available
+                  </span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    — full-time, part-time &amp; freelance teaching roles
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs font-label shrink-0"
+                  onClick={() => toast.info("Navigating to Jobs...")}
+                >
+                  View Jobs
+                </Button>
+              </div>
+              <QuickAddBar moduleName="Education" />
+              {role === "student" && <StudentView />}
+              {role === "parent" && <ParentView />}
+              {role === "teacher" && <TeacherView />}
+              {role === "admin" && <AdminView />}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="events">
+          <div className="p-4">
+            <EventsTab
+              moduleName="Education"
+              moduleColor="oklch(0.55 0.18 240)"
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -41,6 +41,8 @@ import {
   Package,
   Plus,
   Star,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
   Truck,
   Wrench,
@@ -619,6 +621,75 @@ function VariantsBuilder({
   );
 }
 
+// ─── Like / Dislike Buttons ───────────────────────────────────────────────────────────────────
+
+const globalLikeState: Record<
+  string,
+  { likes: number; dislikes: number; voted: "like" | "dislike" | null }
+> = {};
+
+function LikeDislikeButtons({ itemId }: { itemId: string }) {
+  if (!globalLikeState[itemId]) {
+    globalLikeState[itemId] = {
+      likes: Math.floor(20 + Math.random() * 150),
+      dislikes: Math.floor(1 + Math.random() * 10),
+      voted: null,
+    };
+  }
+  const [state, setState] = useState(() => ({ ...globalLikeState[itemId] }));
+
+  const vote = (type: "like" | "dislike") => {
+    setState((prev) => {
+      const next = { ...prev };
+      if (prev.voted === type) {
+        // un-vote
+        next.voted = null;
+        if (type === "like") next.likes -= 1;
+        else next.dislikes -= 1;
+      } else {
+        if (prev.voted === "like") next.likes -= 1;
+        if (prev.voted === "dislike") next.dislikes -= 1;
+        next.voted = type;
+        if (type === "like") next.likes += 1;
+        else next.dislikes += 1;
+      }
+      globalLikeState[itemId] = next;
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => vote("like")}
+        className={`flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-xs transition-colors ${
+          state.voted === "like"
+            ? "bg-emerald-500/15 text-emerald-600"
+            : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+        }`}
+        data-ocid={"products.like_button"}
+      >
+        <ThumbsUp size={11} />
+        <span className="font-label">{state.likes}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => vote("dislike")}
+        className={`flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-xs transition-colors ${
+          state.voted === "dislike"
+            ? "bg-destructive/15 text-destructive"
+            : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        }`}
+        data-ocid={"products.dislike_button"}
+      >
+        <ThumbsDown size={11} />
+        <span className="font-label">{state.dislikes}</span>
+      </button>
+    </div>
+  );
+}
+
 // ─── Card Components ──────────────────────────────────────────────────────────
 
 function ProductCard({ product }: { product: Product }) {
@@ -709,11 +780,14 @@ function ProductCard({ product }: { product: Product }) {
               </p>
             )}
           </div>
-          <Button size="sm" className="h-7 text-xs font-label">
-            {product.isRental && product.price === 0
-              ? "Book Rental"
-              : "Contact Seller"}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <LikeDislikeButtons itemId={`p-${product.id}`} />
+            <Button size="sm" className="h-7 text-xs font-label">
+              {product.isRental && product.price === 0
+                ? "Book Rental"
+                : "Contact Seller"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -793,9 +867,12 @@ function ServiceCard({ service }: { service: Service }) {
             </span>
             <span className="text-xs text-muted-foreground">/hr</span>
           </div>
-          <Button size="sm" className="h-7 text-xs font-label">
-            {service.isBookable ? "Book Now" : "Contact"}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <LikeDislikeButtons itemId={`s-${service.id}`} />
+            <Button size="sm" className="h-7 text-xs font-label">
+              {service.isBookable ? "Book Now" : "Contact"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

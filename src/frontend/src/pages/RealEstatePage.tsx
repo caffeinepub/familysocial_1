@@ -59,6 +59,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─────────────────────────────────────────────
 // Types
@@ -815,6 +816,8 @@ function PropertyDetailDrawer({
             >
               <Building2 size={56} style={{ color: typeColor, opacity: 0.5 }} />
             </div>
+
+            <QuickAddBar moduleName="Real Estate" />
 
             <Tabs defaultValue="overview">
               <TabsList className="mb-4 w-full">

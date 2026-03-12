@@ -1,11 +1,22 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1740,6 +1751,9 @@ export default function AdminPanelPage() {
               { value: "theme", label: "🎨 Theme" },
               { value: "data-requests", label: "📂 Data Requests" },
               { value: "modules", label: "📦 All Modules" },
+              { value: "paysprint", label: "💳 PaySprint API" },
+              { value: "agent17", label: "✈️ A17: Travel" },
+              { value: "agent18", label: "💰 A18: Pricing" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -2434,6 +2448,111 @@ export default function AdminPanelPage() {
 
         {/* ── AGENT 3: API SYNC ── */}
         <TabsContent value="api-sync" className="mt-0">
+          {/* ── Agoda API ── */}
+          <div className="mb-6 p-5 bg-card border border-border rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+                  style={{ background: "oklch(0.55 0.22 280 / 0.1)" }}
+                >
+                  🏨
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">
+                    Agoda API Integration
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Bring hotels &amp; tours from Agoda into IndyaCentral
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Hotels &amp; Tours
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Affiliate ID</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  placeholder="e.g. AGO-12345678"
+                  data-ocid="admin.agoda.affiliate_input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">API Key</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  placeholder="agoda_api_key_..."
+                  data-ocid="admin.agoda.key_input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Base URL</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  defaultValue="https://affiliateapi7.agoda.com/api/v3"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Sync Frequency</Label>
+                <Select defaultValue="daily">
+                  <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hourly">Hourly</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs mb-2 block">Supported Regions</Label>
+              <div className="flex flex-wrap gap-3">
+                {["India", "Southeast Asia", "Global", "Middle East"].map(
+                  (r) => (
+                    <label
+                      key={r}
+                      className="flex items-center gap-1.5 text-xs cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        defaultChecked={r === "India"}
+                        className="rounded"
+                      />
+                      {r}
+                    </label>
+                  ),
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="h-8 text-xs gap-1"
+                onClick={() =>
+                  toast.success("Agoda sync started — fetching hotels...")
+                }
+                data-ocid="admin.agoda.sync_button"
+              >
+                🔄 Sync Now
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={() =>
+                  toast.success("Agoda API connected successfully!")
+                }
+                data-ocid="admin.agoda.test_button"
+              >
+                Test Connection
+              </Button>
+            </div>
+          </div>
           <Tabs defaultValue="products">
             <TabsList className="mb-4">
               <TabsTrigger value="products" className="text-xs">
@@ -4251,6 +4370,707 @@ export default function AdminPanelPage() {
             </TabsContent>
           </Tabs>
         </TabsContent>
+
+        {/* ── PAYSPRINT API ── */}
+        <TabsContent value="paysprint" className="mt-0 space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+              style={{ background: "oklch(0.55 0.22 280 / 0.1)" }}
+            >
+              💳
+            </div>
+            <div>
+              <h2 className="font-semibold text-base">
+                PaySprint API Configuration
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Configure PaySprint for mobile recharge and bus booking
+              </p>
+            </div>
+          </div>
+
+          {/* Mobile Recharge API */}
+          <div className="p-5 bg-card border border-border rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                📱 Mobile Recharge API
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Mode:</span>
+                <select className="text-xs border border-border rounded px-2 py-1 bg-background">
+                  <option value="test">Test</option>
+                  <option value="live">Live</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">API Key</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  placeholder="PS_RECHARGE_API_KEY_..."
+                  data-ocid="admin.paysprint.recharge_key_input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Merchant ID</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  placeholder="MERCHANT_001"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Base URL</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  defaultValue="https://api.paysprint.in/api/v1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Callback URL</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  placeholder="https://yourdomain.com/callback/recharge"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs mb-2 block">Operator Codes</Label>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-secondary/50">
+                        <th className="text-left px-3 py-2">Operator</th>
+                        <th className="text-left px-3 py-2">Code</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Airtel", "AT"],
+                        ["Jio", "JIO"],
+                        ["Vi (Vodafone)", "VI"],
+                        ["BSNL", "BSN"],
+                        ["Idea", "IDEA"],
+                      ].map(([op, code]) => (
+                        <tr key={op} className="border-t border-border">
+                          <td className="px-3 py-1.5">{op}</td>
+                          <td className="px-3 py-1.5">
+                            <Input
+                              className="h-6 text-xs p-1 w-16"
+                              defaultValue={code}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs mb-2 block">Circle Codes</Label>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-secondary/50">
+                        <th className="text-left px-3 py-2">Circle</th>
+                        <th className="text-left px-3 py-2">Code</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Delhi", "DL"],
+                        ["Mumbai", "MH"],
+                        ["Karnataka", "KA"],
+                        ["UP", "UP"],
+                        ["Maharashtra", "MH2"],
+                      ].map(([circle, code]) => (
+                        <tr key={circle} className="border-t border-border">
+                          <td className="px-3 py-1.5">{circle}</td>
+                          <td className="px-3 py-1.5">
+                            <Input
+                              className="h-6 text-xs p-1 w-16"
+                              defaultValue={code}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => toast.success("PaySprint Recharge API connected!")}
+              data-ocid="admin.paysprint.recharge_test_button"
+            >
+              Test Connection
+            </Button>
+          </div>
+
+          {/* Bus Booking API */}
+          <div className="p-5 bg-card border border-border rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                🚌 Bus Booking API
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Mode:</span>
+                <select className="text-xs border border-border rounded px-2 py-1 bg-background">
+                  <option value="test">Test</option>
+                  <option value="live">Live</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">API Key</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  placeholder="PS_BUS_API_KEY_..."
+                  data-ocid="admin.paysprint.bus_key_input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Base URL</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  defaultValue="https://api.paysprint.in/api/v1/bus"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Commission %</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  type="number"
+                  defaultValue="2.5"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs mb-2 block">
+                  Source / Destination Codes
+                </Label>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-secondary/50">
+                        <th className="text-left px-3 py-2">City</th>
+                        <th className="text-left px-3 py-2">Code</th>
+                        <th className="px-2 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Mumbai", "MUM"],
+                        ["Delhi", "DEL"],
+                        ["Bangalore", "BLR"],
+                        ["Chennai", "CHE"],
+                        ["Hyderabad", "HYD"],
+                      ].map(([city, code]) => (
+                        <tr key={city} className="border-t border-border">
+                          <td className="px-3 py-1.5">{city}</td>
+                          <td className="px-3 py-1.5">
+                            <Input
+                              className="h-6 text-xs p-1 w-16"
+                              defaultValue={code}
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <button
+                              type="button"
+                              className="text-destructive text-xs hover:underline"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 h-7 text-xs"
+                  onClick={() => toast.info("Add new city row")}
+                >
+                  + Add City
+                </Button>
+              </div>
+              <div>
+                <Label className="text-xs mb-2 block">Seat Layout Config</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs w-16">Rows</span>
+                    <Input
+                      className="h-7 text-xs"
+                      type="number"
+                      defaultValue="10"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs w-16">Columns</span>
+                    <Input
+                      className="h-7 text-xs"
+                      type="number"
+                      defaultValue="4"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs w-16">Layout</span>
+                    <Select defaultValue="2+2">
+                      <SelectTrigger className="h-7 text-xs flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2+2">2+2</SelectItem>
+                        <SelectItem value="2+3">2+3</SelectItem>
+                        <SelectItem value="1+2">1+2 (sleeper)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => toast.success("PaySprint Bus API connected!")}
+              data-ocid="admin.paysprint.bus_test_button"
+            >
+              Test Connection
+            </Button>
+          </div>
+
+          <Button
+            className="w-full"
+            onClick={() => toast.success("PaySprint configuration saved!")}
+            data-ocid="admin.paysprint.save_button"
+          >
+            Save PaySprint Settings
+          </Button>
+        </TabsContent>
+
+        {/* ── AGENT 17: TRAVEL CURATOR ── */}
+        <TabsContent value="agent17" className="mt-0 space-y-4">
+          <div className="p-5 bg-card border border-border rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                  style={{ background: "oklch(0.65 0.14 50 / 0.1)" }}
+                >
+                  ✈️
+                </div>
+                <div>
+                  <h2 className="font-semibold">Agent 17: Travel Curator</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Auto-generates packages, itineraries, hotels &amp; cab
+                    routes
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Status:</span>
+                <Switch defaultChecked data-ocid="admin.agent17.toggle" />
+                <Badge className="text-xs bg-green-100 text-green-700 border-0">
+                  Active
+                </Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Update Frequency</Label>
+                <Select defaultValue="daily">
+                  <SelectTrigger
+                    className="mt-1 h-8 text-xs"
+                    data-ocid="admin.agent17.frequency_select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hourly">Hourly</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Confidence Threshold: 75%</Label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue="75"
+                  className="w-full mt-2 h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{ accentColor: "oklch(var(--primary))" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 block">Target Regions</Label>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  "North India",
+                  "South India",
+                  "Rajasthan",
+                  "Goa",
+                  "Kerala",
+                  "Pakistan",
+                  "Nepal",
+                  "Sri Lanka",
+                  "Maldives",
+                  "Dubai",
+                ].map((r) => (
+                  <label
+                    key={r}
+                    className="flex items-center gap-1.5 text-xs cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      defaultChecked={r.includes("India")}
+                      className="rounded"
+                    />
+                    {r}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 block">Auto-Generate</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["Packages", true],
+                  ["Hotels", true],
+                  ["Itineraries", true],
+                  ["Cab Listings", false],
+                  ["Tour Guides", false],
+                ].map(([label, checked]) => (
+                  <label
+                    key={String(label)}
+                    className="flex items-center gap-2 text-xs cursor-pointer p-2 rounded-lg border border-border hover:bg-secondary/30"
+                  >
+                    <input
+                      type="checkbox"
+                      defaultChecked={checked as boolean}
+                      className="rounded"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              className="gap-1"
+              onClick={() =>
+                toast.success("Agent 17 running — generating travel content...")
+              }
+              data-ocid="admin.agent17.run_button"
+            >
+              ▶ Run Now
+            </Button>
+          </div>
+
+          {/* Activity Log */}
+          <div className="p-5 bg-card border border-border rounded-xl">
+            <h3 className="font-semibold text-sm mb-3">
+              Activity Log (Last 10)
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/30">
+                    <th className="text-left px-3 py-2">Destination</th>
+                    <th className="text-left px-3 py-2">Type</th>
+                    <th className="text-right px-3 py-2">Confidence</th>
+                    <th className="text-right px-3 py-2">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Goa, India", "Package", 92, "Mar 11, 10:30"],
+                    ["Kerala Backwaters", "Itinerary", 88, "Mar 11, 09:15"],
+                    ["Taj Hotel, Agra", "Hotel", 85, "Mar 10, 18:00"],
+                    ["Delhi → Jaipur", "Cab Route", 78, "Mar 10, 14:45"],
+                    ["Rajasthan Heritage", "Package", 91, "Mar 10, 12:00"],
+                    ["Shimla Hills", "Itinerary", 83, "Mar 09, 16:30"],
+                    ["Grand Hyatt, Mumbai", "Hotel", 80, "Mar 09, 11:00"],
+                    ["Mumbai → Pune", "Cab Route", 76, "Mar 08, 15:00"],
+                    ["Andaman Islands", "Package", 89, "Mar 08, 09:00"],
+                    ["Ranthambore Safari", "Itinerary", 87, "Mar 07, 14:00"],
+                  ].map(([dest, type, conf, ts], i) => (
+                    <tr
+                      key={String(dest)}
+                      className="border-t border-border hover:bg-secondary/20"
+                      data-ocid={`admin.agent17.log.item.${i + 1}`}
+                    >
+                      <td className="px-3 py-2 font-medium">{dest}</td>
+                      <td className="px-3 py-2">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0"
+                        >
+                          {type}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <span
+                          style={{
+                            color:
+                              (conf as number) >= 85
+                                ? "oklch(0.52 0.14 155)"
+                                : "oklch(0.65 0.14 50)",
+                          }}
+                        >
+                          {conf}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">
+                        {ts}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── AGENT 18: PRICING & DELIVERY MONITOR ── */}
+        <TabsContent value="agent18" className="mt-0 space-y-4">
+          <Agent18PricingMonitor />
+        </TabsContent>
+        {/* ── SURVEYS ── */}
+        <TabsContent value="surveys" className="mt-0 space-y-5">
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Total Surveys", value: "847", sub: "this month" },
+              { label: "Avg Platform Rating", value: "4.6★", sub: "out of 5" },
+              {
+                label: "Most Voted Product",
+                value: "CBSE Book Set",
+                sub: "210 votes",
+              },
+              {
+                label: "Top Rated Service",
+                value: "Health Consult",
+                sub: "4.9★ rating",
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-card border border-border rounded-xl p-4"
+              >
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-lg font-display font-bold text-foreground mt-1 truncate">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-muted-foreground">{stat.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Survey table */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+              <h3 className="font-label font-semibold text-sm">
+                Survey Results
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/30">
+                    <th className="px-4 py-2.5 text-left font-label text-muted-foreground">
+                      Product / Service
+                    </th>
+                    <th className="px-3 py-2.5 text-left font-label text-muted-foreground">
+                      Module
+                    </th>
+                    <th className="px-3 py-2.5 text-center font-label text-muted-foreground">
+                      Avg Rating
+                    </th>
+                    <th className="px-3 py-2.5 text-center font-label text-muted-foreground">
+                      Votes
+                    </th>
+                    <th className="px-3 py-2.5 text-center font-label text-muted-foreground">
+                      Value
+                    </th>
+                    <th className="px-3 py-2.5 text-center font-label text-muted-foreground">
+                      Quality
+                    </th>
+                    <th className="px-3 py-2.5 text-center font-label text-muted-foreground">
+                      Delivery
+                    </th>
+                    <th className="px-4 py-2.5 text-left font-label text-muted-foreground">
+                      Latest Comment
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      name: "CBSE Class 10 Book Set",
+                      module: "Education",
+                      rating: 4.8,
+                      votes: 210,
+                      value: 92,
+                      quality: 88,
+                      delivery: 85,
+                      comment: "Great value, arrived quickly!",
+                    },
+                    {
+                      name: "General Health Consultation",
+                      module: "Healthcare",
+                      rating: 4.9,
+                      votes: 305,
+                      value: 96,
+                      quality: 97,
+                      delivery: 90,
+                      comment: "Dr. was very thorough and helpful.",
+                    },
+                    {
+                      name: "Home Tutoring — Maths",
+                      module: "Services",
+                      rating: 4.9,
+                      votes: 140,
+                      value: 88,
+                      quality: 95,
+                      delivery: 82,
+                      comment: "My son's grades improved a lot.",
+                    },
+                    {
+                      name: "CCTV 8-Camera Kit",
+                      module: "Gated Community",
+                      rating: 4.4,
+                      votes: 88,
+                      value: 80,
+                      quality: 84,
+                      delivery: 72,
+                      comment: "Good product, setup was a bit complex.",
+                    },
+                    {
+                      name: "Goa Beach Resort Package",
+                      module: "Travel",
+                      rating: 4.7,
+                      votes: 128,
+                      value: 90,
+                      quality: 92,
+                      delivery: 88,
+                      comment: "Wonderful trip, highly recommend!",
+                    },
+                    {
+                      name: "Honda Civic 2022",
+                      module: "Products",
+                      rating: 4.8,
+                      votes: 165,
+                      value: 85,
+                      quality: 90,
+                      delivery: 78,
+                      comment: "Exactly as described, very happy.",
+                    },
+                    {
+                      name: "Mehndi Artist",
+                      module: "Services",
+                      rating: 4.95,
+                      votes: 201,
+                      value: 95,
+                      quality: 98,
+                      delivery: 93,
+                      comment: "Beautiful work for our wedding!",
+                    },
+                    {
+                      name: "Legal Consultation",
+                      module: "Services",
+                      rating: 4.8,
+                      votes: 77,
+                      value: 87,
+                      quality: 90,
+                      delivery: 85,
+                      comment: "Very professional, resolved my issue.",
+                    },
+                  ].map((row, i) => (
+                    <tr
+                      key={row.name}
+                      className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
+                      data-ocid={`admin.surveys.row.${i + 1}`}
+                    >
+                      <td className="px-4 py-3 font-label font-medium text-foreground">
+                        {row.name}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-label bg-secondary text-muted-foreground">
+                          {row.module}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span className="font-label font-bold text-amber-500">
+                          {row.rating}★
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-center font-label text-foreground">
+                        {row.votes}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <div className="flex items-center gap-1 justify-center">
+                          <div className="h-1.5 w-10 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full"
+                              style={{ width: `${row.value}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {row.value}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <div className="flex items-center gap-1 justify-center">
+                          <div className="h-1.5 w-10 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full"
+                              style={{ width: `${row.quality}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {row.quality}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <div className="flex items-center gap-1 justify-center">
+                          <div className="h-1.5 w-10 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-violet-500 rounded-full"
+                              style={{ width: `${row.delivery}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {row.delivery}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground italic max-w-[200px] truncate">
+                        &ldquo;{row.comment}&rdquo;
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
 
       <div className="mt-6 text-center text-xs text-muted-foreground">
@@ -4268,6 +5088,280 @@ export default function AdminPanelPage() {
   );
 }
 
+// ─── Agent 18: Pricing & Delivery Monitor ──────────────────────────────────────
+function Agent18PricingMonitor() {
+  const [active, setActive] = useState(true);
+  const [sensitivity, setSensitivity] = useState([60]);
+  const [threshold, setThreshold] = useState("20");
+  const [deliveryCompare, setDeliveryCompare] = useState(true);
+  const [notifFreq, setNotifFreq] = useState("daily");
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [moduleScope, setModuleScope] = useState<Record<string, boolean>>({
+    Travel: true,
+    Healthcare: true,
+    "Real Estate": true,
+    "Gated Community": true,
+    Education: true,
+    Shop: true,
+  });
+
+  const toggleModule = (m: string) =>
+    setModuleScope((p) => ({ ...p, [m]: !p[m] }));
+
+  const runScan = () => {
+    setScanning(true);
+    setScanResult(null);
+    setTimeout(() => {
+      setScanning(false);
+      setScanResult(
+        "5 listings flagged as overpriced (3 Travel, 1 Healthcare, 1 Shop)",
+      );
+    }, 1800);
+  };
+
+  const alerts = [
+    {
+      product: "Deluxe Room — The Grand Palace",
+      module: "Travel",
+      flagged: "₹8,500/night",
+      avg: "₹6,200/night",
+      pct: "+37%",
+    },
+    {
+      product: "Digital Stethoscope Pro",
+      module: "Healthcare",
+      flagged: "₹12,400",
+      avg: "₹9,800",
+      pct: "+27%",
+    },
+    {
+      product: "Courier Delivery — Express",
+      module: "Shop",
+      flagged: "₹350/kg",
+      avg: "₹220/kg",
+      pct: "+59%",
+    },
+    {
+      product: "Airport Transfer — Mumbai",
+      module: "Travel",
+      flagged: "₹4,200",
+      avg: "₹3,100",
+      pct: "+35%",
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div
+        className="rounded-xl border-2 p-4 flex items-center justify-between"
+        style={{
+          borderColor: active
+            ? "oklch(0.52 0.14 155 / 0.4)"
+            : "oklch(0.55 0.22 25 / 0.3)",
+          background: active
+            ? "oklch(0.52 0.14 155 / 0.05)"
+            : "oklch(0.55 0.22 25 / 0.05)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            style={{ background: "oklch(0.65 0.14 50 / 0.1)" }}
+          >
+            💰
+          </div>
+          <div>
+            <h2 className="font-semibold text-sm">
+              Agent 18: Pricing & Delivery Monitor
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Monitors product, service & delivery prices across all modules
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={active}
+            onCheckedChange={setActive}
+            data-ocid="admin.agent18.toggle"
+          />
+          <Badge
+            className={`text-xs border-0 ${active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+          >
+            {active ? "Active" : "Paused"}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <h3 className="text-sm font-semibold">Configuration</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">
+              Price Sensitivity:{" "}
+              {sensitivity[0] < 40
+                ? "Low"
+                : sensitivity[0] < 70
+                  ? "Medium"
+                  : "High"}
+            </Label>
+            <Slider
+              className="mt-2"
+              min={0}
+              max={100}
+              step={10}
+              value={sensitivity}
+              onValueChange={setSensitivity}
+              data-ocid="admin.agent18.toggle"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>Low</span>
+              <span>Medium</span>
+              <span>High</span>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Alert Threshold (%)</Label>
+            <Input
+              className="mt-1 h-8 text-xs"
+              type="number"
+              placeholder="20"
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              data-ocid="admin.agent18.input"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Alert if price is &gt;{threshold}% above average
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between py-2 border-t border-border">
+          <div>
+            <p className="text-xs font-medium">Delivery Rate Comparison</p>
+            <p className="text-[10px] text-muted-foreground">
+              Compare delivery providers and flag overpriced rates
+            </p>
+          </div>
+          <Switch
+            checked={deliveryCompare}
+            onCheckedChange={setDeliveryCompare}
+            data-ocid="admin.agent18.switch"
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs">Notification Frequency</Label>
+          <Select value={notifFreq} onValueChange={setNotifFreq}>
+            <SelectTrigger
+              className="mt-1 h-8 text-xs"
+              data-ocid="admin.agent18.select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="realtime">Real-time</SelectItem>
+              <SelectItem value="hourly">Hourly</SelectItem>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-xs mb-2 block">Module Scope</Label>
+          <div className="flex flex-wrap gap-3">
+            {Object.keys(moduleScope).map((m) => (
+              <div
+                key={m}
+                className="flex items-center gap-1.5 text-xs cursor-pointer"
+              >
+                <Checkbox
+                  checked={moduleScope[m]}
+                  onCheckedChange={() => toggleModule(m)}
+                />
+                {m}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2 border-t border-border">
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={runScan}
+            disabled={scanning}
+            data-ocid="admin.agent18.primary_button"
+          >
+            {scanning ? "Scanning..." : "Run Scan Now"}
+          </Button>
+          {scanResult && (
+            <Badge
+              className="text-xs bg-amber-100 text-amber-700 border-0"
+              data-ocid="admin.agent18.success_state"
+            >
+              {scanResult}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold">Recent Price Alerts</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-3 py-2 text-left font-medium">
+                  Product / Service
+                </th>
+                <th className="px-3 py-2 text-left font-medium">Module</th>
+                <th className="px-3 py-2 text-right font-medium">
+                  Listed Price
+                </th>
+                <th className="px-3 py-2 text-right font-medium">Avg Price</th>
+                <th className="px-3 py-2 text-right font-medium">% Over</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alerts.map((a, i) => (
+                <tr
+                  key={a.product}
+                  className="border-t border-border hover:bg-secondary/20"
+                  data-ocid={`admin.agent18.item.${i + 1}`}
+                >
+                  <td className="px-3 py-2 font-medium">{a.product}</td>
+                  <td className="px-3 py-2">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {a.module}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-2 text-right">{a.flagged}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">
+                    {a.avg}
+                  </td>
+                  <td
+                    className="px-3 py-2 text-right font-semibold"
+                    style={{ color: "oklch(0.52 0.2 25)" }}
+                  >
+                    {a.pct}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ─── Agent 7: Image Manager ───────────────────────────────────────────────────
 function Agent7ImageManager() {
   const [timeframe, setTimeframe] = useState<
@@ -4972,114 +6066,146 @@ function Agent11FakeUsers() {
   const [running, setRunning] = useState(false);
   const [dailyLimit, setDailyLimit] = useState(10);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState("config");
+  const [batchSize, setBatchSize] = useState("10");
+  const [generateContent, setGenerateContent] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [selectedCountries, setSelectedCountries] = useState<
+    Record<string, boolean>
+  >({
+    India: true,
+    Pakistan: true,
+    Bangladesh: false,
+    "Sri Lanka": false,
+    Nepal: false,
+    UAE: true,
+    UK: false,
+    USA: false,
+    Canada: false,
+    Australia: false,
+  });
+  const [selectedContent, setSelectedContent] = useState<
+    Record<string, boolean>
+  >({
+    Schools: true,
+    "Travel Packages": true,
+    Hotels: true,
+    Jobs: true,
+    Products: false,
+    Services: false,
+    "Healthcare Advisors": false,
+    "Community Groups": true,
+  });
+
+  const trackingData = [
+    {
+      country: "India",
+      users: 342,
+      content: 1240,
+      lastRun: "Mar 11, 08:00",
+      status: "Active",
+    },
+    {
+      country: "Pakistan",
+      users: 187,
+      content: 634,
+      lastRun: "Mar 11, 08:00",
+      status: "Active",
+    },
+    {
+      country: "UAE",
+      users: 94,
+      content: 312,
+      lastRun: "Mar 10, 22:00",
+      status: "Paused",
+    },
+    {
+      country: "Bangladesh",
+      users: 56,
+      content: 189,
+      lastRun: "Mar 09, 14:00",
+      status: "Active",
+    },
+    {
+      country: "Nepal",
+      users: 23,
+      content: 78,
+      lastRun: "Mar 08, 10:00",
+      status: "Idle",
+    },
+    {
+      country: "Sri Lanka",
+      users: 31,
+      content: 104,
+      lastRun: "Mar 07, 16:00",
+      status: "Idle",
+    },
+  ];
 
   const fakeUsers = [
     {
       name: "ali_bot_7a2x",
-      created: "Mar 1, 2026",
+      country: "India",
+      created: "Mar 11, 2026",
       modules: ["Feed", "Jobs", "Community"],
       posts: 4,
       interactions: 23,
     },
     {
       name: "zara_sim_9c1b",
-      created: "Mar 1, 2026",
+      country: "Pakistan",
+      created: "Mar 11, 2026",
       modules: ["Matrimony", "Feed"],
       posts: 2,
       interactions: 11,
     },
     {
       name: "hassan_auto_4f",
-      created: "Feb 28, 2026",
+      country: "India",
+      created: "Mar 10, 2026",
       modules: ["Products", "POS"],
       posts: 6,
       interactions: 34,
     },
     {
       name: "nida_bot_3e8d",
-      created: "Feb 28, 2026",
+      country: "UAE",
+      created: "Mar 10, 2026",
       modules: ["Blog", "Affiliate"],
       posts: 3,
       interactions: 18,
     },
     {
       name: "imran_sim_1b7c",
-      created: "Feb 27, 2026",
+      country: "Pakistan",
+      created: "Mar 09, 2026",
       modules: ["Jobs", "Travel"],
       posts: 5,
       interactions: 27,
     },
     {
       name: "sara_auto_2a9f",
-      created: "Feb 27, 2026",
+      country: "India",
+      created: "Mar 09, 2026",
       modules: ["Healthcare", "Feed"],
       posts: 1,
       interactions: 9,
     },
-    {
-      name: "bilal_bot_8d5e",
-      created: "Feb 26, 2026",
-      modules: ["Community", "Gated"],
-      posts: 7,
-      interactions: 41,
-    },
-    {
-      name: "fatima_sim_6c3a",
-      created: "Feb 26, 2026",
-      modules: ["Dating", "Feed"],
-      posts: 2,
-      interactions: 15,
-    },
-    {
-      name: "usman_auto_5f2b",
-      created: "Feb 25, 2026",
-      modules: ["Real Estate", "Map"],
-      posts: 4,
-      interactions: 22,
-    },
-    {
-      name: "hina_bot_0d7e",
-      created: "Feb 25, 2026",
-      modules: ["Education", "Blog"],
-      posts: 3,
-      interactions: 19,
-    },
-    {
-      name: "omar_sim_4a8c",
-      created: "Feb 24, 2026",
-      modules: ["Travel", "Jobs"],
-      posts: 5,
-      interactions: 31,
-    },
-    {
-      name: "aisha_auto_9b1d",
-      created: "Feb 24, 2026",
-      modules: ["Feed", "Community"],
-      posts: 6,
-      interactions: 28,
-    },
-    {
-      name: "khalid_bot_3c6f",
-      created: "Feb 23, 2026",
-      modules: ["Products", "Affiliate"],
-      posts: 2,
-      interactions: 14,
-    },
-    {
-      name: "maria_sim_7e0b",
-      created: "Feb 23, 2026",
-      modules: ["Matrimony", "Map"],
-      posts: 1,
-      interactions: 8,
-    },
-    {
-      name: "tariq_auto_2f4a",
-      created: "Feb 22, 2026",
-      modules: ["Jobs", "Feed"],
-      posts: 4,
-      interactions: 20,
-    },
   ];
+
+  const handleGenerate = () => {
+    setGenerating(true);
+    setTimeout(() => {
+      setGenerating(false);
+      toast.success("Users and content generated across selected countries");
+    }, 2000);
+  };
+
+  const statusColor = (s: string) => {
+    if (s === "Active") return "bg-green-100 text-green-700";
+    if (s === "Paused") return "bg-amber-100 text-amber-700";
+    return "bg-gray-100 text-gray-500";
+  };
 
   return (
     <>
@@ -5096,7 +6222,7 @@ function Agent11FakeUsers() {
       >
         <div>
           <p className="text-sm font-label font-semibold text-foreground">
-            {running ? "🟢 Agent Running" : "🔴 Agent Stopped"}
+            {running ? "U0001f7e2 Agent Running" : "U0001f534 Agent Stopped"}
           </p>
           <p className="text-[11px] text-muted-foreground">
             Fake users are{" "}
@@ -5104,141 +6230,315 @@ function Agent11FakeUsers() {
             to start/stop.
           </p>
         </div>
-        <Switch checked={running} onCheckedChange={setRunning} />
+        <Switch
+          checked={running}
+          onCheckedChange={setRunning}
+          data-ocid="admin.agent11.toggle"
+        />
       </div>
 
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
-        <p
-          className="text-xs font-label font-semibold"
-          style={{ color: "oklch(0.50 0.14 65)" }}
-        >
-          ⚠️ Warning
-        </p>
-        <p className="text-[11px] text-muted-foreground">
-          Fake users are indistinguishable from real users across all modules.
-          Agent 15 (Analytics) separates bot traffic in its reports. Use
-          responsibly.
-        </p>
-      </div>
-
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h3 className="text-sm font-label font-semibold text-foreground mb-3">
-          Daily Limit
-        </h3>
-        <div className="flex items-center gap-4">
-          <input
-            type="range"
-            min={1}
-            max={50}
-            value={dailyLimit}
-            onChange={(e) => setDailyLimit(Number(e.target.value))}
-            className="flex-1 accent-violet-600"
-          />
-          <span className="text-sm font-display font-bold text-foreground w-8 text-right">
-            {dailyLimit}
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-1">
-          {dailyLimit} new fake users generated per day
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Generated", value: "847" },
-          { label: "Active Today", value: "23" },
-          { label: "Interactions Made", value: "1,240" },
-          { label: "Modules Active In", value: "All 14" },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="bg-card border border-border rounded-xl p-3"
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full">
+          <TabsTrigger value="config" className="flex-1 text-xs">
+            Configuration
+          </TabsTrigger>
+          <TabsTrigger
+            value="tracking"
+            className="flex-1 text-xs"
+            data-ocid="admin.agent11.tab"
           >
-            <p className="text-lg font-display font-bold text-foreground">
-              {value}
-            </p>
-            <p className="text-[11px] text-muted-foreground font-label">
-              {label}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h3 className="text-sm font-label font-semibold text-foreground">
+            Tracking Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex-1 text-xs">
             Generated Users
-          </h3>
-          <button
-            type="button"
-            onClick={() => setShowConfirm(true)}
-            className="text-[11px] font-label font-medium px-2 py-1 rounded border text-red-600 border-red-500/30 hover:bg-red-500/08 transition-colors"
-          >
-            Full Reset
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <TH>Username</TH>
-                <TH>Created</TH>
-                <TH>Active Modules</TH>
-                <TH>Posts Today</TH>
-                <TH>Interactions</TH>
-              </tr>
-            </thead>
-            <tbody>
-              {fakeUsers.map((u) => (
-                <tr
-                  key={u.name}
-                  className="hover:bg-secondary/20 transition-colors"
-                >
-                  <TD className="font-mono text-[11px]">{u.name}</TD>
-                  <TD className="text-muted-foreground">{u.created}</TD>
-                  <TD>
-                    <div className="flex flex-wrap gap-0.5">
-                      {u.modules.map((m) => (
-                        <SBadge key={m} label={m} color="gray" />
-                      ))}
-                    </div>
-                  </TD>
-                  <TD className="text-center">{u.posts}</TD>
-                  <TD className="text-center">{u.interactions}</TD>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {showConfirm && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center justify-between">
-          <p className="text-xs font-label text-foreground">
-            Are you sure? This will permanently remove all 847 fake users and
-            their interactions.
-          </p>
-          <div className="flex gap-2">
-            <ActionBtn
-              label="Confirm Reset"
-              color="red"
-              onClick={() => {
-                setShowConfirm(false);
-              }}
-            />
-            <ActionBtn label="Cancel" onClick={() => setShowConfirm(false)} />
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="config" className="mt-4 space-y-4">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
+            <p
+              className="text-xs font-label font-semibold"
+              style={{ color: "oklch(0.50 0.14 65)" }}
+            >
+              \u26a0\ufe0f Warning
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Fake users are indistinguishable from real users across all
+              modules. Agent 15 (Analytics) separates bot traffic in reports.
+            </p>
           </div>
-        </div>
-      )}
-      <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg px-3 py-2">
-        🔗 <strong>Agent Network:</strong> Fake users interact with all modules
-        to simulate activity. Agent 15 (Analytics) separates bot traffic from
-        real traffic in all reports.
-      </div>
+
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <div>
+              <Label className="text-xs font-semibold">Daily Limit</Label>
+              <div className="flex items-center gap-4 mt-2">
+                <input
+                  type="range"
+                  min={1}
+                  max={50}
+                  value={dailyLimit}
+                  onChange={(e) => setDailyLimit(Number(e.target.value))}
+                  className="flex-1 accent-violet-600"
+                />
+                <span className="text-sm font-bold text-foreground w-8 text-right">
+                  {dailyLimit}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {dailyLimit} new fake users generated per day
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold mb-2 block">
+                Target Countries
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.entries(selectedCountries).map(([c, v]) => (
+                  <div
+                    key={c}
+                    className="flex items-center gap-1.5 text-xs cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={v}
+                      onCheckedChange={() =>
+                        setSelectedCountries((p) => ({ ...p, [c]: !p[c] }))
+                      }
+                    />
+                    {c}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold mb-2 block">
+                Module Content to Generate
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(selectedContent).map(([m, v]) => (
+                  <div
+                    key={m}
+                    className="flex items-center gap-1.5 text-xs cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={v}
+                      onCheckedChange={() =>
+                        setSelectedContent((p) => ({ ...p, [m]: !p[m] }))
+                      }
+                    />
+                    {m}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Label className="text-xs">Users per Country (Batch)</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  type="number"
+                  value={batchSize}
+                  onChange={(e) => setBatchSize(e.target.value)}
+                  data-ocid="admin.agent11.input"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-5">
+                <Checkbox
+                  checked={generateContent}
+                  onCheckedChange={(v) => setGenerateContent(Boolean(v))}
+                  data-ocid="admin.agent11.checkbox"
+                />
+                <Label className="text-xs cursor-pointer">
+                  Auto-create content
+                </Label>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              className="gap-1.5 w-full"
+              onClick={handleGenerate}
+              disabled={generating}
+              data-ocid="admin.agent11.primary_button"
+            >
+              {generating ? "Generating..." : "Generate Now"}
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tracking" className="mt-4">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-semibold">
+                Country-wise Tracking Dashboard
+              </h3>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs gap-1"
+                onClick={() => toast.success("Stats refreshed")}
+                data-ocid="admin.agent11.secondary_button"
+              >
+                Refresh Stats
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="px-3 py-2 text-left font-medium">Country</th>
+                    <th className="px-3 py-2 text-right font-medium">
+                      Users Created
+                    </th>
+                    <th className="px-3 py-2 text-right font-medium">
+                      Content Items
+                    </th>
+                    <th className="px-3 py-2 text-left font-medium">
+                      Last Run
+                    </th>
+                    <th className="px-3 py-2 text-left font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trackingData.map((row, i) => (
+                    <tr
+                      key={row.country}
+                      className="border-t border-border hover:bg-secondary/20"
+                      data-ocid={`admin.agent11.item.${i + 1}`}
+                    >
+                      <td className="px-3 py-2 font-medium">{row.country}</td>
+                      <td className="px-3 py-2 text-right font-semibold">
+                        {row.users.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">
+                        {row.content.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {row.lastRun}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge
+                          className={`text-[10px] border-0 ${statusColor(row.status)}`}
+                        >
+                          {row.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-4">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-semibold">
+                Recently Generated Users
+              </h3>
+              {showConfirm ? (
+                <div className="flex gap-2">
+                  <span className="text-xs text-muted-foreground mr-1">
+                    Delete all bots?
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-6 text-xs px-2"
+                    onClick={() => {
+                      setShowConfirm(false);
+                      toast.success("All bot users deleted");
+                    }}
+                    data-ocid="admin.agent11.confirm_button"
+                  >
+                    Confirm
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-xs px-2"
+                    onClick={() => setShowConfirm(false)}
+                    data-ocid="admin.agent11.cancel_button"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="text-xs h-7 gap-1"
+                  onClick={() => setShowConfirm(true)}
+                  data-ocid="admin.agent11.delete_button"
+                >
+                  Delete All Bots
+                </Button>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="px-3 py-2 text-left font-medium">
+                      Username
+                    </th>
+                    <th className="px-3 py-2 text-left font-medium">Country</th>
+                    <th className="px-3 py-2 text-left font-medium">Created</th>
+                    <th className="px-3 py-2 text-left font-medium">
+                      Active Modules
+                    </th>
+                    <th className="px-3 py-2 text-right font-medium">Posts</th>
+                    <th className="px-3 py-2 text-right font-medium">
+                      Interactions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fakeUsers.map((u, i) => (
+                    <tr
+                      key={u.name}
+                      className="border-t border-border hover:bg-secondary/20"
+                      data-ocid={`admin.agent11.row.${i + 1}`}
+                    >
+                      <td className="px-3 py-2 font-mono font-medium">
+                        {u.name}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {u.country}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {u.created}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {u.modules.map((m) => (
+                            <Badge
+                              key={m}
+                              variant="outline"
+                              className="text-[9px] px-1 py-0"
+                            >
+                              {m}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right">{u.posts}</td>
+                      <td className="px-3 py-2 text-right">{u.interactions}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
 
-// ─── Agent 12: WhatsApp ───────────────────────────────────────────────────────
 function Agent12WhatsApp() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "Jobs",

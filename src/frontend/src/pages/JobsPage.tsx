@@ -56,6 +56,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -3380,6 +3381,8 @@ export default function JobsPage() {
           </button>
         </div>
       )}
+
+      <QuickAddBar moduleName="Jobs" />
 
       <Tabs defaultValue="browse">
         <TabsList className="mb-6 h-10 flex-wrap">

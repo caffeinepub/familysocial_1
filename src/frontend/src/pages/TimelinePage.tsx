@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -787,6 +788,8 @@ export default function TimelinePage() {
       {/* Filters */}
       <div className="bg-card border border-border rounded-xl p-3 mb-5 space-y-3 animate-fade-up">
         <div className="relative">
+          <QuickAddBar moduleName="Timeline" />
+
           <Search
             size={13}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"

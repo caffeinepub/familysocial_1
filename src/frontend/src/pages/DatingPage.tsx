@@ -35,6 +35,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1774,6 +1775,8 @@ export default function DatingPage() {
           </Button>
         </div>
       )}
+
+      <QuickAddBar moduleName="Dating" />
 
       {/* Main Tabs */}
       <Tabs defaultValue="discover" className="space-y-4">

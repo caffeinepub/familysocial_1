@@ -29,6 +29,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 interface Community {
   id: number;
@@ -367,6 +368,8 @@ export default function CommunityPage() {
           View Jobs
         </Button>
       </div>
+
+      <QuickAddBar moduleName="Community" />
 
       {/* Search */}
       <div className="relative mb-6 animate-fade-up animate-fade-up-1">

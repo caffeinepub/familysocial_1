@@ -17,10 +17,11 @@ import {
   TrendingUp,
   Truck,
 } from "lucide-react";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 interface StatCard {
   label: string;
-  value: string;
+  value: string | number;
   change: string;
   positive: boolean;
   icon: React.ElementType;
@@ -30,7 +31,7 @@ interface StatCard {
 const STATS: StatCard[] = [
   {
     label: "Total Earnings",
-    value: "PKR 284,500",
+    value: 284500,
     change: "+18.2%",
     positive: true,
     icon: TrendingUp,
@@ -54,7 +55,7 @@ const STATS: StatCard[] = [
   },
   {
     label: "Commission Earned",
-    value: "PKR 18,600",
+    value: 18600,
     change: "+12.5%",
     positive: true,
     icon: Percent,
@@ -62,7 +63,7 @@ const STATS: StatCard[] = [
   },
   {
     label: "Delivery Income",
-    value: "PKR 23,500",
+    value: 23500,
     change: "+8.4%",
     positive: true,
     icon: Truck,
@@ -74,7 +75,7 @@ interface Transaction {
   id: number;
   description: string;
   type: string;
-  amount: string;
+  amount: number;
   date: string;
   status: "completed" | "pending" | "cancelled";
 }
@@ -84,7 +85,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 1,
     description: "Product Sale — Honda Civic Rental",
     type: "Product",
-    amount: "+PKR 15,000",
+    amount: 15000,
     date: "Mar 1, 2026",
     status: "completed",
   },
@@ -92,7 +93,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 2,
     description: "Service Booking — Math Tutoring",
     type: "Service",
-    amount: "+PKR 4,500",
+    amount: 4500,
     date: "Feb 28, 2026",
     status: "completed",
   },
@@ -100,7 +101,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 3,
     description: "Affiliate Commission — TechPK",
     type: "Affiliate",
-    amount: "+PKR 2,200",
+    amount: 2200,
     date: "Feb 27, 2026",
     status: "completed",
   },
@@ -108,7 +109,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 4,
     description: "Delivery Job — QuickEats x4",
     type: "Job",
-    amount: "+PKR 2,800",
+    amount: 2800,
     date: "Feb 26, 2026",
     status: "completed",
   },
@@ -116,7 +117,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 5,
     description: "Property Rental — Johar Town Flat",
     type: "Real Estate",
-    amount: "+PKR 45,000",
+    amount: 45000,
     date: "Feb 25, 2026",
     status: "completed",
   },
@@ -124,7 +125,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 6,
     description: "Service Booking — AC Repair",
     type: "Service",
-    amount: "+PKR 6,000",
+    amount: 6000,
     date: "Feb 24, 2026",
     status: "pending",
   },
@@ -132,7 +133,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 7,
     description: "Product Sale — Bridal Lehenga",
     type: "Product",
-    amount: "+PKR 8,000",
+    amount: 8000,
     date: "Feb 23, 2026",
     status: "completed",
   },
@@ -140,7 +141,7 @@ const TRANSACTIONS: Transaction[] = [
     id: 8,
     description: "Job Recruitment Commission",
     type: "Job",
-    amount: "+PKR 12,000",
+    amount: 12000,
     date: "Feb 22, 2026",
     status: "cancelled",
   },
@@ -242,13 +243,13 @@ const AFFILIATE_SUMMARY_STATS = [
   },
   {
     label: "Affiliate Earned",
-    value: "PKR 34,200",
+    value: 34200,
     color: "oklch(0.52 0.14 155)",
     icon: Percent,
   },
   {
     label: "Pending Payout",
-    value: "PKR 8,400",
+    value: 8400,
     color: "oklch(0.72 0.17 85)",
     icon: Calendar,
   },
@@ -376,7 +377,7 @@ const REFERRAL_ROWS = [
     user: "Zara Malik",
     date: "Mar 1, 2026",
     action: "Product Purchase",
-    commission: "PKR 850",
+    commission: 850,
     status: "paid",
   },
   {
@@ -384,7 +385,7 @@ const REFERRAL_ROWS = [
     user: "Ahmed Raza",
     date: "Feb 27, 2026",
     action: "Tour Booking",
-    commission: "PKR 2,400",
+    commission: 2400,
     status: "pending",
   },
   {
@@ -392,7 +393,7 @@ const REFERRAL_ROWS = [
     user: "Fatima Khan",
     date: "Feb 24, 2026",
     action: "Course Enrollment",
-    commission: "PKR 750",
+    commission: 750,
     status: "paid",
   },
   {
@@ -400,7 +401,7 @@ const REFERRAL_ROWS = [
     user: "Omar Siddiqui",
     date: "Feb 20, 2026",
     action: "Property Inquiry",
-    commission: "PKR 1,200",
+    commission: 1200,
     status: "pending",
   },
   {
@@ -408,7 +409,7 @@ const REFERRAL_ROWS = [
     user: "Aisha Tariq",
     date: "Feb 15, 2026",
     action: "Service Booking",
-    commission: "PKR 400",
+    commission: 400,
     status: "paid",
   },
   {
@@ -416,7 +417,7 @@ const REFERRAL_ROWS = [
     user: "Hassan Ali",
     date: "Feb 10, 2026",
     action: "Job Application",
-    commission: "PKR 600",
+    commission: 600,
     status: "pending",
   },
 ];
@@ -478,6 +479,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DashboardPage() {
+  const { formatCurrency } = useCurrency();
   const maxVal = Math.max(...MONTHLY_DATA.map((d) => d.value));
   const maxAffVal = Math.max(...AFFILIATE_MONTHLY.map((d) => d.value));
 
@@ -542,7 +544,9 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-2xl font-display font-bold text-foreground">
-                    {stat.value}
+                    {typeof stat.value === "number"
+                      ? formatCurrency(stat.value)
+                      : stat.value}
                   </p>
                   <p className="text-xs text-muted-foreground font-label mt-0.5">
                     {stat.label}
@@ -563,7 +567,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">Last 6 months</p>
                 </div>
                 <Badge className="font-label text-xs bg-primary/10 text-primary border-0">
-                  PKR 284.5K total
+                  ₹284.5K total
                 </Badge>
               </div>
               <div className="flex items-end gap-3 h-36">
@@ -629,7 +633,7 @@ export default function DashboardPage() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-0.5 font-label">
-                      PKR {cat.amount.toLocaleString()}
+                      {formatCurrency(cat.amount)}
                     </p>
                   </div>
                 ))}
@@ -674,7 +678,9 @@ export default function DashboardPage() {
                         className="text-sm font-label font-semibold"
                         style={{ color: "oklch(0.52 0.14 155)" }}
                       >
-                        {tx.amount}
+                        {typeof tx.amount === "number"
+                          ? `+${formatCurrency(tx.amount)}`
+                          : tx.amount}
                       </p>
                       <span
                         className="text-[10px] font-label px-1.5 py-0.5 rounded"
@@ -706,19 +712,19 @@ export default function DashboardPage() {
               },
               {
                 label: "This Month",
-                value: "PKR 23,500",
+                value: 23500,
                 color: "oklch(0.52 0.14 155)",
                 icon: TrendingUp,
               },
               {
                 label: "Pending Payout",
-                value: "PKR 4,200",
+                value: 4200,
                 color: "oklch(0.72 0.17 85)",
                 icon: Briefcase,
               },
               {
                 label: "Avg Per Delivery",
-                value: "PKR 500",
+                value: 500,
                 color: "oklch(0.60 0.20 190)",
                 icon: Percent,
               },
@@ -734,7 +740,7 @@ export default function DashboardPage() {
                   <Icon size={17} style={{ color }} />
                 </div>
                 <p className="text-2xl font-display font-bold text-foreground">
-                  {value}
+                  {typeof value === "number" ? formatCurrency(value) : value}
                 </p>
                 <p className="text-xs text-muted-foreground font-label mt-0.5">
                   {label}
@@ -780,35 +786,35 @@ export default function DashboardPage() {
                       order: "QE-2290",
                       date: "Mar 1, 2026",
                       platform: "QuickEats",
-                      amount: "PKR 700",
+                      amount: 700,
                       status: "Paid",
                     },
                     {
                       order: "QE-2245",
                       date: "Feb 28, 2026",
                       platform: "QuickEats",
-                      amount: "PKR 650",
+                      amount: 650,
                       status: "Paid",
                     },
                     {
                       order: "QE-2201",
                       date: "Feb 28, 2026",
                       platform: "QuickEats",
-                      amount: "PKR 700",
+                      amount: 700,
                       status: "Pending",
                     },
                     {
                       order: "QE-2188",
                       date: "Feb 27, 2026",
                       platform: "QuickEats",
-                      amount: "PKR 750",
+                      amount: 750,
                       status: "Paid",
                     },
                     {
                       order: "QE-2150",
                       date: "Feb 26, 2026",
                       platform: "QuickEats",
-                      amount: "PKR 700",
+                      amount: 700,
                       status: "Paid",
                     },
                   ].map((row) => (
@@ -863,9 +869,7 @@ export default function DashboardPage() {
                 <h2 className="font-label font-semibold text-foreground">
                   Monthly Delivery Earnings
                 </h2>
-                <p className="text-xs text-muted-foreground">
-                  Last 6 months (PKR)
-                </p>
+                <p className="text-xs text-muted-foreground">Last 6 months</p>
               </div>
               <Badge
                 className="font-label text-xs border-0"
@@ -874,7 +878,7 @@ export default function DashboardPage() {
                   color: "oklch(0.55 0.14 55)",
                 }}
               >
-                PKR 23.5K this month
+                ₹23.5K this month
               </Badge>
             </div>
             <div className="flex items-end gap-3 h-36">
@@ -934,7 +938,7 @@ export default function DashboardPage() {
                     <Icon size={17} style={{ color }} />
                   </div>
                   <p className="text-2xl font-display font-bold text-foreground">
-                    {value}
+                    {typeof value === "number" ? formatCurrency(value) : value}
                   </p>
                   <p className="text-xs text-muted-foreground font-label mt-0.5">
                     {label}
@@ -952,9 +956,7 @@ export default function DashboardPage() {
                   <h2 className="font-label font-semibold text-foreground">
                     Monthly Affiliate Earnings
                   </h2>
-                  <p className="text-xs text-muted-foreground">
-                    Last 6 months (PKR)
-                  </p>
+                  <p className="text-xs text-muted-foreground">Last 6 months</p>
                 </div>
                 <Badge
                   className="font-label text-xs border-0"
@@ -963,7 +965,7 @@ export default function DashboardPage() {
                     color: "oklch(0.55 0.22 280)",
                   }}
                 >
-                  PKR 35.6K total
+                  ₹35.6K total
                 </Badge>
               </div>
               <div className="flex items-end gap-3 h-36">
@@ -1056,7 +1058,7 @@ export default function DashboardPage() {
                       Conversions
                     </th>
                     <th className="text-right px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                      Earned (PKR)
+                      Earned
                     </th>
                     <th className="text-right px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
                       % Share
@@ -1145,7 +1147,7 @@ export default function DashboardPage() {
                       className="font-semibold"
                       style={{ color: "oklch(0.52 0.14 155)" }}
                     >
-                      PKR {link.earnings.toLocaleString()}
+                      {formatCurrency(link.earnings)}
                     </span>
                   </div>
                 </div>
@@ -1209,7 +1211,9 @@ export default function DashboardPage() {
                         className="px-4 py-3 text-xs font-label font-semibold text-right"
                         style={{ color: "oklch(0.52 0.14 155)" }}
                       >
-                        {row.commission}
+                        {typeof row.commission === "number"
+                          ? formatCurrency(row.commission)
+                          : row.commission}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <StatusBadge status={row.status} />

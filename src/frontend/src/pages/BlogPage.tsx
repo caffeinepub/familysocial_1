@@ -47,6 +47,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
 
 // ─── Template definitions ────────────────────────────────────────────────────
 
@@ -942,6 +943,8 @@ export default function BlogPage() {
           Write, publish, and earn through affiliate marketing
         </p>
       </div>
+
+      <QuickAddBar moduleName="Blog" />
 
       <Tabs defaultValue="write" className="animate-fade-up">
         <TabsList className="mb-6 h-10">

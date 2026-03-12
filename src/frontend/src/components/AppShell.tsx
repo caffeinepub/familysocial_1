@@ -332,7 +332,10 @@ export default function AppShell({
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: "oklch(0.65 0.25 335)" }}
         >
-          <TreePine size={18} style={{ color: "oklch(0.98 0.005 335)" }} />
+          <TreePine
+            size={18}
+            style={{ color: "oklch(var(--sidebar-primary-foreground))" }}
+          />
         </div>
         <div>
           <span className="text-base font-display font-bold text-sidebar-foreground">

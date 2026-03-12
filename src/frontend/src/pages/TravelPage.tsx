@@ -50,6 +50,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
+import QuickAddBar from "../components/QuickAddBar";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 // ─────────────────────────────────────────────
 // Types
@@ -533,8 +535,8 @@ const PAKISTAN_CITIES = [
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
-function formatPKR(amount: number): string {
-  return `PKR ${amount.toLocaleString("en-PK")}`;
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN")}`;
 }
 
 function getDistance(from: string, to: string): number | null {
@@ -641,7 +643,7 @@ function PackagesTab({
       return;
     }
     toast.success(
-      `Booking confirmed for ${bookTarget?.name}! ${formatPKR((bookTarget?.price ?? 0) * bookCount)} total.`,
+      `Booking confirmed for ${bookTarget?.name}! ${formatCurrency((bookTarget?.price ?? 0) * bookCount)} total.`,
     );
     setBookOpen(false);
     setBookCount(1);
@@ -754,7 +756,7 @@ function PackagesTab({
                       />
                     </div>
                     <div>
-                      <Label>Price (PKR)</Label>
+                      <Label>Price</Label>
                       <Input
                         type="number"
                         min={0}
@@ -897,7 +899,7 @@ function PackagesTab({
               <div className="flex items-center justify-between text-xs">
                 <div>
                   <span className="text-primary font-bold text-base">
-                    {formatPKR(pkg.price)}
+                    {formatCurrency(pkg.price)}
                   </span>
                   <span className="text-muted-foreground ml-1">/ person</span>
                 </div>
@@ -972,10 +974,10 @@ function PackagesTab({
                       <div className="p-3 rounded-lg bg-secondary/60 space-y-1">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">
-                            {formatPKR(pkg.price)} × {bookCount}
+                            {formatCurrency(pkg.price)} × {bookCount}
                           </span>
                           <span className="font-bold text-primary">
-                            {formatPKR(pkg.price * bookCount)}
+                            {formatCurrency(pkg.price * bookCount)}
                           </span>
                         </div>
                       </div>
@@ -1033,7 +1035,7 @@ function HotelsTab({ hotels }: { hotels: HotelEntry[] }) {
 
   const handleBook = () => {
     toast.success(
-      `${roomType} room at ${bookTarget?.name} booked for ${nights} night(s)! ${formatPKR(Math.round((bookTarget?.pricePerNight ?? 0) * (roomMultiplier[roomType] ?? 1) * nights))}`,
+      `${roomType} room at ${bookTarget?.name} booked for ${nights} night(s)! ${formatCurrency(Math.round((bookTarget?.pricePerNight ?? 0) * (roomMultiplier[roomType] ?? 1) * nights))}`,
     );
     setBookOpen(false);
   };
@@ -1128,7 +1130,7 @@ function HotelsTab({ hotels }: { hotels: HotelEntry[] }) {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-primary font-bold">
-                    {formatPKR(hotel.pricePerNight)}
+                    {formatCurrency(hotel.pricePerNight)}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {" "}
@@ -1193,7 +1195,7 @@ function HotelsTab({ hotels }: { hotels: HotelEntry[] }) {
                       <div className="p-3 rounded-lg bg-secondary/60 space-y-1 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
-                            {formatPKR(
+                            {formatCurrency(
                               Math.round(
                                 hotel.pricePerNight *
                                   (roomMultiplier[roomType] ?? 1),
@@ -1205,7 +1207,7 @@ function HotelsTab({ hotels }: { hotels: HotelEntry[] }) {
                         <div className="flex justify-between font-bold">
                           <span>Total</span>
                           <span className="text-primary">
-                            {formatPKR(
+                            {formatCurrency(
                               Math.round(
                                 hotel.pricePerNight *
                                   (roomMultiplier[roomType] ?? 1) *
@@ -1266,7 +1268,7 @@ function TransportTab({ routes }: { routes: TransportRoute[] }) {
         ? (bookTarget?.pricePerSeat ?? 0) * seatCount
         : (bookTarget?.pricePerVehicle ?? 0);
     toast.success(
-      `Transport booked: ${bookTarget?.from} → ${bookTarget?.to}. Total: ${formatPKR(total)}`,
+      `Transport booked: ${bookTarget?.from} → ${bookTarget?.to}. Total: ${formatCurrency(total)}`,
     );
     setBookOpen(false);
   };
@@ -1332,13 +1334,13 @@ function TransportTab({ routes }: { routes: TransportRoute[] }) {
                 <div>
                   <span className="text-muted-foreground">Per seat: </span>
                   <span className="font-semibold text-foreground">
-                    {formatPKR(route.pricePerSeat)}
+                    {formatCurrency(route.pricePerSeat)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Vehicle: </span>
                   <span className="font-semibold text-foreground">
-                    {formatPKR(route.pricePerVehicle)}
+                    {formatCurrency(route.pricePerVehicle)}
                   </span>
                 </div>
               </div>
@@ -1438,7 +1440,7 @@ function TransportTab({ routes }: { routes: TransportRoute[] }) {
                     <div className="p-3 rounded-lg bg-secondary/60 flex justify-between font-bold text-sm">
                       <span>Total</span>
                       <span className="text-primary">
-                        {formatPKR(
+                        {formatCurrency(
                           bookMode === "seats"
                             ? route.pricePerSeat * seatCount
                             : route.pricePerVehicle,
@@ -2020,7 +2022,7 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
         ? itineraries.find((i) => i.id.toString() === selectedItinerary)?.title
         : null;
     toast.success(
-      `${cabType} cab booked! ${pickup} → ${dropoff}${attachedName ? ` • Attached to "${attachedName}"` : ""}. ${estimatedTotal ? formatPKR(estimatedTotal) : "Fare TBD"}`,
+      `${cabType} cab booked! ${pickup} → ${dropoff}${attachedName ? ` • Attached to "${attachedName}"` : ""}. ${estimatedTotal ? formatCurrency(estimatedTotal) : "Fare TBD"}`,
     );
     setConfirmOpen(false);
   };
@@ -2129,13 +2131,13 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
                   <p
                     className={`text-xs font-semibold mt-1.5 ${cabType === type ? "text-primary" : "text-muted-foreground"}`}
                   >
-                    PKR {CAB_RATES[type]}/km
+                    {formatCurrency(CAB_RATES[type])}/km
                   </p>
                   {distance && (
                     <p
                       className={`text-[10px] mt-0.5 font-bold ${cabType === type ? "text-primary" : "text-muted-foreground"}`}
                     >
-                      Est: {formatPKR(distance * CAB_RATES[type])}
+                      Est: {formatCurrency(distance * CAB_RATES[type])}
                     </p>
                   )}
                 </button>
@@ -2223,7 +2225,10 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
                       value: distance ? `${distance.toLocaleString()} km` : "—",
                     },
                     { label: "Cab Type", value: cabType },
-                    { label: "Rate", value: `PKR ${CAB_RATES[cabType]}/km` },
+                    {
+                      label: "Rate",
+                      value: `${formatCurrency(CAB_RATES[cabType])}/km`,
+                    },
                     { label: "Date", value: date || "—" },
                     { label: "Time", value: time || "—" },
                     ...(attachItinerary && selectedItinerary
@@ -2247,7 +2252,9 @@ function CabTab({ itineraries }: { itineraries: Itinerary[] }) {
                 <div className="border-t border-border pt-3 flex justify-between font-bold">
                   <span>Estimated Total</span>
                   <span className="text-primary">
-                    {estimatedTotal ? formatPKR(estimatedTotal) : "Fare TBD"}
+                    {estimatedTotal
+                      ? formatCurrency(estimatedTotal)
+                      : "Fare TBD"}
                   </span>
                 </div>
               </div>
@@ -2344,6 +2351,8 @@ export default function TravelPage() {
       </div>
 
       {/* Tabs */}
+      <QuickAddBar moduleName="Travel" />
+
       <Tabs defaultValue="packages">
         <TabsList className="flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="packages" className="gap-1.5 text-xs sm:text-sm">

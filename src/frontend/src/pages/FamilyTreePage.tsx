@@ -59,6 +59,7 @@ import {
   loadCircle,
 } from "../components/FamilyCircleManager";
 import type { FamilyCircle } from "../components/FamilyCircleManager";
+import QuickAddBar from "../components/QuickAddBar";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -1495,6 +1496,8 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
             </DialogContent>
           </Dialog>
         </div>
+
+        <QuickAddBar moduleName="Family Tree" />
 
         {/* Edit Member Dialog */}
         <EditMemberDialog

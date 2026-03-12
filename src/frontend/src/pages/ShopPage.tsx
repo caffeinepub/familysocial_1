@@ -23,6 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2,
@@ -34,7 +35,10 @@ import {
   ShoppingBag,
   ShoppingCart,
   Star,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
+  Truck,
   Wrench,
   X,
 } from "lucide-react";
@@ -46,7 +50,7 @@ import { SAMPLE_PRODUCTS, SAMPLE_SERVICES } from "./ProductsServicesPage";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ShopCartItem {
-  id: string; // unique key: "product-1" or "service-2"
+  id: string;
   productId: number;
   name: string;
   unitPrice: number;
@@ -67,6 +71,33 @@ interface BillingForm {
   notes: string;
 }
 
+interface DeliveryProvider {
+  id: string;
+  name: string;
+  type: "freelancer" | "company" | "business";
+  coverageArea: string;
+  perOrderRate: number;
+  perKmRate: number;
+  contact: string;
+  rating: number;
+  deliveries: number;
+}
+
+interface SurveyVote {
+  itemId: string;
+  stars: number;
+  categories: string[];
+  comment: string;
+}
+
+type SortOption =
+  | "relevance"
+  | "top-voted"
+  | "top-reviewed"
+  | "newest"
+  | "price-asc"
+  | "price-desc";
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
@@ -80,6 +111,9 @@ const CATEGORIES = [
   "Education",
   "Beauty & Events",
   "Professional",
+  "Healthcare",
+  "Real Estate",
+  "Travel",
   "Other",
 ];
 
@@ -93,10 +127,280 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Beauty & Events": "oklch(0.58 0.16 350)",
   Professional: "oklch(0.48 0.12 260)",
   Furniture: "oklch(0.62 0.13 40)",
+  Healthcare: "oklch(0.55 0.18 160)",
+  "Real Estate": "oklch(0.55 0.14 240)",
+  Travel: "oklch(0.60 0.18 200)",
   Other: "oklch(0.55 0.10 200)",
 };
 
-const TAX_RATE = 0.05; // 5%
+const TAX_RATE = 0.05;
+
+// Extra module-specific items
+const EXTRA_SHOP_ITEMS = [
+  {
+    id: "travel-1",
+    productId: 101,
+    name: "Goa Beach Resort Package",
+    description:
+      "3-night stay at a beachfront resort with breakfast and transfers included.",
+    price: 18500,
+    category: "Travel",
+    rating: 4.7,
+    seller: "SunVista Travels",
+    isService: true,
+    sourceModule: "Travel",
+    votes: 128,
+    photoUrl: undefined as string | undefined,
+  },
+  {
+    id: "healthcare-1",
+    productId: 102,
+    name: "Digital Blood Pressure Monitor",
+    description:
+      "Automatic upper arm BP monitor with memory for 60 readings. WHO approved.",
+    price: 2800,
+    category: "Healthcare",
+    rating: 4.6,
+    seller: "MediCare Supplies",
+    isService: false,
+    sourceModule: "Healthcare",
+    votes: 74,
+    photoUrl: undefined as string | undefined,
+  },
+  {
+    id: "realestate-1",
+    productId: 103,
+    name: "Modular Kitchen Fitting",
+    description:
+      "Complete modular kitchen setup with granite countertop, cabinets, and sink.",
+    price: 125000,
+    category: "Real Estate",
+    rating: 4.5,
+    seller: "HomeStyle Interiors",
+    isService: false,
+    sourceModule: "Real Estate",
+    votes: 45,
+    photoUrl: undefined as string | undefined,
+  },
+  {
+    id: "education-1",
+    productId: 104,
+    name: "CBSE Class 10 Complete Book Set",
+    description:
+      "Full set of NCERT textbooks for Class 10 all subjects, new edition.",
+    price: 1850,
+    category: "Education",
+    rating: 4.8,
+    seller: "KnowledgeNest Books",
+    isService: false,
+    sourceModule: "Education",
+    votes: 210,
+    photoUrl: undefined as string | undefined,
+  },
+  {
+    id: "gated-1",
+    productId: 105,
+    name: "CCTV 8-Camera Kit",
+    description:
+      "Full HD night-vision cameras with DVR, cables, and remote monitoring app.",
+    price: 24000,
+    category: "Electronics",
+    rating: 4.4,
+    seller: "SecureZone India",
+    isService: false,
+    sourceModule: "Gated Community",
+    votes: 88,
+    photoUrl: undefined as string | undefined,
+  },
+  {
+    id: "healthcare-2",
+    productId: 106,
+    name: "General Health Consultation",
+    description:
+      "30-minute general physician consultation via video or in-clinic. Prescription included.",
+    price: 400,
+    category: "Healthcare",
+    rating: 4.9,
+    seller: "Dr. Priya Sharma",
+    isService: true,
+    sourceModule: "Healthcare",
+    votes: 305,
+    photoUrl: undefined as string | undefined,
+  },
+];
+
+const INITIAL_DELIVERY_PROVIDERS: DeliveryProvider[] = [
+  {
+    id: "dp-1",
+    name: "QuickRun Logistics",
+    type: "company",
+    coverageArea: "Mumbai, Thane, Navi Mumbai",
+    perOrderRate: 49,
+    perKmRate: 8,
+    contact: "+91-9876543210",
+    rating: 4.7,
+    deliveries: 1240,
+  },
+  {
+    id: "dp-2",
+    name: "Arjun Kumar",
+    type: "freelancer",
+    coverageArea: "Bengaluru Central",
+    perOrderRate: 30,
+    perKmRate: 6,
+    contact: "+91-9123456780",
+    rating: 4.5,
+    deliveries: 380,
+  },
+  {
+    id: "dp-3",
+    name: "SpeedMart Delivery",
+    type: "business",
+    coverageArea: "Delhi NCR",
+    perOrderRate: 59,
+    perKmRate: 7,
+    contact: "+91-9988776655",
+    rating: 4.8,
+    deliveries: 3500,
+  },
+];
+
+// ─── Rate & Review Modal ──────────────────────────────────────────────────────
+
+function RateReviewModal({
+  open,
+  onClose,
+  itemName,
+  itemId,
+  onSubmit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  itemName: string;
+  itemId: string;
+  onSubmit: (vote: SurveyVote) => void;
+}) {
+  const [stars, setStars] = useState(0);
+  const [hoverStar, setHoverStar] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [comment, setComment] = useState("");
+
+  const SURVEY_CATS = ["Value for Money", "Quality", "Delivery", "Packaging"];
+
+  const toggle = (cat: string) =>
+    setSelected((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+    );
+
+  const handleSubmit = () => {
+    if (stars === 0) {
+      toast.error("Please select a star rating");
+      return;
+    }
+    onSubmit({ itemId, stars, categories: selected, comment });
+    toast.success("Thank you for your review!");
+    setStars(0);
+    setHoverStar(0);
+    setSelected([]);
+    setComment("");
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-md" data-ocid="shop.review.dialog">
+        <DialogHeader>
+          <DialogTitle className="font-display text-base">
+            Rate &amp; Review
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground line-clamp-1">
+            {itemName}
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-4 py-1">
+          {/* Star rating */}
+          <div>
+            <Label className="text-xs mb-2 block">Your Rating *</Label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStars(s)}
+                  onMouseEnter={() => setHoverStar(s)}
+                  onMouseLeave={() => setHoverStar(0)}
+                  className="p-0.5 transition-transform hover:scale-110"
+                >
+                  <Star
+                    size={28}
+                    className={`transition-colors ${
+                      s <= (hoverStar || stars)
+                        ? "fill-amber-400 text-amber-400"
+                        : "fill-transparent text-muted-foreground/40"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Survey categories */}
+          <div>
+            <Label className="text-xs mb-2 block">What did you like?</Label>
+            <div className="flex flex-wrap gap-2">
+              {SURVEY_CATS.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggle(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-label border transition-all ${
+                    selected.includes(cat)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Comment */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Comment (optional)</Label>
+            <Textarea
+              placeholder="Share your experience..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="text-sm resize-none"
+              rows={3}
+              data-ocid="shop.review.textarea"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button
+            variant="outline"
+            className="flex-1 font-label"
+            onClick={onClose}
+            data-ocid="shop.review.cancel_button"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="flex-1 font-label"
+            onClick={handleSubmit}
+            data-ocid="shop.review.submit_button"
+          >
+            Submit Review
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // ─── Shop Product Card ────────────────────────────────────────────────────────
 
@@ -109,7 +413,10 @@ function ShopProductCard({
   seller,
   isService,
   photoUrl,
+  sourceModule,
+  votes,
   onAddToCart,
+  onReview,
 }: {
   name: string;
   description: string;
@@ -119,14 +426,16 @@ function ShopProductCard({
   seller: string;
   isService: boolean;
   photoUrl?: string;
+  sourceModule?: string;
+  votes?: number;
   onAddToCart: () => void;
+  onReview: () => void;
 }) {
   const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[category] || "oklch(0.55 0.10 200)";
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
-      {/* Product image or gradient */}
       {photoUrl ? (
         <img src={photoUrl} alt={name} className="w-full h-44 object-cover" />
       ) : (
@@ -145,37 +454,50 @@ function ShopProductCard({
       )}
 
       <div className="p-4 flex flex-col flex-1">
-        {/* Category + rating */}
-        <div className="flex items-center justify-between mb-2">
+        {/* Category + module badge */}
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
           <Badge
             className="text-[10px] px-2 py-0 font-label border-0"
             style={{ background: `${color}18`, color }}
           >
             {category}
           </Badge>
+          {sourceModule && (
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 font-label"
+            >
+              {sourceModule}
+            </Badge>
+          )}
+        </div>
+
+        <h3 className="font-label font-bold text-foreground mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+          {name}
+        </h3>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2 flex-1">
+          {description}
+        </p>
+        <p className="text-xs text-muted-foreground mb-2">by {seller}</p>
+
+        {/* Rating + votes */}
+        <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center gap-1">
             <Star size={11} className="fill-current text-amber-400" />
             <span className="text-xs font-label font-semibold text-foreground">
               {rating.toFixed(1)}
             </span>
           </div>
+          {votes !== undefined && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <ThumbsUp size={11} />
+              <span>{votes}</span>
+            </div>
+          )}
         </div>
 
-        {/* Name */}
-        <h3 className="font-label font-bold text-foreground mb-1 line-clamp-1 group-hover:text-primary transition-colors">
-          {name}
-        </h3>
-
-        {/* Description */}
-        <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2 flex-1">
-          {description}
-        </p>
-
-        {/* Seller */}
-        <p className="text-xs text-muted-foreground mb-3">by {seller}</p>
-
-        {/* Price + CTA */}
-        <div className="flex items-center justify-between mt-auto">
+        {/* Price + CTAs */}
+        <div className="flex items-center justify-between mt-auto gap-2 flex-wrap">
           <div>
             <span className="font-display font-bold text-foreground text-base">
               {formatPrice(price)}
@@ -184,15 +506,114 @@ function ShopProductCard({
               <span className="text-xs text-muted-foreground ml-1">/hr</span>
             )}
           </div>
-          <Button
-            size="sm"
-            className="h-8 text-xs font-label gap-1.5"
-            onClick={onAddToCart}
-            data-ocid="shop.cart.button"
+          <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs font-label px-2.5"
+              onClick={onReview}
+              data-ocid="shop.review.open_modal_button"
+            >
+              <Star size={11} className="mr-1" />
+              Rate
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 text-xs font-label gap-1.5"
+              onClick={onAddToCart}
+              data-ocid="shop.cart.button"
+            >
+              <ShoppingCart size={12} />
+              {isService ? "Book" : "Cart"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delivery Provider Card ───────────────────────────────────────────────────
+
+function DeliveryProviderCard({
+  provider,
+  selected,
+  onSelect,
+}: {
+  provider: DeliveryProvider;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
+  const { formatPrice } = useCurrency();
+  const typeColor =
+    provider.type === "freelancer"
+      ? "oklch(0.62 0.18 290)"
+      : provider.type === "company"
+        ? "oklch(0.55 0.18 240)"
+        : "oklch(0.58 0.18 160)";
+
+  return (
+    <div
+      className={`bg-card border rounded-xl p-4 transition-all ${
+        selected
+          ? "border-primary shadow-md ring-1 ring-primary/30"
+          : "border-border hover:border-primary/40 hover:shadow-sm"
+      } ${onSelect ? "cursor-pointer" : ""}`}
+      onClick={onSelect}
+      onKeyDown={(e) => e.key === "Enter" && onSelect?.()}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: `${typeColor}18` }}
           >
-            <ShoppingCart size={12} />
-            {isService ? "Book" : "Add to Cart"}
-          </Button>
+            <Truck size={18} style={{ color: typeColor }} />
+          </div>
+          <div>
+            <p className="font-label font-semibold text-foreground text-sm">
+              {provider.name}
+            </p>
+            <Badge
+              className="text-[10px] px-1.5 py-0 mt-0.5 capitalize"
+              style={{ background: `${typeColor}18`, color: typeColor }}
+            >
+              {provider.type}
+            </Badge>
+          </div>
+        </div>
+        {selected && (
+          <CheckCircle2 size={18} className="text-primary shrink-0" />
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <p className="text-muted-foreground">Per Order</p>
+          <p className="font-label font-semibold text-foreground">
+            {formatPrice(provider.perOrderRate)}
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Per KM</p>
+          <p className="font-label font-semibold text-foreground">
+            {formatPrice(provider.perKmRate)}
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Coverage</p>
+          <p className="font-label font-medium text-foreground truncate">
+            {provider.coverageArea}
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Rating</p>
+          <p className="font-label font-semibold text-foreground flex items-center gap-1">
+            <Star size={10} className="fill-amber-400 text-amber-400" />
+            {provider.rating} · {provider.deliveries} deliveries
+          </p>
         </div>
       </div>
     </div>
@@ -230,156 +651,125 @@ function CartDrawer({
       <SheetContent
         side="right"
         className="w-full sm:max-w-md flex flex-col p-0"
+        data-ocid="shop.cart.panel"
       >
-        <SheetHeader className="px-5 pt-5 pb-4 border-b border-border">
+        <SheetHeader className="px-5 py-4 border-b border-border">
           <SheetTitle className="font-display flex items-center gap-2">
             <ShoppingCart size={18} className="text-primary" />
-            Your Cart
+            Cart
             {totalItems > 0 && (
-              <span className="text-xs rounded-full px-2 py-0.5 font-label font-bold bg-primary/15 text-primary ml-1">
-                {totalItems} item{totalItems !== 1 ? "s" : ""}
+              <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                {totalItems}
               </span>
             )}
           </SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 px-5">
-          {cartItems.length === 0 ? (
-            <div
-              className="flex flex-col items-center justify-center py-16 text-center"
-              data-ocid="shop.cart.empty_state"
-            >
-              <ShoppingBag
-                size={40}
-                className="text-muted-foreground mb-3 opacity-30"
-              />
-              <p className="text-sm font-label font-medium text-muted-foreground">
-                Your cart is empty
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Browse products and services to add items
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1 py-4">
-              {cartItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 py-3 border-b border-border last:border-0"
-                  data-ocid="shop.cart.item"
-                >
-                  {/* Icon */}
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                    style={{
-                      background: `${CATEGORY_COLORS[item.category] || "oklch(0.55 0.10 200)"}18`,
-                    }}
-                  >
-                    {item.isService ? (
-                      <Wrench
-                        size={14}
-                        style={{
-                          color:
-                            CATEGORY_COLORS[item.category] ||
-                            "oklch(0.55 0.10 200)",
-                        }}
-                      />
-                    ) : (
-                      <Package
-                        size={14}
-                        style={{
-                          color:
-                            CATEGORY_COLORS[item.category] ||
-                            "oklch(0.55 0.10 200)",
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-label font-semibold text-foreground truncate">
-                      {item.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatPrice(item.unitPrice)}
-                      {item.isService ? "/hr" : ""} each
-                    </p>
-                  </div>
-
-                  {/* Qty controls */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => onQtyChange(item.id, -1)}
-                      disabled={item.qty <= 1}
-                      data-ocid="shop.cart.secondary_button"
-                    >
-                      <Minus size={10} />
-                    </Button>
-                    <span className="w-6 text-center text-sm font-label font-bold">
-                      {item.qty}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => onQtyChange(item.id, 1)}
-                      data-ocid="shop.cart.primary_button"
-                    >
-                      <Plus size={10} />
-                    </Button>
-                  </div>
-
-                  {/* Line total + remove */}
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-label font-bold text-foreground">
-                      {formatPrice(item.qty * item.unitPrice)}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive mt-0.5"
-                      onClick={() => onRemove(item.id)}
-                      data-ocid="shop.cart.delete_button"
-                    >
-                      <Trash2 size={10} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-
-        {cartItems.length > 0 && (
-          <div className="border-t border-border px-5 py-4 space-y-3">
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Tax (5%)</span>
-                <span>+ {formatPrice(Math.round(tax))}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between font-display font-bold text-base text-foreground">
-                <span>Grand Total</span>
-                <span className="text-primary">
-                  {formatPrice(Math.round(grandTotal))}
-                </span>
-              </div>
-            </div>
-            <Button
-              className="w-full font-label gap-1.5 h-10"
-              onClick={onCheckout}
-              data-ocid="shop.checkout.primary_button"
-            >
-              Proceed to Checkout <ChevronRight size={14} />
-            </Button>
+        {cartItems.length === 0 ? (
+          <div
+            className="flex-1 flex flex-col items-center justify-center text-center p-8 gap-3"
+            data-ocid="shop.cart.empty_state"
+          >
+            <ShoppingCart size={40} className="text-muted-foreground/30" />
+            <p className="text-muted-foreground text-sm">Your cart is empty</p>
           </div>
+        ) : (
+          <>
+            <ScrollArea className="flex-1 px-5 py-4">
+              <div className="space-y-4">
+                {cartItems.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="flex gap-3 items-start"
+                    data-ocid={`shop.cart.item.${idx + 1}`}
+                  >
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-secondary/50">
+                      {item.photoUrl ? (
+                        <img
+                          src={item.photoUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : item.isService ? (
+                        <Wrench size={20} className="text-muted-foreground" />
+                      ) : (
+                        <Package size={20} className="text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-label font-semibold text-foreground text-sm truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatPrice(item.unitPrice)}
+                        {item.isService ? "/hr" : ""}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => onQtyChange(item.id, -1)}
+                          className="w-6 h-6 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-colors"
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span className="text-sm font-label font-semibold min-w-[20px] text-center">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onQtyChange(item.id, 1)}
+                          className="w-6 h-6 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-colors"
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <p className="font-label font-semibold text-foreground text-sm">
+                        {formatPrice(item.qty * item.unitPrice)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => onRemove(item.id)}
+                        className="text-destructive hover:opacity-70 transition-opacity"
+                        data-ocid={`shop.cart.delete_button.${idx + 1}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <div className="px-5 py-4 border-t border-border space-y-3">
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax (5%)</span>
+                  <span>+ {formatPrice(Math.round(tax))}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-display font-bold text-base text-foreground">
+                  <span>Total</span>
+                  <span className="text-primary">
+                    {formatPrice(Math.round(grandTotal))}
+                  </span>
+                </div>
+              </div>
+              <Button
+                className="w-full font-label gap-2"
+                onClick={onCheckout}
+                data-ocid="shop.cart.checkout_button"
+              >
+                <ShoppingCart size={15} />
+                Proceed to Checkout <ChevronRight size={14} />
+              </Button>
+            </div>
+          </>
         )}
       </SheetContent>
     </Sheet>
@@ -395,6 +785,7 @@ function CheckoutDialog({
   subtotal,
   tax,
   grandTotal,
+  deliveryProviders,
 }: {
   open: boolean;
   onClose: (clearCart?: boolean) => void;
@@ -402,10 +793,12 @@ function CheckoutDialog({
   subtotal: number;
   tax: number;
   grandTotal: number;
+  deliveryProviders: DeliveryProvider[];
 }) {
   const { formatPrice } = useCurrency();
   const [step, setStep] = useState<CheckoutStep>("billing");
   const [orderId, setOrderId] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [billingForm, setBillingForm] = useState<BillingForm>({
     fullName: "",
     phone: "",
@@ -414,6 +807,12 @@ function CheckoutDialog({
     paymentMethod: "cod",
     notes: "",
   });
+
+  const chosenProvider = deliveryProviders.find(
+    (p) => p.id === selectedProvider,
+  );
+  const deliveryFee = chosenProvider ? chosenProvider.perOrderRate : 0;
+  const finalTotal = grandTotal + deliveryFee;
 
   const handleBillingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -438,6 +837,7 @@ function CheckoutDialog({
   const handleClose = () => {
     const clear = step === "confirmation";
     setStep("billing");
+    setSelectedProvider("");
     setBillingForm({
       fullName: "",
       phone: "",
@@ -475,7 +875,6 @@ function CheckoutDialog({
               </>
             )}
           </DialogTitle>
-          {/* Progress dots */}
           <div className="flex items-center gap-2 mt-2">
             {(["billing", "summary", "confirmation"] as CheckoutStep[]).map(
               (s, i) => (
@@ -513,46 +912,44 @@ function CheckoutDialog({
                   placeholder="Your full name"
                   value={billingForm.fullName}
                   onChange={(e) =>
-                    setBillingForm((p) => ({ ...p, fullName: e.target.value }))
+                    setBillingForm((f) => ({ ...f, fullName: e.target.value }))
                   }
-                  required
-                  data-ocid="shop.billing.input"
+                  data-ocid="shop.checkout.name_input"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Phone *</Label>
                 <Input
-                  type="tel"
-                  placeholder="+91 98765 43210"
+                  placeholder="+91 XXXXX XXXXX"
                   value={billingForm.phone}
                   onChange={(e) =>
-                    setBillingForm((p) => ({ ...p, phone: e.target.value }))
+                    setBillingForm((f) => ({ ...f, phone: e.target.value }))
                   }
-                  required
+                  data-ocid="shop.checkout.phone_input"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Delivery Address *</Label>
                 <Textarea
-                  rows={2}
-                  className="resize-none"
-                  placeholder="House/flat number, street, area"
+                  placeholder="Street address, area..."
                   value={billingForm.address}
                   onChange={(e) =>
-                    setBillingForm((p) => ({ ...p, address: e.target.value }))
+                    setBillingForm((f) => ({ ...f, address: e.target.value }))
                   }
-                  required
-                  data-ocid="shop.billing.textarea"
+                  className="resize-none text-sm"
+                  rows={2}
+                  data-ocid="shop.checkout.address_textarea"
                 />
               </div>
               <div className="space-y-2">
                 <Label>City</Label>
                 <Input
-                  placeholder="e.g. Mumbai, Delhi, Bangalore"
+                  placeholder="City"
                   value={billingForm.city}
                   onChange={(e) =>
-                    setBillingForm((p) => ({ ...p, city: e.target.value }))
+                    setBillingForm((f) => ({ ...f, city: e.target.value }))
                   }
+                  data-ocid="shop.checkout.city_input"
                 />
               </div>
               <div className="space-y-2">
@@ -560,13 +957,13 @@ function CheckoutDialog({
                 <Select
                   value={billingForm.paymentMethod}
                   onValueChange={(v) =>
-                    setBillingForm((p) => ({
-                      ...p,
+                    setBillingForm((f) => ({
+                      ...f,
                       paymentMethod: v as BillingForm["paymentMethod"],
                     }))
                   }
                 >
-                  <SelectTrigger data-ocid="shop.billing.select">
+                  <SelectTrigger data-ocid="shop.checkout.payment_select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -577,67 +974,79 @@ function CheckoutDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Order Notes (optional)</Label>
+                <Label>Order Notes</Label>
                 <Textarea
-                  rows={2}
-                  className="resize-none"
                   placeholder="Any special instructions..."
                   value={billingForm.notes}
                   onChange={(e) =>
-                    setBillingForm((p) => ({ ...p, notes: e.target.value }))
+                    setBillingForm((f) => ({ ...f, notes: e.target.value }))
                   }
+                  className="resize-none text-sm"
+                  rows={2}
+                  data-ocid="shop.checkout.notes_textarea"
                 />
               </div>
             </form>
           )}
 
-          {/* Step 2: Summary */}
+          {/* Step 2: Order Summary + Delivery */}
           {step === "summary" && (
-            <div className="space-y-4 mt-3">
-              {/* Delivery details */}
-              <div className="rounded-xl bg-secondary/40 p-3 space-y-1.5 text-sm">
-                <p className="font-label font-semibold text-foreground">
-                  {billingForm.fullName}
+            <div className="space-y-4 mt-3 pb-2">
+              {/* Items */}
+              <div>
+                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  Items
                 </p>
-                <p className="text-muted-foreground">{billingForm.phone}</p>
-                <p className="text-muted-foreground">
-                  {billingForm.address}
-                  {billingForm.city ? `, ${billingForm.city}` : ""}
-                </p>
-                <Badge
-                  variant="outline"
-                  className="text-xs font-label capitalize mt-1"
-                >
-                  {billingForm.paymentMethod === "cod"
-                    ? "Cash on Delivery"
-                    : billingForm.paymentMethod === "bank"
-                      ? "Bank Transfer"
-                      : "Card Payment"}
-                </Badge>
+                <div className="space-y-2">
+                  {cartItems.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between items-start text-sm"
+                      data-ocid={`shop.summary.item.${idx + 1}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-label font-medium text-foreground truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.qty} × {formatPrice(item.unitPrice)}
+                          {item.isService ? "/hr" : ""}
+                        </p>
+                      </div>
+                      <span className="font-label font-semibold text-foreground ml-3 shrink-0">
+                        {formatPrice(item.qty * item.unitPrice)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Items */}
-              <div className="space-y-2">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between items-start text-sm"
-                    data-ocid="shop.summary.item"
+              <Separator />
+
+              {/* Choose Delivery Provider */}
+              <div>
+                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <Truck size={12} /> Choose Delivery Provider
+                </p>
+                <div className="space-y-2">
+                  {deliveryProviders.map((dp) => (
+                    <DeliveryProviderCard
+                      key={dp.id}
+                      provider={dp}
+                      selected={selectedProvider === dp.id}
+                      onSelect={() => setSelectedProvider(dp.id)}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProvider("")}
+                    className={`w-full text-xs text-muted-foreground py-2 rounded-lg border border-dashed border-border hover:border-muted-foreground transition-colors ${
+                      selectedProvider === "" ? "bg-secondary" : ""
+                    }`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-label font-medium text-foreground truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.qty} × {formatPrice(item.unitPrice)}
-                        {item.isService ? "/hr" : ""}
-                      </p>
-                    </div>
-                    <span className="font-label font-semibold text-foreground ml-3 shrink-0">
-                      {formatPrice(item.qty * item.unitPrice)}
-                    </span>
-                  </div>
-                ))}
+                    Self Pickup (no delivery)
+                  </button>
+                </div>
               </div>
 
               <Separator />
@@ -652,13 +1061,41 @@ function CheckoutDialog({
                   <span>Tax (5%)</span>
                   <span>+ {formatPrice(Math.round(tax))}</span>
                 </div>
+                {deliveryFee > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Delivery ({chosenProvider?.name})</span>
+                    <span>+ {formatPrice(deliveryFee)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between font-display font-bold text-base text-foreground">
                   <span>Grand Total</span>
                   <span className="text-primary">
-                    {formatPrice(Math.round(grandTotal))}
+                    {formatPrice(Math.round(finalTotal))}
                   </span>
                 </div>
+              </div>
+
+              {/* Billing summary */}
+              <div className="bg-secondary/40 rounded-xl p-3 text-xs space-y-1">
+                <p className="font-label font-semibold text-foreground mb-1">
+                  Delivering to
+                </p>
+                <p className="text-muted-foreground">
+                  {billingForm.fullName} · {billingForm.phone}
+                </p>
+                <p className="text-muted-foreground">
+                  {billingForm.address}
+                  {billingForm.city ? `, ${billingForm.city}` : ""}
+                </p>
+                <p className="text-muted-foreground capitalize">
+                  Payment:{" "}
+                  {billingForm.paymentMethod === "cod"
+                    ? "Cash on Delivery"
+                    : billingForm.paymentMethod === "bank"
+                      ? "Bank Transfer"
+                      : "Card"}
+                </p>
               </div>
             </div>
           )}
@@ -694,20 +1131,19 @@ function CheckoutDialog({
                   {billingForm.address}
                   {billingForm.city ? `, ${billingForm.city}` : ""}
                 </p>
-                <p>
-                  Payment:{" "}
-                  {billingForm.paymentMethod === "cod"
-                    ? "Cash on Delivery"
-                    : billingForm.paymentMethod === "bank"
-                      ? "Bank Transfer"
-                      : "Card"}
-                </p>
+                {chosenProvider && (
+                  <p>
+                    Via:{" "}
+                    <span className="font-medium text-foreground">
+                      {chosenProvider.name}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           )}
         </ScrollArea>
 
-        {/* Actions */}
         <div className="pt-3 border-t border-border mt-2 flex gap-2">
           {step === "billing" && (
             <>
@@ -763,17 +1199,193 @@ function CheckoutDialog({
   );
 }
 
+// ─── Delivery Providers Tab ───────────────────────────────────────────────────
+
+function DeliveryProvidersTab({
+  providers,
+  onRegister,
+}: {
+  providers: DeliveryProvider[];
+  onRegister: (p: DeliveryProvider) => void;
+}) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState<DeliveryProvider["type"]>("freelancer");
+  const [coverage, setCoverage] = useState("");
+  const [perOrder, setPerOrder] = useState("");
+  const [perKm, setPerKm] = useState("");
+  const [contact, setContact] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !coverage.trim() || !perOrder || !contact.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    onRegister({
+      id: `dp-${Date.now()}`,
+      name: name.trim(),
+      type,
+      coverageArea: coverage.trim(),
+      perOrderRate: Number(perOrder) || 0,
+      perKmRate: Number(perKm) || 0,
+      contact: contact.trim(),
+      rating: 0,
+      deliveries: 0,
+    });
+    toast.success("Registered as delivery provider!");
+    setName("");
+    setCoverage("");
+    setPerOrder("");
+    setPerKm("");
+    setContact("");
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Register form */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <h2 className="font-display font-bold text-foreground text-base mb-1">
+          Register as Delivery Provider
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Offer delivery services to shop customers and earn per order.
+        </p>
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+        >
+          <div className="space-y-1.5">
+            <Label className="text-xs">Business / Name *</Label>
+            <Input
+              placeholder="Your name or business name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="text-sm"
+              data-ocid="delivery.name_input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Type *</Label>
+            <Select
+              value={type}
+              onValueChange={(v) => setType(v as DeliveryProvider["type"])}
+            >
+              <SelectTrigger
+                className="text-sm"
+                data-ocid="delivery.type_select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="freelancer">Freelancer</SelectItem>
+                <SelectItem value="company">Company</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Coverage Area *</Label>
+            <Input
+              placeholder="e.g. Mumbai, Andheri, Bandra"
+              value={coverage}
+              onChange={(e) => setCoverage(e.target.value)}
+              className="text-sm"
+              data-ocid="delivery.coverage_input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Per Order Rate (INR) *</Label>
+            <Input
+              type="number"
+              placeholder="e.g. 49"
+              value={perOrder}
+              onChange={(e) => setPerOrder(e.target.value)}
+              className="text-sm"
+              data-ocid="delivery.perorder_input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Per KM Rate (INR)</Label>
+            <Input
+              type="number"
+              placeholder="e.g. 8"
+              value={perKm}
+              onChange={(e) => setPerKm(e.target.value)}
+              className="text-sm"
+              data-ocid="delivery.perkm_input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Contact *</Label>
+            <Input
+              placeholder="+91 XXXXX XXXXX"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              className="text-sm"
+              data-ocid="delivery.contact_input"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Button
+              type="submit"
+              className="font-label"
+              data-ocid="delivery.submit_button"
+            >
+              Register as Provider
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Provider list */}
+      <div>
+        <h2 className="font-display font-bold text-foreground text-base mb-4">
+          Registered Providers
+          <span className="ml-2 text-sm text-muted-foreground font-label font-normal">
+            ({providers.length})
+          </span>
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {providers.map((p) => (
+            <DeliveryProviderCard key={p.id} provider={p} />
+          ))}
+        </div>
+        {providers.length === 0 && (
+          <div
+            className="text-center py-12 text-muted-foreground"
+            data-ocid="delivery.empty_state"
+          >
+            <Truck size={36} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">
+              No providers registered yet. Be the first!
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Shop Page ───────────────────────────────────────────────────────────
 
 export default function ShopPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
   const [cartItems, setCartItems] = useState<ShopCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [deliveryProviders, setDeliveryProviders] = useState<
+    DeliveryProvider[]
+  >(INITIAL_DELIVERY_PROVIDERS);
+  const [_surveyVotes, setSurveyVotes] = useState<SurveyVote[]>([]);
+  const [reviewTarget, setReviewTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  // Build shop catalog from products + services
-  const allItems = [
+  // Build shop catalog from products + services + extra module items
+  const baseItems = [
     ...SAMPLE_PRODUCTS.map((p) => ({
       id: `product-${p.id}`,
       productId: p.id,
@@ -785,6 +1397,8 @@ export default function ShopPage() {
       seller: p.seller,
       isService: false,
       photoUrl: p.photos[0],
+      votes: Math.floor(30 + Math.random() * 200),
+      sourceModule: "Products" as string | undefined,
     })),
     ...SAMPLE_SERVICES.map((s) => ({
       id: `service-${s.id}`,
@@ -797,10 +1411,13 @@ export default function ShopPage() {
       seller: s.provider,
       isService: true,
       photoUrl: s.photos[0],
+      votes: Math.floor(20 + Math.random() * 150),
+      sourceModule: "Services" as string | undefined,
     })),
+    ...EXTRA_SHOP_ITEMS,
   ];
 
-  const filteredItems = allItems.filter((item) => {
+  const filteredItems = baseItems.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -809,13 +1426,21 @@ export default function ShopPage() {
     return matchesSearch && matchesCategory;
   });
 
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (sortBy === "top-voted") return (b.votes || 0) - (a.votes || 0);
+    if (sortBy === "top-reviewed") return b.rating - a.rating;
+    if (sortBy === "price-asc") return a.price - b.price;
+    if (sortBy === "price-desc") return b.price - a.price;
+    return 0; // relevance / newest: original order
+  });
+
   // Cart calculations
   const subtotal = cartItems.reduce((s, i) => s + i.qty * i.unitPrice, 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
   const totalCartItems = cartItems.reduce((s, i) => s + i.qty, 0);
 
-  const addToCart = (item: (typeof allItems)[0]) => {
+  const addToCart = (item: (typeof baseItems)[0]) => {
     setCartItems((prev) => {
       const existing = prev.find((ci) => ci.id === item.id);
       if (existing) {
@@ -871,11 +1496,9 @@ export default function ShopPage() {
               Shop
             </h1>
             <p className="text-muted-foreground mt-1">
-              Browse products and services from your community
+              Browse products and services from all modules across IndyaCentral
             </p>
           </div>
-
-          {/* Cart button */}
           <Button
             variant="outline"
             className="font-label gap-2 relative"
@@ -891,124 +1514,149 @@ export default function ShopPage() {
             )}
           </Button>
         </div>
-
-        {/* Search */}
-        <div className="relative mt-4 max-w-md">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            placeholder="Search products and services..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-10"
-            data-ocid="shop.search_input"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-
-        {/* Category filters */}
-        <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-label font-semibold transition-all border ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-              }`}
-              data-ocid="shop.category.tab"
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Results count */}
-      <div className="mb-4 flex items-center gap-2">
-        <p className="text-sm text-muted-foreground">
-          {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
-          {activeCategory !== "All" ? ` in ${activeCategory}` : ""}
-          {searchQuery ? ` for "${searchQuery}"` : ""}
-        </p>
-      </div>
+      <Tabs defaultValue="listings">
+        <TabsList className="mb-6">
+          <TabsTrigger value="listings" data-ocid="shop.listings.tab">
+            <ShoppingBag size={13} className="mr-1.5" />
+            Products &amp; Services
+          </TabsTrigger>
+          <TabsTrigger value="delivery" data-ocid="shop.delivery.tab">
+            <Truck size={13} className="mr-1.5" />
+            Delivery Providers
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Product grid */}
-      {filteredItems.length === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center py-20 text-center"
-          data-ocid="shop.empty_state"
-        >
-          <ShoppingBag
-            size={48}
-            className="text-muted-foreground mb-4 opacity-30"
-          />
-          <p className="text-base font-label font-semibold text-muted-foreground">
-            No items found
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Try adjusting your search or category filters
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4 font-label"
-            onClick={() => {
-              setSearchQuery("");
-              setActiveCategory("All");
-            }}
-          >
-            Clear filters
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredItems.map((item, i) => (
-            <div
-              key={item.id}
-              style={{ animationDelay: `${i * 0.04}s` }}
-              className="animate-fade-up"
-            >
-              <ShopProductCard
-                name={item.name}
-                description={item.description}
-                price={item.price}
-                category={item.category}
-                rating={item.rating}
-                seller={item.seller}
-                isService={item.isService}
-                photoUrl={item.photoUrl}
-                onAddToCart={() => addToCart(item)}
+        {/* ── Listings Tab ── */}
+        <TabsContent value="listings">
+          {/* Search + Sort */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1 max-w-md">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
+              <Input
+                placeholder="Search products and services..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-10"
+                data-ocid="shop.search_input"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+            <Select
+              value={sortBy}
+              onValueChange={(v) => setSortBy(v as SortOption)}
+            >
+              <SelectTrigger
+                className="w-full sm:w-48 h-10"
+                data-ocid="shop.sort.select"
+              >
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="top-voted">Top Voted</SelectItem>
+                <SelectItem value="top-reviewed">Top Reviewed</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                <SelectItem value="price-desc">Price: High to Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Floating cart button (mobile) */}
-      {totalCartItems > 0 && (
-        <button
-          type="button"
-          onClick={() => setCartOpen(true)}
-          className="fixed bottom-6 right-6 lg:hidden z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl font-label font-bold text-sm bg-primary text-primary-foreground"
-          data-ocid="shop.cart.open_modal_button"
-        >
-          <ShoppingCart size={16} />
-          View Cart ({totalCartItems})
-        </button>
-      )}
+          {/* Category filters */}
+          <div className="flex gap-2 mb-5 overflow-x-auto pb-2 scrollbar-none">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-label font-semibold transition-all border ${
+                  activeCategory === cat
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                }`}
+                data-ocid="shop.category.tab"
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Results count */}
+          <div className="mb-4 flex items-center gap-3 flex-wrap">
+            <p className="text-sm text-muted-foreground">
+              {sortedItems.length} item{sortedItems.length !== 1 ? "s" : ""}
+              {activeCategory !== "All" ? ` in ${activeCategory}` : ""}
+              {searchQuery ? ` for "${searchQuery}"` : ""}
+            </p>
+            {sortBy !== "relevance" && (
+              <Badge variant="outline" className="text-xs capitalize">
+                Sorted: {sortBy.replace("-", " ")}
+              </Badge>
+            )}
+          </div>
+
+          {/* Product grid */}
+          {sortedItems.length === 0 ? (
+            <div
+              className="text-center py-20 text-muted-foreground"
+              data-ocid="shop.listings.empty_state"
+            >
+              <Package size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-label font-semibold text-foreground mb-1">
+                No items found
+              </p>
+              <p className="text-sm">
+                {searchQuery
+                  ? `No results for "${searchQuery}"`
+                  : `No items in ${activeCategory}`}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {sortedItems.map((item) => (
+                <ShopProductCard
+                  key={item.id}
+                  name={item.name}
+                  description={item.description}
+                  price={item.price}
+                  category={item.category}
+                  rating={item.rating}
+                  seller={item.seller}
+                  isService={item.isService}
+                  photoUrl={item.photoUrl}
+                  sourceModule={item.sourceModule}
+                  votes={item.votes}
+                  onAddToCart={() => addToCart(item)}
+                  onReview={() =>
+                    setReviewTarget({ id: item.id, name: item.name })
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Delivery Providers Tab ── */}
+        <TabsContent value="delivery">
+          <DeliveryProvidersTab
+            providers={deliveryProviders}
+            onRegister={(p) => setDeliveryProviders((prev) => [p, ...prev])}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Cart Drawer */}
       <CartDrawer
@@ -1034,7 +1682,22 @@ export default function ShopPage() {
         subtotal={subtotal}
         tax={tax}
         grandTotal={grandTotal}
+        deliveryProviders={deliveryProviders}
       />
+
+      {/* Rate & Review Modal */}
+      {reviewTarget && (
+        <RateReviewModal
+          open={true}
+          onClose={() => setReviewTarget(null)}
+          itemName={reviewTarget.name}
+          itemId={reviewTarget.id}
+          onSubmit={(vote) => setSurveyVotes((prev) => [...prev, vote])}
+        />
+      )}
     </div>
   );
 }
+
+// Export survey votes for AdminPanel use
+export type { SurveyVote, DeliveryProvider };

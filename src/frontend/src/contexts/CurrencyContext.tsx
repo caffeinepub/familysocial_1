@@ -265,7 +265,9 @@ interface CurrencyContextValue {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
   formatPrice: (pkrAmount: number) => string;
+  formatCurrency: (amount: number) => string;
   convertFromPKR: (pkrAmount: number) => number;
+  convertFromINR: (inrAmount: number) => number;
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -287,6 +289,30 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   // Use closure variable for currency
   const c = currency;
+
+  const INR_TO_USD = 1 / 83.5;
+
+  const convertFromINR = (inrAmount: number): number => {
+    const usdAmount = inrAmount * INR_TO_USD;
+    return usdAmount * c.rateFromUSD;
+  };
+
+  const formatCurrency = (inrAmount: number): string => {
+    const usdAmount = inrAmount * INR_TO_USD;
+    const converted = usdAmount * c.rateFromUSD;
+    const noDecimals =
+      converted >= 1000 || ["IDR", "VND", "NGN", "KRW"].includes(c.code);
+    try {
+      return new Intl.NumberFormat(c.locale, {
+        style: "currency",
+        currency: c.code,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: noDecimals ? 0 : 2,
+      }).format(converted);
+    } catch {
+      return `${c.symbol}${converted.toLocaleString(undefined, { maximumFractionDigits: noDecimals ? 0 : 2 })}`;
+    }
+  };
 
   const convertFromPKR = (pkrAmount: number): number => {
     const usdAmount = pkrAmount * PKR_TO_USD;
@@ -323,6 +349,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         currency: c,
         setCurrency: handleSetCurrency,
         formatPrice,
+        formatCurrency,
+        convertFromINR,
         convertFromPKR,
       }}
     >
