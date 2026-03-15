@@ -2171,6 +2171,12 @@ function MarketplaceTab() {
 // Tab 6: Parking & Property
 // ─────────────────────────────────────────────
 function ParkingPropertyTab() {
+  const [selectedProp, setSelectedProp] = useState<
+    (typeof COMMUNITY_PROPERTIES)[0] | null
+  >(null);
+  const [bidOpen, setBidOpen] = useState(false);
+  const [bidItem, setBidItem] = useState<string>("");
+  const [bidAmount, setBidAmount] = useState("");
   // Add slot dialog
   const [addSlotOpen, setAddSlotOpen] = useState(false);
   const [newSlotNo, setNewSlotNo] = useState("");
@@ -2554,24 +2560,166 @@ function ParkingPropertyTab() {
                 >
                   {prop.price}
                 </p>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-xs font-label"
+                    onClick={() => setSelectedProp(prop)}
+                    data-ocid="gated.property.primary_button"
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs font-label"
+                    onClick={() => {
+                      setBidItem(prop.flatNo);
+                      setBidOpen(true);
+                    }}
+                    data-ocid="gated.property.secondary_button"
+                  >
+                    Bid
+                  </Button>
+                </div>
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-xs font-label"
+                  variant="ghost"
+                  className="w-full h-6 text-xs font-label text-muted-foreground"
                   onClick={() =>
-                    toast.info("Opening Real Estate module", {
-                      description: `Viewing details for ${prop.flatNo}`,
-                    })
+                    toast.success(
+                      `Inquiry sent to open market for ${prop.flatNo}`,
+                    )
                   }
+                  data-ocid="gated.property.button"
                 >
-                  View Details
-                  <ChevronRight size={12} className="ml-1" />
+                  Send to Open Market
                 </Button>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
+      {/* Property Detail Dialog */}
+      {selectedProp && (
+        <Dialog
+          open={!!selectedProp}
+          onOpenChange={() => setSelectedProp(null)}
+        >
+          <DialogContent data-ocid="gated.property.dialog">
+            <DialogHeader>
+              <DialogTitle>
+                Property Details — {selectedProp.flatNo}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Type</p>
+                  <p className="font-medium">{selectedProp.type}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Floor</p>
+                  <p className="font-medium">
+                    {selectedProp.floor === 0
+                      ? "Ground"
+                      : `Floor ${selectedProp.floor}`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Size</p>
+                  <p className="font-medium">{selectedProp.size}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Listing</p>
+                  <p className="font-medium">{selectedProp.listingType}</p>
+                </div>
+              </div>
+              <div
+                className="p-3 rounded-xl"
+                style={{ background: "oklch(0.55 0.22 280 / 0.06)" }}
+              >
+                <p className="text-xs text-muted-foreground">Price</p>
+                <p className="text-lg font-display font-bold text-primary">
+                  {selectedProp.price}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    toast.success(`Inquiry sent for ${selectedProp.flatNo}`);
+                    setSelectedProp(null);
+                  }}
+                  data-ocid="gated.property.confirm_button"
+                >
+                  Send Inquiry
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedProp(null)}
+                  data-ocid="gated.property.close_button"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Bid Dialog */}
+      <Dialog open={bidOpen} onOpenChange={setBidOpen}>
+        <DialogContent data-ocid="gated.bid.dialog">
+          <DialogHeader>
+            <DialogTitle>Place Bid — {bidItem}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Your Bid Amount (INR)</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                placeholder="e.g. 1800000"
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+                data-ocid="gated.bid.input"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Your bid will be submitted to the open market and visible to all
+              interested parties.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  if (!bidAmount) {
+                    toast.error("Enter bid amount");
+                    return;
+                  }
+                  toast.success(
+                    `Bid of ₹${Number(bidAmount).toLocaleString("en-IN")} placed successfully!`,
+                  );
+                  setBidOpen(false);
+                  setBidAmount("");
+                }}
+                data-ocid="gated.bid.confirm_button"
+              >
+                Place Bid
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setBidOpen(false)}
+                data-ocid="gated.bid.cancel_button"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

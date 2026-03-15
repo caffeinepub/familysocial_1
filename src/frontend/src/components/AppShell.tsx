@@ -16,6 +16,8 @@ import {
   BookOpen,
   Briefcase,
   Building2,
+  Bus,
+  Car,
   ChevronRight,
   Clock,
   CreditCard,
@@ -28,6 +30,7 @@ import {
   type LucideIcon,
   Map as MapIcon,
   Menu,
+  PhoneCall,
   Plane,
   Search,
   Settings,
@@ -35,6 +38,7 @@ import {
   ShoppingBag,
   Sparkles,
   TreePine,
+  UserCircle,
   Users,
   X,
   Zap,
@@ -48,6 +52,7 @@ import {
   useState,
 } from "react";
 import type { UserProfile } from "../backend.d";
+import { useUserLevel } from "../contexts/UserLevelContext";
 import { useAdminStatus } from "../hooks/useAdminStatus";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import CoworkerAssistant from "./CoworkerAssistant";
@@ -56,7 +61,7 @@ import NotificationsPanel from "./NotificationsPanel";
 import SuggestionsPanel from "./SuggestionsPanel";
 import TipsPanel from "./TipsPanel";
 
-// Lazy-loaded pages for code splitting (improves initial load time significantly)
+// Lazy-loaded pages
 const AdminPanelPage = lazy(() => import("../pages/AdminPanelPage"));
 const BlogPage = lazy(() => import("../pages/BlogPage"));
 const ComingSoonPage = lazy(() => import("../pages/ComingSoonPage"));
@@ -81,10 +86,19 @@ const ShopPage = lazy(() => import("../pages/ShopPage"));
 const SocialFeedPage = lazy(() => import("../pages/SocialFeedPage"));
 const TimelinePage = lazy(() => import("../pages/TimelinePage"));
 const TravelPage = lazy(() => import("../pages/TravelPage"));
+const ContactUsPage = lazy(() => import("../pages/ContactUsPage"));
+const MyAccountPage = lazy(() => import("../pages/MyAccountPage"));
+const RideBookingPage = lazy(() => import("../pages/RideBookingPage"));
+const BusinessPage = lazy(() => import("../pages/BusinessPage"));
+const TransportBookingPage = lazy(
+  () => import("../pages/TransportBookingPage"),
+);
+const LoginPage = lazy(() => import("../pages/LoginPage"));
 import AgentConsentBanner from "./AgentConsentBanner";
+import NearbySearchBar from "./NearbySearchBar";
 import SupportChatWidget from "./SupportChatWidget";
 
-// ---- ErrorBoundary: prevents one broken page from crashing the whole app ----
+// ---- ErrorBoundary ----
 interface EBState {
   hasError: boolean;
   error: Error | null;
@@ -129,7 +143,6 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   }
 }
 
-// Page loading skeleton
 function PageLoader() {
   return (
     <div className="p-6 space-y-4">
@@ -152,28 +165,34 @@ interface NavItem {
   badge?: number;
 }
 
+const GUEST_NAV_IDS = new Set(["social-feed", "shop", "contact-us", "jobs"]);
+
 const NAV_ITEMS: NavItem[] = [
+  { id: "social-feed", label: "Home", icon: Home, badge: 3 },
+  { id: "shop", label: "Shop", icon: ShoppingBag },
+  { id: "contact-us", label: "Contact Us", icon: PhoneCall },
   { id: "family-tree", label: "Family Tree", icon: TreePine },
-  { id: "social-feed", label: "Social Feed", icon: Home, badge: 3 },
   { id: "map", label: "Geomap", icon: MapIcon },
   { id: "personal-feed", label: "My Feed", icon: BookMarked },
   { id: "timeline", label: "Timeline", icon: Clock },
   { id: "community", label: "Community", icon: Users },
   { id: "gated-community", label: "Gated Community", icon: Building2 },
-  { id: "products", label: "Products & Services", icon: ShoppingBag },
-  { id: "shop", label: "Shop", icon: ShoppingBag },
   { id: "pos", label: "Point of Sale", icon: CreditCard },
   { id: "jobs", label: "Jobs", icon: Briefcase },
   { id: "healthcare", label: "Healthcare", icon: Heart },
   { id: "real-estate", label: "Real Estate", icon: Building2 },
   { id: "education", label: "Education", icon: GraduationCap },
   { id: "travel", label: "Travel", icon: Plane },
+  { id: "transport", label: "Transport & Pay", icon: Bus },
   { id: "blog", label: "Blog & Affiliate", icon: BookOpen },
   { id: "matrimony", label: "Matrimony", icon: Heart },
   { id: "dating", label: "Dating", icon: Zap },
-  { id: "admin-panel", label: "Admin Panel", icon: ShieldCheck },
+  { id: "rides", label: "Rides", icon: Car },
+  { id: "business", label: "Business", icon: Building2 },
+  { id: "my-account", label: "My Account", icon: UserCircle },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "admin-panel", label: "Admin Panel", icon: ShieldCheck },
 ];
 
 const COMING_SOON_META: Record<
@@ -185,12 +204,16 @@ interface Props {
   currentPage: string;
   onNavigate: (page: string) => void;
   userProfile: UserProfile | null | undefined;
+  isAuthenticated?: boolean;
+  onEmailLogin?: (user: { name: string; email: string }) => void;
 }
 
 export default function AppShell({
   currentPage,
   onNavigate,
   userProfile,
+  isAuthenticated = false,
+  onEmailLogin,
 }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -200,6 +223,7 @@ export default function AppShell({
   const { clear } = useInternetIdentity();
   const queryClient = useQueryClient();
   const { isAdmin } = useAdminStatus();
+  const { level } = useUserLevel();
 
   const handleLogout = async () => {
     await clear();
@@ -259,6 +283,8 @@ export default function AppShell({
         return <EducationPage />;
       case "travel":
         return <TravelPage />;
+      case "transport":
+        return <TransportBookingPage />;
       case "blog":
         return <BlogPage />;
       case "matrimony":
@@ -271,6 +297,17 @@ export default function AppShell({
         return <DashboardPage />;
       case "settings":
         return <SettingsPage userProfile={userProfile} />;
+      case "my-account":
+        return <MyAccountPage />;
+      case "rides":
+        return <RideBookingPage />;
+      case "business":
+        return <BusinessPage />;
+
+      case "contact-us":
+        return <ContactUsPage />;
+      case "login":
+        return <LoginPage onEmailLogin={onEmailLogin ?? (() => {})} />;
       default:
         return (
           <FamilyTreePage userProfile={userProfile} onNavigate={onNavigate} />
@@ -326,7 +363,6 @@ export default function AppShell({
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-3">
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -347,16 +383,17 @@ export default function AppShell({
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.filter((item) => item.id !== "admin-panel" || isAdmin).map(
-          (item) => (
-            <NavLink key={item.id} item={item} />
-          ),
-        )}
+        {NAV_ITEMS.filter((item) => {
+          if (!isAuthenticated && !GUEST_NAV_IDS.has(item.id)) return false;
+          if (item.id === "admin-panel" && !isAdmin) return false;
+          if (item.id === "products") return false;
+          return true;
+        }).map((item) => (
+          <NavLink key={item.id} item={item} />
+        ))}
       </nav>
 
-      {/* User section */}
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors">
           <Avatar className="h-8 w-8 shrink-0">
@@ -371,12 +408,42 @@ export default function AppShell({
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-sidebar-foreground truncate">
+            <p className="text-xs font-semibold text-sidebar-foreground truncate flex items-center gap-1.5">
               {userProfile?.name || "My Profile"}
+              {isAdmin && (
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: "oklch(0.65 0.25 335)",
+                    color: "oklch(0.98 0.005 335)",
+                  }}
+                >
+                  Admin
+                </span>
+              )}
             </p>
             <p className="text-[10px] text-sidebar-foreground/40 truncate">
               {userProfile?.occupation || "IndyaCentral Member"}
             </p>
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block mt-0.5"
+              style={{
+                background:
+                  level === "Advanced"
+                    ? "oklch(0.75 0.18 85 / 0.25)"
+                    : level === "Intermediate"
+                      ? "oklch(0.55 0.18 240 / 0.2)"
+                      : "oklch(0.5 0 0 / 0.15)",
+                color:
+                  level === "Advanced"
+                    ? "oklch(0.62 0.15 85)"
+                    : level === "Intermediate"
+                      ? "oklch(0.45 0.18 240)"
+                      : "oklch(0.5 0 0)",
+              }}
+            >
+              {level}
+            </span>
           </div>
           <Button
             variant="ghost"
@@ -391,6 +458,76 @@ export default function AppShell({
       </div>
     </div>
   );
+
+  // Guest top-nav layout
+  if (!isAuthenticated) {
+    const GUEST_LINKS = [
+      { id: "social-feed", label: "Home" },
+      { id: "shop", label: "Shop" },
+      { id: "contact-us", label: "Contact Us" },
+      { id: "jobs", label: "Jobs" },
+    ];
+    return (
+      <div
+        className="flex flex-col min-h-screen bg-background"
+        data-ocid="guest.page"
+      >
+        {/* Guest Top Nav */}
+        <header
+          className="sticky top-0 z-40 border-b px-4 sm:px-8 flex items-center gap-4 h-14 shrink-0"
+          style={{
+            background: "oklch(var(--background))",
+            borderColor: "oklch(var(--border))",
+          }}
+        >
+          <div className="flex items-center gap-2 mr-4">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: "oklch(0.65 0.25 335)" }}
+            >
+              <TreePine size={14} style={{ color: "oklch(0.98 0.005 335)" }} />
+            </div>
+            <span className="text-base font-display font-bold text-foreground hidden sm:block">
+              IndyaCentral
+            </span>
+          </div>
+          <nav className="flex items-center gap-1 flex-1">
+            {GUEST_LINKS.map((link) => (
+              <button
+                key={link.id}
+                type="button"
+                onClick={() => onNavigate(link.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-label font-medium transition-colors ${
+                  currentPage === link.id
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+                data-ocid={`guest.${link.id}.link`}
+              >
+                {link.label}
+              </button>
+            ))}
+          </nav>
+          <button
+            type="button"
+            onClick={() => onNavigate("login")}
+            className="px-4 py-1.5 rounded-lg text-sm font-label font-semibold transition-colors text-primary-foreground"
+            style={{ background: "oklch(0.65 0.25 335)" }}
+            data-ocid="guest.login.primary_button"
+          >
+            Login
+          </button>
+        </header>
+        <main className="flex-1 overflow-y-auto main-scroll">
+          <PageErrorBoundary>
+            <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
+          </PageErrorBoundary>
+        </main>
+        <CoworkerAssistant currentPage={currentPage} />
+        <SupportChatWidget />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -448,7 +585,6 @@ export default function AppShell({
             <Menu size={18} />
           </Button>
 
-          {/* Breadcrumb / page title */}
           <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
             <span className="font-label">IndyaCentral</span>
             <ChevronRight size={14} />
@@ -458,7 +594,6 @@ export default function AppShell({
             </span>
           </div>
 
-          {/* Search */}
           <div className="flex-1 max-w-xs ml-auto sm:ml-4">
             <div className="relative">
               <Search
@@ -472,10 +607,8 @@ export default function AppShell({
             </div>
           </div>
 
-          {/* Currency selector */}
           <CurrencySelector />
 
-          {/* Tips button */}
           <Button
             variant="ghost"
             size="icon"
@@ -490,7 +623,6 @@ export default function AppShell({
             <HelpCircle size={17} />
           </Button>
 
-          {/* Suggestions button */}
           <Button
             variant="ghost"
             size="icon"
@@ -514,7 +646,6 @@ export default function AppShell({
             </span>
           </Button>
 
-          {/* Notification bell */}
           <Button
             variant="ghost"
             size="icon"
@@ -540,7 +671,6 @@ export default function AppShell({
             )}
           </Button>
 
-          {/* User avatar */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-9 w-9 rounded-full p-0">
@@ -567,6 +697,9 @@ export default function AppShell({
                 </p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onNavigate("my-account")}>
+                <UserCircle size={14} className="mr-2" /> My Account
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onNavigate("settings")}>
                 <Settings size={14} className="mr-2" /> Settings
               </DropdownMenuItem>
@@ -590,10 +723,8 @@ export default function AppShell({
         </main>
       </div>
 
-      {/* Support Chat Widget */}
       <SupportChatWidget />
 
-      {/* Notifications panel */}
       <NotificationsPanel
         open={notifOpen}
         onClose={() => setNotifOpen(false)}
@@ -605,7 +736,6 @@ export default function AppShell({
         }}
       />
 
-      {/* Suggestions panel */}
       <SuggestionsPanel
         open={suggestOpen}
         onClose={() => setSuggestOpen(false)}
@@ -615,15 +745,15 @@ export default function AppShell({
         }}
       />
 
-      {/* Tips panel */}
       <TipsPanel
         open={tipsOpen}
         onClose={() => setTipsOpen(false)}
         currentPage={currentPage}
       />
 
-      {/* Friend assistant */}
       <CoworkerAssistant currentPage={currentPage} />
+
+      {isAuthenticated && <NearbySearchBar />}
     </div>
   );
 }

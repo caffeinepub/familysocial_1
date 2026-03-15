@@ -42,11 +42,11 @@ import {
   ShoppingCart,
   Trash2,
   Wrench,
-  WrenchIcon,
   X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import POSModulesPanel from "../components/POSModulesPanel";
 import { useCurrency } from "../contexts/CurrencyContext";
 import {
   type Product,
@@ -784,7 +784,7 @@ function QuickAddServiceDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            <WrenchIcon size={16} className="text-primary" /> Quick Add Service
+            <Wrench size={16} className="text-primary" /> Quick Add Service
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 mt-1">
@@ -1692,7 +1692,7 @@ export default function POSPage() {
                 className="gap-2 font-label text-sm"
                 data-ocid="pos.create.service.button"
               >
-                <WrenchIcon size={14} /> Add Service
+                <Wrench size={14} /> Add Service
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setQuickEventOpen(true)}
@@ -1828,6 +1828,9 @@ export default function POSPage() {
             : handleNewSale
         }
       />
+
+      {/* Extended Business Modules */}
+      <POSModulesPanel />
 
       {/* Quick-create dialogs */}
       <QuickAddProductDialog

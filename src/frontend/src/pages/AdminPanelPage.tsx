@@ -571,7 +571,7 @@ const SYNCED_PRODUCTS = [
   {
     name: "Organic Basmati Rice 5kg",
     source: "OpenFoodFacts",
-    price: "PKR 1,200",
+    price: "INR 1,200",
     synced: "Feb 28, 2026",
   },
   {
@@ -1754,6 +1754,12 @@ export default function AdminPanelPage() {
               { value: "paysprint", label: "💳 PaySprint API" },
               { value: "agent17", label: "✈️ A17: Travel" },
               { value: "agent18", label: "💰 A18: Pricing" },
+              { value: "agent19", label: "🎮 A19: Games" },
+              { value: "agent20", label: "😂 A20: Comics" },
+              { value: "social-queue", label: "📱 Social Queue" },
+              { value: "promotions-queue", label: "📣 Promotions" },
+              { value: "whatsapp-api", label: "📲 WhatsApp API" },
+              { value: "rides-admin", label: "🚗 Rides Mgmt" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -3647,56 +3653,56 @@ export default function AdminPanelPage() {
                         {
                           name: "Bridal Lehenga Collection",
                           cat: "Fashion",
-                          price: "PKR 45,000",
+                          price: "INR 45,000",
                           variants: 6,
                           status: "active",
                         },
                         {
                           name: "Honda Civic 2024 Rental",
                           cat: "Vehicle",
-                          price: "PKR 8,000/day",
+                          price: "INR 8,000/day",
                           variants: 2,
                           status: "active",
                         },
                         {
                           name: "Organic Honey 500g",
                           cat: "Food",
-                          price: "PKR 1,200",
+                          price: "INR 1,200",
                           variants: 3,
                           status: "active",
                         },
                         {
                           name: "iPhone 15 Pro Case",
                           cat: "Accessories",
-                          price: "PKR 2,500",
+                          price: "INR 2,500",
                           variants: 8,
                           status: "inactive",
                         },
                         {
                           name: "Premium Lawn Suit 3-pc",
                           cat: "Fashion",
-                          price: "PKR 6,500",
+                          price: "INR 6,500",
                           variants: 5,
                           status: "active",
                         },
                         {
                           name: 'Samsung 55" QLED TV',
                           cat: "Electronics",
-                          price: "PKR 185,000",
+                          price: "INR 185,000",
                           variants: 1,
                           status: "active",
                         },
                         {
                           name: "Handmade Leather Wallet",
                           cat: "Accessories",
-                          price: "PKR 3,200",
+                          price: "INR 3,200",
                           variants: 4,
                           status: "active",
                         },
                         {
                           name: "Basmati Rice 25kg Bag",
                           cat: "Grocery",
-                          price: "PKR 5,500",
+                          price: "INR 5,500",
                           variants: 2,
                           status: "inactive",
                         },
@@ -5070,6 +5076,292 @@ export default function AdminPanelPage() {
               </table>
             </div>
           </div>
+
+          {/* ── AGENT 19: GAME CREATOR ── */}
+          <TabsContent value="agent19" className="mt-0 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-display font-bold">
+                  Agent 19 — Game Creator
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-generates unique games based on user interests and
+                  activity patterns.
+                </p>
+              </div>
+              <Switch defaultChecked data-ocid="admin.agent19.toggle" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+                <h3 className="text-sm font-semibold">Configuration</h3>
+                <div>
+                  <Label className="text-xs">
+                    User Interest Tags (comma separated)
+                  </Label>
+                  <Input
+                    className="mt-1"
+                    placeholder="cricket, cooking, travel, music"
+                    data-ocid="admin.agent19.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Game Difficulty</Label>
+                  <Select defaultValue="medium">
+                    <SelectTrigger
+                      className="mt-1"
+                      data-ocid="admin.agent19.select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Game Type</Label>
+                  <Select defaultValue="trivia">
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="puzzle">Puzzle</SelectItem>
+                      <SelectItem value="trivia">Trivia</SelectItem>
+                      <SelectItem value="adventure">Adventure</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Auto-Generate (Daily)</Label>
+                  <Switch
+                    defaultChecked
+                    data-ocid="admin.agent19.auto.toggle"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => toast.success("Game generation triggered")}
+                  data-ocid="admin.agent19.primary_button"
+                >
+                  Generate Now
+                </Button>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold">Last Generated Games</h3>
+                {[
+                  {
+                    name: "Cricket Trivia Blitz",
+                    type: "Trivia",
+                    difficulty: "Medium",
+                    users: 142,
+                    date: "Today",
+                  },
+                  {
+                    name: "Mumbai Street Puzzle",
+                    type: "Puzzle",
+                    difficulty: "Hard",
+                    users: 89,
+                    date: "Yesterday",
+                  },
+                  {
+                    name: "Spice Route Adventure",
+                    type: "Adventure",
+                    difficulty: "Easy",
+                    users: 203,
+                    date: "2 days ago",
+                  },
+                ].map((game, i) => (
+                  <div
+                    key={game.name}
+                    className="flex items-start justify-between p-3 rounded-lg bg-secondary/30"
+                    data-ocid={`admin.agent19.item.${i + 1}`}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{game.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {game.type} · {game.difficulty} · {game.users} players
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {game.date}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── AGENT 20: COMIC AGENT ── */}
+          <TabsContent value="agent20" className="mt-0 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-display font-bold">
+                  Agent 20 — Comic Agent
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Creates funny daily comics from users' daily life feeds.
+                </p>
+              </div>
+              <Switch defaultChecked data-ocid="admin.agent20.toggle" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+                <h3 className="text-sm font-semibold">Configuration</h3>
+                <div>
+                  <Label className="text-xs">Humor Style</Label>
+                  <Select defaultValue="witty">
+                    <SelectTrigger
+                      className="mt-1"
+                      data-ocid="admin.agent20.select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="slapstick">Slapstick</SelectItem>
+                      <SelectItem value="witty">Witty</SelectItem>
+                      <SelectItem value="dry">Dry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Content Source</Label>
+                  <Select defaultValue="daily-feed">
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily-feed">Daily Feed</SelectItem>
+                      <SelectItem value="trending">Trending Posts</SelectItem>
+                      <SelectItem value="community">
+                        Community Events
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Generation Frequency</Label>
+                  <Select defaultValue="daily">
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => toast.success("Comic generated!")}
+                  data-ocid="admin.agent20.primary_button"
+                >
+                  Generate Comic
+                </Button>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold">Sample Comic Preview</h3>
+                <div
+                  className="rounded-xl border border-border overflow-hidden"
+                  data-ocid="admin.agent20.panel"
+                >
+                  <div className="grid grid-cols-2 gap-0">
+                    {[
+                      {
+                        panel: 1,
+                        text: "Rahul checks his phone for the 50th time today... 📱",
+                      },
+                      {
+                        panel: 2,
+                        text: "Just one more reel... He says. Its 3 AM. 🌙",
+                      },
+                      { panel: 3, text: "Next morning: alarm goes off 🔔" },
+                      {
+                        panel: 4,
+                        text: "Rahul: already on his phone. Some things never change. 😅",
+                      },
+                    ].map((p) => (
+                      <div
+                        key={p.panel}
+                        className="p-3 border border-border/50 text-xs"
+                        style={{
+                          minHeight: "80px",
+                          background:
+                            p.panel % 2 === 0
+                              ? "oklch(var(--muted)/0.3)"
+                              : "transparent",
+                        }}
+                      >
+                        <span className="text-[10px] font-bold text-primary">
+                          Panel {p.panel}
+                        </span>
+                        <p className="mt-1 text-muted-foreground">{p.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2 text-center text-[10px] text-muted-foreground border-t border-border">
+                    Generated by IC.ComicAgent · Today 8:00 AM
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── SOCIAL MEDIA QUEUE ── */}
+          <TabsContent value="social-queue" className="mt-0 space-y-4">
+            <div>
+              <h2 className="text-lg font-display font-bold">
+                Social Media Queue
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Review and approve posts before they are shared to social
+                platforms.
+              </p>
+            </div>
+            <SocialMediaQueue />
+          </TabsContent>
+
+          {/* ── PROMOTIONS QUEUE ── */}
+          <TabsContent value="promotions-queue" className="mt-0 space-y-4">
+            <div>
+              <h2 className="text-lg font-display font-bold">
+                Promotions Queue
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Review ad and promotion submissions from module QuickAdd bars.
+              </p>
+            </div>
+            <PromotionsQueue />
+          </TabsContent>
+
+          {/* ── WHATSAPP API ── */}
+          <TabsContent value="whatsapp-api" className="mt-0 space-y-4">
+            <div>
+              <h2 className="text-lg font-display font-bold">
+                WhatsApp Business API
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Configure WhatsApp Cloud API credentials for direct messaging.
+              </p>
+            </div>
+            <WhatsAppAPISettings />
+          </TabsContent>
+
+          {/* ── RIDES MANAGEMENT ── */}
+          <TabsContent value="rides-admin" className="mt-0 space-y-4">
+            <div>
+              <h2 className="text-lg font-display font-bold">
+                Ride Management
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Manage drivers, vehicles, and fare rate cards.
+              </p>
+            </div>
+            <RideManagement />
+          </TabsContent>
         </TabsContent>
       </Tabs>
 
@@ -7881,6 +8173,10 @@ function AgentFactory() {
     freq: "Daily",
     priority: "Medium",
     modules: [] as string[],
+    icPrefix: false,
+    isPersonalBot: false,
+    assignedUser: "",
+    parentAgent: "",
   });
 
   const [customAgents, setCustomAgents] = useState([
@@ -7977,6 +8273,10 @@ function AgentFactory() {
       freq: "Daily",
       priority: "Medium",
       modules: [],
+      icPrefix: false,
+      isPersonalBot: false,
+      assignedUser: "",
+      parentAgent: "",
     });
     toast.success(`Agent "${newAgent.name}" created and started`);
   };
@@ -8252,5 +8552,693 @@ function ModuleActions() {
         </DropdownMenuContent>
       </DropdownMenu>
     </TD>
+  );
+}
+
+// ─── Social Media Queue ───────────────────────────────────────────────────────
+function SocialMediaQueue() {
+  const [items, setItems] = useState([
+    {
+      id: 1,
+      preview:
+        "Check out our new organic honey range — now 20% off! Perfect for the health-conscious.",
+      platforms: ["Instagram", "Facebook", "Twitter"],
+      user: "Priya S.",
+      date: "13 Mar 2026",
+      status: "pending" as "pending" | "approved" | "rejected",
+    },
+    {
+      id: 2,
+      preview:
+        "Just listed: 3BHK in Bandra West with sea view. Contact for pricing details.",
+      platforms: ["Facebook", "Twitter"],
+      user: "Rahul V.",
+      date: "12 Mar 2026",
+      status: "pending" as "pending" | "approved" | "rejected",
+    },
+    {
+      id: 3,
+      preview:
+        "Calling all foodies! Our weekend food festival is on March 20th. Free entry!",
+      platforms: ["Instagram", "Pinterest", "Twitter"],
+      user: "Anita K.",
+      date: "11 Mar 2026",
+      status: "approved" as "pending" | "approved" | "rejected",
+    },
+  ]);
+
+  const approve = (id: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, status: "approved" as const } : i,
+      ),
+    );
+    toast.success("Post approved and shared");
+  };
+  const reject = (id: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, status: "rejected" as const } : i,
+      ),
+    );
+    toast.error("Post rejected");
+  };
+
+  return (
+    <div
+      className="bg-card border border-border rounded-xl overflow-hidden"
+      data-ocid="admin.social_queue.panel"
+    >
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-muted/30">
+            <TH>Post Preview</TH>
+            <TH>Platforms</TH>
+            <TH>User</TH>
+            <TH>Date</TH>
+            <TH>Status</TH>
+            <TH>Actions</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, i) => (
+            <tr
+              key={item.id}
+              className="border-b border-border/50 hover:bg-secondary/20"
+              data-ocid={`admin.social_queue.row.${i + 1}`}
+            >
+              <TD className="max-w-[200px]">
+                <p className="truncate">{item.preview}</p>
+              </TD>
+              <TD>
+                <div className="flex flex-wrap gap-1">
+                  {item.platforms.map((p) => (
+                    <span
+                      key={p}
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </TD>
+              <TD className="text-muted-foreground">{item.user}</TD>
+              <TD className="text-muted-foreground">{item.date}</TD>
+              <TD>
+                <SBadge
+                  label={item.status}
+                  color={
+                    item.status === "approved"
+                      ? "green"
+                      : item.status === "rejected"
+                        ? "red"
+                        : "amber"
+                  }
+                />
+              </TD>
+              <TD>
+                {item.status === "pending" ? (
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-green-600 border-green-200"
+                      onClick={() => approve(item.id)}
+                      data-ocid={`admin.social_queue.confirm_button.${i + 1}`}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-destructive border-destructive/20"
+                      onClick={() => reject(item.id)}
+                      data-ocid={`admin.social_queue.delete_button.${i + 1}`}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                ) : item.status === "approved" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-primary"
+                    onClick={() =>
+                      toast.info(
+                        `Share link: https://share.indyacentral.com/p/${item.id}`,
+                      )
+                    }
+                    data-ocid={`admin.social_queue.secondary_button.${i + 1}`}
+                  >
+                    Get Link
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </TD>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Promotions Queue ─────────────────────────────────────────────────────────
+function PromotionsQueue() {
+  const [items, setItems] = useState([
+    {
+      id: 1,
+      title: "Summer Sale 50% Off",
+      module: "Travel",
+      budget: "₹5,000",
+      isAdult: false,
+      user: "Amit R.",
+      date: "13 Mar 2026",
+      status: "pending" as "pending" | "approved" | "rejected",
+    },
+    {
+      id: 2,
+      title: "Exclusive Wellness Package",
+      module: "Healthcare",
+      budget: "₹2,500",
+      isAdult: false,
+      user: "Sunita M.",
+      date: "12 Mar 2026",
+      status: "pending" as "pending" | "approved" | "rejected",
+    },
+    {
+      id: 3,
+      title: "Adults Only Resort Deals",
+      module: "Travel",
+      budget: "₹8,000",
+      isAdult: true,
+      user: "Anonymous",
+      date: "11 Mar 2026",
+      status: "pending" as "pending" | "approved" | "rejected",
+    },
+  ]);
+
+  const approve = (id: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, status: "approved" as const } : i,
+      ),
+    );
+    toast.success("Promotion approved and published");
+  };
+  const reject = (id: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, status: "rejected" as const } : i,
+      ),
+    );
+    toast.info("Promotion rejected");
+  };
+
+  return (
+    <div
+      className="bg-card border border-border rounded-xl overflow-hidden"
+      data-ocid="admin.promotions.panel"
+    >
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-muted/30">
+            <TH>Ad Title</TH>
+            <TH>Module</TH>
+            <TH>Budget</TH>
+            <TH>18+</TH>
+            <TH>User</TH>
+            <TH>Status</TH>
+            <TH>Actions</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, i) => (
+            <tr
+              key={item.id}
+              className="border-b border-border/50 hover:bg-secondary/20"
+              data-ocid={`admin.promotions.row.${i + 1}`}
+            >
+              <TD className="font-medium">{item.title}</TD>
+              <TD>
+                <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">
+                  {item.module}
+                </span>
+              </TD>
+              <TD className="font-semibold text-green-600">{item.budget}</TD>
+              <TD>
+                {item.isAdult ? (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-600">
+                    18+
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TD>
+              <TD className="text-muted-foreground">{item.user}</TD>
+              <TD>
+                <SBadge
+                  label={item.status}
+                  color={
+                    item.status === "approved"
+                      ? "green"
+                      : item.status === "rejected"
+                        ? "red"
+                        : "amber"
+                  }
+                />
+              </TD>
+              <TD>
+                {item.status === "pending" ? (
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-green-600 border-green-200"
+                      onClick={() => approve(item.id)}
+                      data-ocid={`admin.promotions.confirm_button.${i + 1}`}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-destructive border-destructive/20"
+                      onClick={() => reject(item.id)}
+                      data-ocid={`admin.promotions.delete_button.${i + 1}`}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {item.status}
+                  </span>
+                )}
+              </TD>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── WhatsApp API Settings ────────────────────────────────────────────────────
+function WhatsAppAPISettings() {
+  const [form, setForm] = useState({
+    phoneNumberId: "",
+    businessAccountId: "",
+    accessToken: "",
+    webhookToken: "",
+    webhookUrl: "",
+  });
+  const [testing, setTesting] = useState(false);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <h3 className="text-sm font-semibold">API Credentials</h3>
+        {(
+          [
+            {
+              label: "Phone Number ID",
+              key: "phoneNumberId",
+              placeholder: "123456789012345",
+            },
+            {
+              label: "Business Account ID",
+              key: "businessAccountId",
+              placeholder: "987654321098765",
+            },
+            {
+              label: "Access Token",
+              key: "accessToken",
+              placeholder: "EAAxxxxx...",
+            },
+            {
+              label: "Webhook Verify Token",
+              key: "webhookToken",
+              placeholder: "my_verify_token",
+            },
+            {
+              label: "Webhook URL",
+              key: "webhookUrl",
+              placeholder: "https://your-domain.com/webhook",
+            },
+          ] as { label: string; key: keyof typeof form; placeholder: string }[]
+        ).map((field) => (
+          <div key={field.key}>
+            <Label className="text-xs">{field.label}</Label>
+            <Input
+              className="mt-1"
+              placeholder={field.placeholder}
+              value={form[field.key]}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, [field.key]: e.target.value }))
+              }
+              data-ocid="admin.whatsapp.input"
+            />
+          </div>
+        ))}
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={() => toast.success("WhatsApp API settings saved")}
+            data-ocid="admin.whatsapp.save.primary_button"
+          >
+            Save Settings
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={testing}
+            onClick={() => {
+              setTesting(true);
+              setTimeout(() => {
+                setTesting(false);
+                toast.success("WhatsApp connection test successful!");
+              }, 1500);
+            }}
+            data-ocid="admin.whatsapp.test.secondary_button"
+          >
+            {testing ? "Testing..." : "Test Connection"}
+          </Button>
+        </div>
+      </div>
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Quick Setup Guide</h3>
+        {[
+          "1. Create a Meta Business Account at business.facebook.com",
+          "2. Set up a WhatsApp Business App in Meta Developers Console",
+          "3. Add your phone number and verify it",
+          "4. Generate a permanent access token",
+          "5. Configure the webhook URL with your verify token",
+          "6. Test the connection and start sending messages",
+        ].map((step, i) => (
+          <div key={step} className="flex gap-2 text-xs">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
+              {i + 1}
+            </span>
+            <span className="text-muted-foreground">{step.slice(3)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Ride Management ──────────────────────────────────────────────────────────
+function RideManagement() {
+  const [drivers, setDrivers] = useState([
+    {
+      id: 1,
+      name: "Suresh Kumar",
+      vehicle: "Taxi",
+      license: "MH02AB1234",
+      phone: "+91 98765 43210",
+      status: true,
+    },
+    {
+      id: 2,
+      name: "Ramesh Patel",
+      vehicle: "Bike",
+      license: "MH04CD5678",
+      phone: "+91 87654 32109",
+      status: true,
+    },
+    {
+      id: 3,
+      name: "Vijay Singh",
+      vehicle: "Auto",
+      license: "MH01EF9012",
+      phone: "+91 76543 21098",
+      status: false,
+    },
+  ]);
+  const [rates, setRates] = useState(() => {
+    try {
+      const raw = localStorage.getItem("ride-rate-cards");
+      const saved = raw ? JSON.parse(raw) : null;
+      return {
+        taxi: {
+          baseFare: saved?.taxi?.baseFare ?? 50,
+          perKm: saved?.taxi?.perKm ?? 12,
+          surge: saved?.taxi?.surgeMult ?? 1.5,
+        },
+        bike: {
+          baseFare: saved?.bike?.baseFare ?? 25,
+          perKm: saved?.bike?.perKm ?? 6,
+          surge: saved?.bike?.surgeMult ?? 1.2,
+        },
+        auto: {
+          baseFare: saved?.auto?.baseFare ?? 30,
+          perKm: saved?.auto?.perKm ?? 8,
+          surge: saved?.auto?.surgeMult ?? 1.3,
+        },
+      };
+    } catch {
+      return {
+        taxi: { baseFare: 50, perKm: 12, surge: 1.5 },
+        bike: { baseFare: 25, perKm: 6, surge: 1.2 },
+        auto: { baseFare: 30, perKm: 8, surge: 1.3 },
+      };
+    }
+  });
+  const [newDriver, setNewDriver] = useState({
+    name: "",
+    vehicle: "Taxi",
+    license: "",
+    phone: "",
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Add Driver */}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Add Driver</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Name</Label>
+              <Input
+                className="mt-1"
+                placeholder="Driver name"
+                value={newDriver.name}
+                onChange={(e) =>
+                  setNewDriver((p) => ({ ...p, name: e.target.value }))
+                }
+                data-ocid="admin.rides.driver.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Vehicle Type</Label>
+              <Select
+                value={newDriver.vehicle}
+                onValueChange={(v) =>
+                  setNewDriver((p) => ({ ...p, vehicle: v }))
+                }
+              >
+                <SelectTrigger
+                  className="mt-1"
+                  data-ocid="admin.rides.driver.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Taxi">Taxi</SelectItem>
+                  <SelectItem value="Bike">Bike</SelectItem>
+                  <SelectItem value="Auto">Auto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">License Plate</Label>
+              <Input
+                className="mt-1"
+                placeholder="MH02AB1234"
+                value={newDriver.license}
+                onChange={(e) =>
+                  setNewDriver((p) => ({ ...p, license: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Phone</Label>
+              <Input
+                className="mt-1"
+                placeholder="+91 98765..."
+                value={newDriver.phone}
+                onChange={(e) =>
+                  setNewDriver((p) => ({ ...p, phone: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              if (!newDriver.name) {
+                toast.error("Driver name required");
+                return;
+              }
+              setDrivers((prev) => [
+                ...prev,
+                { id: prev.length + 1, ...newDriver, status: true },
+              ]);
+              setNewDriver({
+                name: "",
+                vehicle: "Taxi",
+                license: "",
+                phone: "",
+              });
+              toast.success("Driver added");
+            }}
+            data-ocid="admin.rides.driver.primary_button"
+          >
+            Add Driver
+          </Button>
+        </div>
+
+        {/* Rate Cards */}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Rate Cards</h3>
+          {(
+            Object.entries(rates) as [keyof typeof rates, typeof rates.taxi][]
+          ).map(([type, r]) => (
+            <div
+              key={type}
+              className="p-3 rounded-lg bg-secondary/30 space-y-2"
+            >
+              <p className="text-xs font-bold capitalize">{type}</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[10px]">Base Fare (₹)</Label>
+                  <Input
+                    className="mt-0.5 h-8 text-xs"
+                    type="number"
+                    value={r.baseFare}
+                    onChange={(e) =>
+                      setRates((p) => ({
+                        ...p,
+                        [type]: { ...r, baseFare: +e.target.value },
+                      }))
+                    }
+                    data-ocid={`admin.rides.${type}.input`}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Per KM (₹)</Label>
+                  <Input
+                    className="mt-0.5 h-8 text-xs"
+                    type="number"
+                    value={r.perKm}
+                    onChange={(e) =>
+                      setRates((p) => ({
+                        ...p,
+                        [type]: { ...r, perKm: +e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">Surge ×</Label>
+                  <Input
+                    className="mt-0.5 h-8 text-xs"
+                    type="number"
+                    step="0.1"
+                    value={r.surge}
+                    onChange={(e) =>
+                      setRates((p) => ({
+                        ...p,
+                        [type]: { ...r, surge: +e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              localStorage.setItem(
+                "ride-rate-cards",
+                JSON.stringify({
+                  taxi: {
+                    baseFare: rates.taxi.baseFare,
+                    perKm: rates.taxi.perKm,
+                    surgeMult: rates.taxi.surge,
+                  },
+                  bike: {
+                    baseFare: rates.bike.baseFare,
+                    perKm: rates.bike.perKm,
+                    surgeMult: rates.bike.surge,
+                  },
+                  auto: {
+                    baseFare: rates.auto.baseFare,
+                    perKm: rates.auto.perKm,
+                    surgeMult: rates.auto.surge,
+                  },
+                }),
+              );
+              toast.success("Rate cards saved");
+            }}
+            data-ocid="admin.rides.rates.save.primary_button"
+          >
+            Save Rates
+          </Button>
+        </div>
+      </div>
+
+      {/* Driver List */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold">Registered Drivers</h3>
+        </div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <TH>Name</TH>
+              <TH>Vehicle</TH>
+              <TH>License</TH>
+              <TH>Phone</TH>
+              <TH>Status</TH>
+            </tr>
+          </thead>
+          <tbody>
+            {drivers.map((d, i) => (
+              <tr
+                key={d.id}
+                className="border-b border-border/50 hover:bg-secondary/20"
+                data-ocid={`admin.rides.driver.row.${i + 1}`}
+              >
+                <TD className="font-medium">{d.name}</TD>
+                <TD>{d.vehicle}</TD>
+                <TD className="font-mono">{d.license}</TD>
+                <TD className="text-muted-foreground">{d.phone}</TD>
+                <TD>
+                  <Switch
+                    checked={d.status}
+                    onCheckedChange={(v) =>
+                      setDrivers((prev) =>
+                        prev.map((dr) =>
+                          dr.id === d.id ? { ...dr, status: v } : dr,
+                        ),
+                      )
+                    }
+                    data-ocid={`admin.rides.driver.toggle.${i + 1}`}
+                  />
+                </TD>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

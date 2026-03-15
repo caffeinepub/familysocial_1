@@ -28,6 +28,7 @@ import {
   Plus,
   Share2,
   Ticket,
+  Trophy,
   Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -41,7 +42,7 @@ interface Event {
   date: string;
   time: string;
   location: string;
-  type: "Public" | "Private" | "Ticket" | "Open Invite";
+  type: "Public" | "Private" | "Ticket" | "Open Invite" | "Contest";
   rsvpCount: number;
   organizer: string;
   ticketPrice?: number;
@@ -53,6 +54,7 @@ const TYPE_COLORS: Record<string, string> = {
   Public: "oklch(0.52 0.14 155)",
   Private: "oklch(0.55 0.22 280)",
   Ticket: "oklch(0.65 0.25 335)",
+  Contest: "oklch(0.62 0.20 40)",
   "Open Invite": "oklch(0.62 0.20 190)",
 };
 
@@ -61,6 +63,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   Private: Lock,
   Ticket: Ticket,
   "Open Invite": Users,
+  Contest: Trophy,
 };
 
 function generateSampleEvents(moduleName: string): Event[] {
@@ -1174,6 +1177,7 @@ export default function EventsTab({
                       <SelectItem value="Private">Private</SelectItem>
                       <SelectItem value="Ticket">Ticket-Based</SelectItem>
                       <SelectItem value="Open Invite">Open Invite</SelectItem>
+                      <SelectItem value="Contest">Contest</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

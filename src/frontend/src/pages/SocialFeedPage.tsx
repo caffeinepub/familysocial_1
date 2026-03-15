@@ -25,12 +25,11 @@ import {
   Smile,
   TreePine,
   Users,
+  Video,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import type { UserProfile } from "../backend.d";
 import EventsTab from "../components/EventsTab";
-
-// ── Module configuration ────────────────────────────────────────────────────
 
 type Module =
   | "Family"
@@ -79,16 +78,18 @@ const POSTABLE_MODULES: Module[] = [
   "Blog",
 ];
 
-// ── Privacy config ────────────────────────────────────────────────────────────
-
 type Privacy = "public" | "friends" | "community" | "family" | "private";
 
 const PRIVACY_OPTIONS: { value: Privacy; label: string; icon: string }[] = [
-  { value: "public", label: "Public", icon: "🌍" },
-  { value: "friends", label: "Friends", icon: "👥" },
-  { value: "community", label: "Community", icon: "🏘️" },
-  { value: "family", label: "Family", icon: "👨‍👩‍👧" },
-  { value: "private", label: "Private", icon: "🔒" },
+  { value: "public", label: "Public", icon: "\u{1F30D}" },
+  { value: "friends", label: "Friends", icon: "\u{1F465}" },
+  { value: "community", label: "Community", icon: "\u{1F3D8}\uFE0F" },
+  {
+    value: "family",
+    label: "Family",
+    icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}",
+  },
+  { value: "private", label: "Private", icon: "\u{1F512}" },
 ];
 
 const PRIVACY_COLORS: Record<Privacy, string> = {
@@ -98,8 +99,6 @@ const PRIVACY_COLORS: Record<Privacy, string> = {
   family: "oklch(0.55 0.22 280)",
   private: "oklch(0.50 0.02 280)",
 };
-
-// ── Data ────────────────────────────────────────────────────────────────────
 
 interface Post {
   id: number;
@@ -111,19 +110,20 @@ interface Post {
   likes: number;
   comments: number;
   liked: boolean;
-  tag: string;
-  module: string;
-  privacy: Privacy;
+  tag?: string;
+  module?: string;
+  privacy?: Privacy;
+  videoUrl?: string;
 }
 
 const SAMPLE_POSTS: Post[] = [
   {
     id: 1,
-    author: "Fatima Hassan",
-    initials: "FH",
-    relationship: "Mother",
+    author: "Priya Sharma",
+    initials: "PS",
+    relationship: "Sister",
     content:
-      "Made grandmother's famous biryani today for the whole family. The recipe has been passed down for four generations. Nothing brings us together like food! 🍛❤️",
+      "Just booked tickets to Manali! So excited for a long overdue family trip. Who else loves the mountains?",
     timestamp: "2 hours ago",
     likes: 24,
     comments: 8,
@@ -134,223 +134,80 @@ const SAMPLE_POSTS: Post[] = [
   },
   {
     id: 2,
-    author: "Omar Hassan",
-    initials: "OH",
-    relationship: "Brother",
+    author: "Rohit Verma",
+    initials: "RV",
+    relationship: "Neighbor",
     content:
-      "Just completed my engineering degree! Thank you to everyone in the family who believed in me. Dad, Mom — this is for you. 🎓",
+      "IndyaCentral community sports day was a massive success! So proud of our neighborhood!",
     timestamp: "5 hours ago",
-    likes: 61,
-    comments: 15,
+    likes: 67,
+    comments: 14,
     liked: true,
-    tag: "Milestone",
-    module: "Family",
-    privacy: "friends",
+    tag: "Community",
+    module: "Community",
+    privacy: "community",
   },
   {
     id: 3,
-    author: "Zara Ali",
-    initials: "ZA",
-    relationship: "Neighbor",
+    author: "Ananya Patel",
+    initials: "AP",
+    relationship: "Colleague",
     content:
-      "The DHA Phase 5 community garden looks beautiful this season! The roses along the main path are in full bloom. Everyone should take a morning walk 🌹",
+      "Excited to announce I just got promoted to Senior Software Engineer at TechCorp India! Grateful for the journey.",
     timestamp: "Yesterday",
-    likes: 18,
-    comments: 4,
+    likes: 142,
+    comments: 38,
     liked: false,
-    tag: "Community",
-    module: "Community",
-    privacy: "community",
+    tag: "Jobs",
+    module: "Jobs",
+    privacy: "public",
   },
   {
     id: 4,
-    author: "Khalid Hassan",
-    initials: "KH",
-    relationship: "Father",
+    author: "Suresh Kumar",
+    initials: "SK",
+    relationship: "Friend",
     content:
-      "Pleased to announce that Hassan Textiles has expanded to a third location in Lahore. 40 years of hard work, dedication, and family support. We are truly blessed.",
-    timestamp: "Yesterday",
-    likes: 95,
-    comments: 22,
-    liked: false,
-    tag: "Business",
-    module: "Products",
-    privacy: "public",
-  },
-  {
-    id: 5,
-    author: "Aisha Mirza",
-    initials: "AM",
-    relationship: "Cousin",
-    content:
-      "Baby Yusuf is 6 months old today! He's already trying to walk (with a lot of help 😂). Time truly flies. Every day is a new blessing. 👶",
+      "Fresh stock of handmade Kashmiri shawls just arrived at our store! Perfect for gifting this festive season. #Handicrafts",
     timestamp: "2 days ago",
-    likes: 87,
-    comments: 31,
-    liked: true,
-    tag: "Family",
-    module: "Family",
-    privacy: "family",
-  },
-  {
-    id: 6,
-    author: "Society Manager",
-    initials: "SM",
-    relationship: "Community",
-    content:
-      "📢 Reminder: Water supply will be suspended tomorrow 8AM–12PM for maintenance work in Sector C. Please store water accordingly. Apologies for the inconvenience.",
-    timestamp: "3 days ago",
-    likes: 12,
-    comments: 5,
-    liked: false,
-    tag: "Community",
-    module: "Community",
-    privacy: "community",
-  },
-  // Jobs
-  {
-    id: 7,
-    author: "TechCorp Pakistan",
-    initials: "TC",
-    relationship: "Employer",
-    content:
-      "🚀 We're hiring! Senior Software Engineer (React + Node.js) — PKR 3.5–5 Lakh/month. Remote friendly. 3+ years experience required. DM to apply or share with someone who fits!",
-    timestamp: "4 hours ago",
-    likes: 43,
-    comments: 12,
-    liked: false,
-    tag: "Jobs",
-    module: "Jobs",
-    privacy: "public",
-  },
-  {
-    id: 8,
-    author: "Sana Iqbal",
-    initials: "SI",
-    relationship: "HR Manager",
-    content:
-      "Looking for a part-time graphic designer for our Karachi office. Flexible hours, great pay. Portfolio required. Tag someone talented! 🎨 #Jobs #Design #Karachi",
-    timestamp: "1 day ago",
-    likes: 29,
-    comments: 18,
-    liked: false,
-    tag: "Jobs",
-    module: "Jobs",
-    privacy: "public",
-  },
-  // Products
-  {
-    id: 9,
-    author: "Nadia Crafts",
-    initials: "NC",
-    relationship: "Artisan",
-    content:
-      "Just listed: Handwoven Kashmiri shawls — genuine wool, traditional patterns. Starting at PKR 8,500. Perfect for gifting this Eid season. Check my store for all variants! 🧣",
-    timestamp: "6 hours ago",
-    likes: 56,
-    comments: 9,
+    likes: 31,
+    comments: 6,
     liked: false,
     tag: "Products",
     module: "Products",
     privacy: "public",
   },
-  // Real Estate
   {
-    id: 10,
-    author: "Ali Properties",
-    initials: "AP",
-    relationship: "Agent",
+    id: 5,
+    author: "Dr. Meera Nair",
+    initials: "MN",
+    relationship: "Doctor",
     content:
-      "🏡 New Listing: 3-Bedroom apartment, DHA Phase 6, 10th floor with view. 1,800 sqft. PKR 2.8 Cr. Covered parking + backup generator. Serious inquiries only. 📞",
-    timestamp: "3 hours ago",
-    likes: 34,
-    comments: 7,
-    liked: false,
-    tag: "Real Estate",
-    module: "Real Estate",
-    privacy: "public",
-  },
-  {
-    id: 11,
-    author: "Gulberg Homes",
-    initials: "GH",
-    relationship: "Realtor",
-    content:
-      "Price drop alert! 5 Marla house in Gulberg III now available for PKR 1.95 Cr (was 2.1 Cr). Renovated kitchen, solar panels included. Don't miss it! 🏠",
-    timestamp: "2 days ago",
-    likes: 21,
-    comments: 4,
-    liked: false,
-    tag: "Real Estate",
-    module: "Real Estate",
-    privacy: "public",
-  },
-  // Healthcare
-  {
-    id: 12,
-    author: "Dr. Ayesha Raza",
-    initials: "DR",
-    relationship: "Physician",
-    content:
-      "🩺 Health tip: With summer approaching, stay hydrated — at least 2.5L of water daily. Add lemon and mint for electrolytes. Your kidneys will thank you! #HealthTips",
-    timestamp: "5 hours ago",
-    likes: 72,
-    comments: 14,
+      "Monsoon health alert: Rise in dengue cases in South Mumbai. Please use mosquito repellents and avoid stagnant water. Stay safe!",
+    timestamp: "3 days ago",
+    likes: 89,
+    comments: 22,
     liked: true,
     tag: "Healthcare",
     module: "Healthcare",
     privacy: "public",
   },
-  // Travel
   {
-    id: 13,
-    author: "Wanderlust Pakistan",
-    initials: "WP",
-    relationship: "Tour Operator",
+    id: 6,
+    author: "Vikram Rajan",
+    initials: "VR",
+    relationship: "Travel Buddy",
     content:
-      "✈️ Limited offer: Maldives 5N/6D Honeymoon Package — PKR 1.85 Lakh/couple. Includes flights, resort, and water villa. Book before 15th March. Only 8 spots left! 🌊",
-    timestamp: "7 hours ago",
-    likes: 89,
-    comments: 26,
+      "Just returned from Andaman! Crystal clear waters, pristine beaches. Will post a detailed itinerary blog shortly. #Travel #AndamanNicobar",
+    timestamp: "4 days ago",
+    likes: 204,
+    comments: 47,
     liked: false,
     tag: "Travel",
     module: "Travel",
-    privacy: "public",
-  },
-  {
-    id: 14,
-    author: "Northern Trails",
-    initials: "NT",
-    relationship: "Guide",
-    content:
-      "🏔️ Group tour to Fairy Meadows & Nanga Parbat base camp — July 12–18. PKR 45,000 per person (all inclusive). Perfect for hiking enthusiasts. Register now!",
-    timestamp: "1 day ago",
-    likes: 64,
-    comments: 19,
-    liked: false,
-    tag: "Travel",
-    module: "Travel",
-    privacy: "friends",
-  },
-  // Blog
-  {
-    id: 15,
-    author: "Imran Qureshi",
-    initials: "IQ",
-    relationship: "Blogger",
-    content:
-      "📝 New blog post: 'How Digital Family Trees Are Preserving South Asian Heritage in the 21st Century' — exploring how technology bridges generations. Link in bio! 🌳",
-    timestamp: "8 hours ago",
-    likes: 47,
-    comments: 11,
-    liked: false,
-    tag: "Blog",
-    module: "Blog",
     privacy: "public",
   },
 ];
-
-// ── Tab config ───────────────────────────────────────────────────────────────
 
 type TabId =
   | "all"
@@ -358,205 +215,160 @@ type TabId =
   | "community"
   | "jobs"
   | "products"
-  | "real-estate"
-  | "healthcare"
   | "travel"
   | "blog";
 
-interface TabDef {
-  id: TabId;
-  label: string;
-  module?: string;
-}
-
-const TABS: TabDef[] = [
+const TABS: { id: TabId; label: string; module?: string }[] = [
   { id: "all", label: "All" },
   { id: "family", label: "Family", module: "Family" },
   { id: "community", label: "Community", module: "Community" },
   { id: "jobs", label: "Jobs", module: "Jobs" },
   { id: "products", label: "Products", module: "Products" },
-  { id: "real-estate", label: "Real Estate", module: "Real Estate" },
-  { id: "healthcare", label: "Healthcare", module: "Healthcare" },
   { id: "travel", label: "Travel", module: "Travel" },
   { id: "blog", label: "Blog", module: "Blog" },
 ];
 
-// ── PostCard ─────────────────────────────────────────────────────────────────
+function FeedTabs({
+  activeTab,
+  onChange,
+}: { activeTab: TabId; onChange: (t: TabId) => void }) {
+  return (
+    <div
+      className="flex overflow-x-auto gap-1 pb-1 mb-4"
+      data-ocid="feed.tabs.list"
+    >
+      {TABS.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-label font-medium transition-colors ${
+            activeTab === tab.id
+              ? "text-primary bg-primary/10"
+              : "text-muted-foreground hover:bg-muted/40"
+          }`}
+          data-ocid={`feed.${tab.id}.tab`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likes);
-
-  const handleLike = () => {
-    setLiked((p) => !p);
-    setLikeCount((c) => c + (liked ? -1 : 1));
-  };
-
   const tagColor =
-    MODULE_COLORS[post.tag] ??
-    MODULE_COLORS[post.module] ??
+    MODULE_COLORS[post.tag ?? ""] ??
+    MODULE_COLORS[post.module ?? ""] ??
     "oklch(0.55 0.22 280)";
-
   const privOpt = PRIVACY_OPTIONS.find((p) => p.value === post.privacy);
   const privColor = post.privacy ? PRIVACY_COLORS[post.privacy] : undefined;
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-card hover:shadow-card-hover transition-shadow animate-fade-up">
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback
-                className="text-sm font-label font-bold"
-                style={{
-                  background: `${tagColor}22`,
-                  color: tagColor,
-                }}
-              >
-                {post.initials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-label font-semibold text-sm text-foreground">
-                  {post.author}
-                </p>
-                {post.tag && (
-                  <Badge
-                    className="text-[10px] px-1.5 py-0 font-label border-0"
-                    style={{
-                      background: `${tagColor}18`,
-                      color: tagColor,
-                    }}
-                  >
-                    {post.tag}
-                  </Badge>
-                )}
-                {privOpt && privColor && (
-                  <span
-                    className="text-[10px] font-label px-1.5 py-0 rounded"
-                    style={{
-                      background: `${privColor}14`,
-                      color: privColor,
-                    }}
-                  >
-                    {privOpt.icon} {privOpt.label}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {post.relationship} · {post.timestamp}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground"
+    <div
+      className="bg-card border border-border rounded-xl shadow-card p-4 space-y-3"
+      data-ocid="feed.post.card"
+    >
+      <div className="flex items-start gap-3">
+        <Avatar className="h-9 w-9 shrink-0">
+          <AvatarFallback
+            className="text-xs font-label font-bold"
+            style={{ background: `${tagColor}20`, color: tagColor }}
           >
-            <MoreHorizontal size={15} />
-          </Button>
+            {post.initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-label font-semibold text-foreground">
+              {post.author}
+            </span>
+            {post.tag && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 font-label"
+                style={{ background: `${tagColor}18`, color: tagColor }}
+              >
+                {post.tag}
+              </Badge>
+            )}
+            {privOpt && (
+              <span
+                className="text-[10px] font-label"
+                style={{ color: privColor }}
+              >
+                {privOpt.icon}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {post.relationship} · {post.timestamp}
+          </p>
         </div>
-
-        {/* Content */}
-        <p className="text-sm text-foreground leading-relaxed">
-          {post.content}
-        </p>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          data-ocid="feed.post.dropdown_menu"
+        >
+          <MoreHorizontal size={16} />
+        </button>
       </div>
 
-      {/* Actions */}
-      <div className="px-4 py-2.5 border-t border-border flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-8 gap-1.5 text-xs font-label ${liked ? "text-accent" : "text-muted-foreground"}`}
-          onClick={handleLike}
+      <p className="text-sm text-foreground leading-relaxed">{post.content}</p>
+
+      {post.videoUrl && (
+        <div
+          className="rounded-xl overflow-hidden border border-border aspect-video bg-muted/30 flex items-center justify-center"
+          data-ocid="feed.post.video"
         >
-          <Heart size={14} className={liked ? "fill-current" : ""} />
+          <div className="text-center">
+            <Video size={32} className="mx-auto text-muted-foreground mb-2" />
+            <p className="text-xs text-muted-foreground">Video</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-1 pt-1 border-t border-border">
+        <button
+          type="button"
+          onClick={() => {
+            setLiked((v) => !v);
+            setLikeCount((n) => (liked ? n - 1 : n + 1));
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-label font-medium transition-colors ${liked ? "text-rose-500 bg-rose-500/10" : "text-muted-foreground hover:bg-muted/40"}`}
+          data-ocid="feed.post.toggle"
+        >
+          <Heart size={14} fill={liked ? "currentColor" : "none"} />
           {likeCount}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1.5 text-xs font-label text-muted-foreground"
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-label font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
+          data-ocid="feed.post.comment.button"
         >
           <MessageCircle size={14} />
           {post.comments}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1.5 text-xs font-label text-muted-foreground"
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-label font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
+          data-ocid="feed.post.share.button"
         >
           <Share2 size={14} />
-          Share
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 ml-auto text-muted-foreground"
+        </button>
+        <button
+          type="button"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-label font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
+          data-ocid="feed.post.bookmark.button"
         >
           <Bookmark size={14} />
-        </Button>
+        </button>
       </div>
     </div>
   );
 }
-
-// ── Scrollable tabs ───────────────────────────────────────────────────────────
-
-function FeedTabs({
-  activeTab,
-  onChange,
-}: {
-  activeTab: TabId;
-  onChange: (tab: TabId) => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div
-      ref={scrollRef}
-      className="flex items-center gap-1 overflow-x-auto mb-6 pb-1"
-      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-    >
-      <style>{`
-        .feed-tabs-scroll::-webkit-scrollbar { display: none; }
-      `}</style>
-      {TABS.map((tab) => {
-        const isActive = activeTab === tab.id;
-        const color = tab.module
-          ? MODULE_COLORS[tab.module]
-          : "oklch(0.55 0.22 280)";
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onChange(tab.id)}
-            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-label font-semibold transition-all duration-150 whitespace-nowrap"
-            style={
-              isActive
-                ? {
-                    background: color,
-                    color: "oklch(0.98 0.005 280)",
-                    boxShadow: `0 0 12px ${color}44`,
-                  }
-                : {
-                    background: `${color}12`,
-                    color: color,
-                  }
-            }
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 interface Props {
   userProfile: UserProfile | null | undefined;
@@ -564,10 +376,13 @@ interface Props {
 
 export default function SocialFeedPage({ userProfile }: Props) {
   const [postContent, setPostContent] = useState("");
+  const [videoLink, setVideoLink] = useState("");
+  const [showVideoInput, setShowVideoInput] = useState(false);
   const [selectedModule, setSelectedModule] = useState<Module>("Family");
   const [selectedPrivacy, setSelectedPrivacy] = useState<Privacy>("friends");
   const [localPosts, setLocalPosts] = useState<Post[]>([]);
   const [activeTab, setActiveTab] = useState<TabId>("all");
+  const _fileInputRef = useRef<HTMLInputElement>(null);
 
   const initials = userProfile?.name
     ? userProfile.name
@@ -593,9 +408,12 @@ export default function SocialFeedPage({ userProfile }: Props) {
       tag: selectedModule,
       module: selectedModule,
       privacy: selectedPrivacy,
+      videoUrl: videoLink || undefined,
     };
     setLocalPosts((p) => [newPost, ...p]);
     setPostContent("");
+    setVideoLink("");
+    setShowVideoInput(false);
   };
 
   const getTabPosts = (): Post[] => {
@@ -610,19 +428,17 @@ export default function SocialFeedPage({ userProfile }: Props) {
   const SelectedIcon = MODULE_ICONS[selectedModule] ?? TreePine;
 
   return (
-    <div className="p-6 lg:p-8 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="mb-6 animate-fade-up">
+    <div className="p-6 lg:p-8 max-w-2xl mx-auto" data-ocid="feed.page">
+      <div className="mb-6">
         <h1 className="text-3xl font-display font-bold text-foreground">
           Social Feed
         </h1>
         <p className="text-muted-foreground mt-1">
-          Share moments across Family, Community & all modules
+          Share moments across Family, Community &amp; all modules
         </p>
       </div>
 
-      {/* Post composer */}
-      <div className="bg-card border border-border rounded-xl shadow-card mb-6 animate-fade-up animate-fade-up-1">
+      <div className="bg-card border border-border rounded-xl shadow-card mb-6">
         <div className="p-4">
           <div className="flex gap-3">
             <Avatar className="h-9 w-9 shrink-0">
@@ -636,11 +452,46 @@ export default function SocialFeedPage({ userProfile }: Props) {
               onChange={(e) => setPostContent(e.target.value)}
               className="resize-none border-0 focus-visible:ring-0 p-0 text-sm bg-transparent"
               rows={3}
+              data-ocid="feed.post.textarea"
             />
           </div>
         </div>
 
-        {/* Composer footer */}
+        {showVideoInput && (
+          <div className="px-4 pb-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Video size={14} className="text-muted-foreground shrink-0" />
+              <input
+                type="url"
+                placeholder="Paste YouTube or Vimeo link..."
+                value={videoLink}
+                onChange={(e) => setVideoLink(e.target.value)}
+                className="flex-1 text-xs bg-secondary/40 border border-border rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+                data-ocid="feed.video.input"
+              />
+            </div>
+            {videoLink &&
+              (videoLink.includes("youtube") ||
+                videoLink.includes("youtu.be") ||
+                videoLink.includes("vimeo")) && (
+                <div
+                  className="rounded-xl border border-border aspect-video bg-muted/30 flex items-center justify-center"
+                  data-ocid="feed.video.preview"
+                >
+                  <div className="text-center">
+                    <Video
+                      size={32}
+                      className="mx-auto text-muted-foreground mb-2"
+                    />
+                    <p className="text-xs text-muted-foreground font-label">
+                      Video: {videoLink.slice(0, 40)}...
+                    </p>
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
+
         <div className="px-4 py-3 border-t border-border flex items-center gap-2 flex-wrap">
           <Button
             variant="ghost"
@@ -656,8 +507,16 @@ export default function SocialFeedPage({ userProfile }: Props) {
           >
             <Smile size={14} /> Feeling
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-xs text-muted-foreground font-label"
+            onClick={() => setShowVideoInput((v) => !v)}
+            data-ocid="feed.video.button"
+          >
+            <Video size={14} /> Video
+          </Button>
 
-          {/* Module selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -668,6 +527,7 @@ export default function SocialFeedPage({ userProfile }: Props) {
                   background: `${selectedColor}15`,
                   color: selectedColor,
                 }}
+                data-ocid="feed.module.select"
               >
                 <SelectedIcon size={13} />
                 {selectedModule}
@@ -685,11 +545,8 @@ export default function SocialFeedPage({ userProfile }: Props) {
                     className="gap-2 text-xs font-label"
                   >
                     <span
-                      className="w-5 h-5 rounded flex items-center justify-center shrink-0"
-                      style={{
-                        background: `${modColor}20`,
-                        color: modColor,
-                      }}
+                      className="w-4 h-4 rounded flex items-center justify-center"
+                      style={{ background: `${modColor}20`, color: modColor }}
                     >
                       <ModIcon size={11} />
                     </span>
@@ -706,7 +563,6 @@ export default function SocialFeedPage({ userProfile }: Props) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Privacy selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -717,6 +573,7 @@ export default function SocialFeedPage({ userProfile }: Props) {
                   background: `${PRIVACY_COLORS[selectedPrivacy]}12`,
                   color: PRIVACY_COLORS[selectedPrivacy],
                 }}
+                data-ocid="feed.privacy.select"
               >
                 {PRIVACY_OPTIONS.find((p) => p.value === selectedPrivacy)?.icon}
                 {
@@ -727,25 +584,22 @@ export default function SocialFeedPage({ userProfile }: Props) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-40">
-              {PRIVACY_OPTIONS.map((opt) => {
-                const pColor = PRIVACY_COLORS[opt.value];
-                return (
-                  <DropdownMenuItem
-                    key={opt.value}
-                    onClick={() => setSelectedPrivacy(opt.value)}
-                    className="gap-2 text-xs font-label"
-                  >
-                    <span className="text-sm">{opt.icon}</span>
-                    {opt.label}
-                    {selectedPrivacy === opt.value && (
-                      <span
-                        className="ml-auto w-1.5 h-1.5 rounded-full"
-                        style={{ background: pColor }}
-                      />
-                    )}
-                  </DropdownMenuItem>
-                );
-              })}
+              {PRIVACY_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onClick={() => setSelectedPrivacy(opt.value)}
+                  className="gap-2 text-xs font-label"
+                >
+                  <span className="text-sm">{opt.icon}</span>
+                  {opt.label}
+                  {selectedPrivacy === opt.value && (
+                    <span
+                      className="ml-auto w-1.5 h-1.5 rounded-full"
+                      style={{ background: PRIVACY_COLORS[opt.value] }}
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -754,19 +608,18 @@ export default function SocialFeedPage({ userProfile }: Props) {
             className="ml-auto h-8 px-4 font-label"
             disabled={!postContent.trim()}
             onClick={handlePost}
+            data-ocid="feed.post.submit_button"
           >
             Post
           </Button>
         </div>
       </div>
 
-      {/* Module tabs (scrollable) */}
       <FeedTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Feed */}
       <div className="space-y-4">
         {getTabPosts().length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12" data-ocid="feed.posts.empty_state">
             <p className="text-muted-foreground text-sm">
               No posts in this feed yet. Be the first to share something!
             </p>
@@ -780,7 +633,6 @@ export default function SocialFeedPage({ userProfile }: Props) {
         )}
       </div>
 
-      {/* Events section */}
       <div className="mt-8 pt-6 border-t border-border">
         <EventsTab
           moduleName="Social Feed"

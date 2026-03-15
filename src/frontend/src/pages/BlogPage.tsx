@@ -954,6 +954,9 @@ export default function BlogPage() {
           <TabsTrigger value="my-blogs" className="font-label text-sm">
             📖 My Blogs
           </TabsTrigger>
+          <TabsTrigger value="travel-blog" className="font-label text-sm">
+            ✈️ Travel Blog
+          </TabsTrigger>
           <TabsTrigger value="affiliate" className="font-label text-sm">
             🔗 Affiliate
           </TabsTrigger>
@@ -1395,6 +1398,137 @@ export default function BlogPage() {
         </TabsContent>
 
         {/* ── TAB 3: AFFILIATE ─────────────────────────────────────── */}
+
+        {/* Travel Blog */}
+        <TabsContent value="travel-blog" className="mt-0">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-display font-bold">Travel Blogs</h2>
+              <span className="text-xs text-muted-foreground">
+                Auto-curated from around the world
+              </span>
+            </div>
+
+            {/* Add Travel Blog Form */}
+            <div
+              className="rounded-2xl border border-border bg-card p-5 space-y-4"
+              data-ocid="travelblog.panel"
+            >
+              <h3 className="text-sm font-semibold">Write a Travel Blog</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Place Name</p>
+                  <input
+                    className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-border bg-background"
+                    placeholder="e.g. Coorg, Karnataka"
+                    data-ocid="travelblog.input"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Location</p>
+                  <input
+                    className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-border bg-background"
+                    placeholder="e.g. South India"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Cover Image URL
+                  </p>
+                  <input
+                    className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-border bg-background"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Social Media Handles
+                  </p>
+                  <input
+                    className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-border bg-background"
+                    placeholder="@handle (Instagram, Pinterest...)"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Description</p>
+                <textarea
+                  className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-border bg-background min-h-[100px]"
+                  placeholder="Describe the place, your experience, tips..."
+                  data-ocid="travelblog.textarea"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 text-xs rounded-lg border border-border bg-muted hover:bg-muted/80 transition-colors font-label"
+                  onClick={() =>
+                    alert(
+                      "Fetching place info... (simulated). Added: Best time to visit, local cuisine, weather, nearby attractions.",
+                    )
+                  }
+                  data-ocid="travelblog.secondary_button"
+                >
+                  🌐 Fetch Place Info
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-label"
+                  onClick={() => alert("Travel blog published!")}
+                  data-ocid="travelblog.primary_button"
+                >
+                  Publish Blog
+                </button>
+              </div>
+            </div>
+
+            {/* Sample travel blogs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                {
+                  place: "Coorg, Karnataka",
+                  desc: "The Scotland of India — misty hills, coffee estates, and pristine waterfalls await.",
+                  img: "https://source.unsplash.com/300x200/?coorg,india",
+                  handle: "@travel_india",
+                },
+                {
+                  place: "Spiti Valley, HP",
+                  desc: "Cold desert mountains with Buddhist monasteries and breathtaking stargazing at 4400m.",
+                  img: "https://source.unsplash.com/300x200/?spiti,himalaya",
+                  handle: "@himalayan_trails",
+                },
+                {
+                  place: "Hampi, Karnataka",
+                  desc: "Ancient ruins of the Vijayanagara Empire set against surreal boulder landscapes.",
+                  img: "https://source.unsplash.com/300x200/?hampi,ruins",
+                  handle: "@heritage_india",
+                },
+              ].map((blog, i) => (
+                <div
+                  key={blog.place}
+                  className="rounded-2xl border border-border bg-card overflow-hidden"
+                  data-ocid={`travelblog.item.${i + 1}`}
+                >
+                  <img
+                    src={blog.img}
+                    alt={blog.place}
+                    className="w-full h-40 object-cover"
+                  />
+                  <div className="p-4 space-y-2">
+                    <p className="text-sm font-display font-bold">
+                      {blog.place}
+                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {blog.desc}
+                    </p>
+                    <p className="text-[10px] text-primary">{blog.handle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
         <TabsContent value="affiliate" className="mt-0">
           <Tabs defaultValue="my-links">
             <TabsList className="mb-5 h-9">

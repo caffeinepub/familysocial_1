@@ -26,17 +26,23 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Bus,
   CheckCircle2,
   ChevronRight,
+  MapPin,
   Minus,
   Package,
+  Phone,
+  Plane,
   Plus,
+  RefreshCw,
   Search,
   ShoppingBag,
   ShoppingCart,
   Star,
   ThumbsDown,
   ThumbsUp,
+  Train,
   Trash2,
   Truck,
   Wrench,

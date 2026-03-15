@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Briefcase,
+  Megaphone,
   Package,
   Settings2,
   Sparkles,
@@ -37,6 +38,79 @@ interface QuickAddBarProps {
 const STORAGE_KEY = "quickAddBar_dismissed";
 
 type DetectedVariant = { label: string; value: string };
+
+// ─── AI Description Generator ─────────────────────────────────────────────────
+function generateAIDescription(title: string, moduleName: string): string {
+  if (!title.trim()) return "";
+  const templates = [
+    `Premium quality ${title.toLowerCase()} designed for modern ${moduleName.toLowerCase()} needs. Crafted with attention to detail and built to last, this offering delivers exceptional value and performance.`,
+    `Introducing ${title} — a top-tier solution for ${moduleName.toLowerCase()}. Trusted by thousands of users, it combines reliability with cutting-edge features to meet all your requirements.`,
+    `Experience the best of ${title.toLowerCase()} with our expertly curated selection. Perfect for ${moduleName.toLowerCase()} enthusiasts, this product/service is backed by quality assurance and customer satisfaction guarantee.`,
+  ];
+  return templates[title.length % 3];
+}
+
+// ─── Price Comparison Panel ────────────────────────────────────────────────────
+function PriceComparisonPanel({
+  title,
+  price,
+}: { title: string; price: string }) {
+  const numPrice = Number.parseFloat(price) || 0;
+  const comparable = [
+    {
+      name: `${title} - Basic`,
+      store: "ShopIndia",
+      price: numPrice ? numPrice * 0.9 : 299,
+    },
+    {
+      name: `${title} Premium`,
+      store: "Flipkart",
+      price: numPrice ? numPrice * 1.1 : 399,
+    },
+    {
+      name: `${title} Standard`,
+      store: "Amazon India",
+      price: numPrice ? numPrice * 0.95 : 349,
+    },
+    {
+      name: `Similar ${title}`,
+      store: "Meesho",
+      price: numPrice ? numPrice * 0.85 : 279,
+    },
+  ];
+  return (
+    <div className="space-y-2" data-ocid="quickadd.price_comparison.panel">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Price Comparison
+      </p>
+      <div className="space-y-1.5">
+        {comparable.map((item) => (
+          <div
+            key={item.store}
+            className="flex items-center justify-between text-xs"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-foreground truncate">{item.store}</p>
+            </div>
+            <span
+              className={`font-semibold ml-2 ${numPrice && item.price < numPrice ? "text-green-600" : "text-muted-foreground"}`}
+            >
+              ₹{item.price.toFixed(0)}
+            </span>
+          </div>
+        ))}
+      </div>
+      {numPrice > 0 && (
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Your price: ₹{numPrice}{" "}
+          {numPrice <= comparable[2].price
+            ? "✓ Competitive"
+            : "⚠ Above market avg"}
+        </p>
+      )}
+    </div>
+  );
+}
 
 // ─── Image Upload + Auto-detect Panel ────────────────────────────────────────
 function ImageUploadPanel({
@@ -1830,16 +1904,39 @@ function GenericProductForm({
       </div>
       <div>
         <Label className="text-xs">Description</Label>
-        <Textarea
-          className="mt-1"
-          placeholder="Brief description..."
-          value={form.description}
-          onChange={(e) =>
-            setForm((p) => ({ ...p, description: e.target.value }))
-          }
-          data-ocid="quickadd.product.textarea"
-        />
+        <div className="flex gap-2 items-end">
+          <Textarea
+            className="mt-1 flex-1"
+            placeholder="Brief description..."
+            value={form.description}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, description: e.target.value }))
+            }
+            data-ocid="quickadd.product.textarea"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-9 text-xs shrink-0"
+            onClick={() => {
+              const desc = generateAIDescription(form.name, moduleName);
+              setForm((p) => ({ ...p, description: desc }));
+              toast.success("AI description generated");
+            }}
+            data-ocid="quickadd.product.secondary_button"
+          >
+            <Sparkles size={12} className="mr-1" />
+            AI
+          </Button>
+        </div>
       </div>
+      {/* Price comparison */}
+      {form.price && (
+        <div className="rounded-xl border border-border p-3 bg-muted/30">
+          <PriceComparisonPanel title={form.name} price={form.price} />
+        </div>
+      )}
       <div className="flex justify-end">
         <Button
           size="sm"
@@ -2127,6 +2224,13 @@ export default function QuickAddBar({ moduleName }: QuickAddBarProps) {
   const [productOpen, setProductOpen] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(false);
   const [jobOpen, setJobOpen] = useState(false);
+  const [adOpen, setAdOpen] = useState(false);
+  const [adForm, setAdForm] = useState({
+    title: "",
+    description: "",
+    budget: "",
+    isAdult: false,
+  });
 
   const moduleKey = normalizeModule(moduleName);
 
@@ -2238,8 +2342,17 @@ export default function QuickAddBar({ moduleName }: QuickAddBarProps) {
         </Button>
         <Button
           size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1 ml-auto"
+          onClick={() => setAdOpen(true)}
+          data-ocid="quickadd.ad.button"
+        >
+          <Megaphone size={12} />+ Promote
+        </Button>
+        <Button
+          size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 ml-auto text-muted-foreground hover:text-foreground"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
           onClick={dismiss}
           data-ocid="quickadd.close_button"
         >
@@ -2286,6 +2399,101 @@ export default function QuickAddBar({ moduleName }: QuickAddBarProps) {
           </DialogHeader>
           {getJobForm(moduleKey, () => setJobOpen(false), moduleName)}
           <DialogFooter className="hidden" />
+        </DialogContent>
+      </Dialog>
+
+      {/* Ad/Promotion Dialog */}
+      <Dialog open={adOpen} onOpenChange={setAdOpen}>
+        <DialogContent className="max-w-md" data-ocid="quickadd.ad.dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Megaphone size={16} className="text-primary" />
+              Place Ad / Promotion — {moduleName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Ad Title</Label>
+              <Input
+                className="mt-1"
+                placeholder="e.g. Summer Sale 50% Off"
+                value={adForm.title}
+                onChange={(e) =>
+                  setAdForm((p) => ({ ...p, title: e.target.value }))
+                }
+                data-ocid="quickadd.ad.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Description</Label>
+              <Textarea
+                className="mt-1"
+                placeholder="Describe your promotion..."
+                value={adForm.description}
+                onChange={(e) =>
+                  setAdForm((p) => ({ ...p, description: e.target.value }))
+                }
+                data-ocid="quickadd.ad.textarea"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Budget (INR)</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                placeholder="e.g. 5000"
+                value={adForm.budget}
+                onChange={(e) =>
+                  setAdForm((p) => ({ ...p, budget: e.target.value }))
+                }
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="adult-content"
+                checked={adForm.isAdult}
+                onChange={(e) =>
+                  setAdForm((p) => ({ ...p, isAdult: e.target.checked }))
+                }
+                className="rounded"
+                data-ocid="quickadd.ad.checkbox"
+              />
+              <Label htmlFor="adult-content" className="text-xs">
+                18+ Content (requires age verification)
+              </Label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAdOpen(false)}
+                data-ocid="quickadd.ad.cancel_button"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!adForm.title) {
+                    toast.error("Ad title required");
+                    return;
+                  }
+                  toast.success("Ad submitted for admin approval");
+                  setAdOpen(false);
+                  setAdForm({
+                    title: "",
+                    description: "",
+                    budget: "",
+                    isAdult: false,
+                  });
+                }}
+                data-ocid="quickadd.ad.submit_button"
+              >
+                Submit for Approval
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

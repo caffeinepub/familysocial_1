@@ -1,8 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
+import type { UserProfile } from "./backend.d";
 import AppShell from "./components/AppShell";
 import OnboardingModal from "./components/OnboardingModal";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
+import { UserLevelProvider } from "./contexts/UserLevelContext";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
 import LoginPage from "./pages/LoginPage";
@@ -47,11 +50,10 @@ export default function App() {
     isLoading: profileLoading,
     isFetched,
   } = useGetCallerUserProfile();
-  const [currentPage, setCurrentPage] = useState("family-tree");
+  const [currentPage, setCurrentPage] = useState("social-feed");
   const [skippedOnboarding, setSkippedOnboarding] = useState(false);
 
   // Only show onboarding for Internet Identity users who have no backend profile yet
-  // Email-only users never see it since they don't have a backend profile
   const showProfileSetup =
     !!identity &&
     !emailUser &&
@@ -83,7 +85,6 @@ export default function App() {
 
   useEffect(() => {
     if (identity && emailUser) {
-      // If user logs in via Internet Identity, clear email session
       setEmailUser(null);
       localStorage.removeItem("indyacentral-email-session");
     }
@@ -139,26 +140,23 @@ export default function App() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <LoginPage onEmailLogin={handleEmailLogin} />
-        <Toaster position="top-right" />
-      </>
-    );
-  }
-
   return (
-    <>
-      {showProfileSetup && (
-        <OnboardingModal onSkip={() => setSkippedOnboarding(true)} />
-      )}
-      <AppShell
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        userProfile={effectiveProfile ?? null}
-      />
-      <Toaster position="top-right" />
-    </>
+    <CurrencyProvider>
+      <UserLevelProvider>
+        <>
+          {showProfileSetup && (
+            <OnboardingModal onSkip={() => setSkippedOnboarding(true)} />
+          )}
+          <AppShell
+            currentPage={currentPage}
+            onNavigate={setCurrentPage}
+            userProfile={effectiveProfile as UserProfile | null}
+            isAuthenticated={isAuthenticated}
+            onEmailLogin={handleEmailLogin}
+          />
+          <Toaster position="top-right" />
+        </>
+      </UserLevelProvider>
+    </CurrencyProvider>
   );
 }
