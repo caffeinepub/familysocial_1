@@ -61,7 +61,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -5192,6 +5192,7 @@ export default function AdminPanelPage() {
                 ))}
               </div>
             </div>
+            <Agent19LiveFeed />
           </TabsContent>
 
           {/* ── AGENT 20: COMIC AGENT ── */}
@@ -5308,6 +5309,7 @@ export default function AdminPanelPage() {
                 </div>
               </div>
             </div>
+            <Agent20LiveFeed />
           </TabsContent>
 
           {/* ── SOCIAL MEDIA QUEUE ── */}
@@ -9238,6 +9240,247 @@ function RideManagement() {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Agent Live Feed Components ───────────────────────────────────────────────
+
+const GAME_TITLES = [
+  "Mystic Jungle Quest",
+  "Cricket Champions 2026",
+  "Bollywood Trivia Blitz",
+  "Spice Route Adventure",
+  "Mumbai Street Puzzle",
+  "Space Warrior India",
+  "Ramayana Quest",
+  "Chai Time Challenge",
+  "Festival Frenzy",
+  "River Rafting Heroes",
+];
+const GENRES = ["Adventure", "Trivia", "Puzzle", "Racing", "Strategy"];
+const AGE_GROUPS = ["6-10", "11-14", "15-18", "18+", "All Ages"];
+const DIFFICULTIES = ["Easy", "Medium", "Hard"];
+
+interface GameEntry {
+  id: number;
+  title: string;
+  genre: string;
+  age: string;
+  difficulty: string;
+  time: string;
+}
+
+function Agent19LiveFeed() {
+  const [feed, setFeed] = useState<GameEntry[]>([
+    {
+      id: 1,
+      title: "Cricket Champions 2026",
+      genre: "Sports",
+      age: "All Ages",
+      difficulty: "Medium",
+      time: "Just now",
+    },
+    {
+      id: 2,
+      title: "Mystic Jungle Quest",
+      genre: "Adventure",
+      age: "11-14",
+      difficulty: "Hard",
+      time: "2 min ago",
+    },
+  ]);
+  const [processed, setProcessed] = useState(48);
+  const [alerts, setAlerts] = useState(2);
+  const counterRef = useRef(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      counterRef.current += 1;
+      const entry: GameEntry = {
+        id: Date.now(),
+        title: GAME_TITLES[counterRef.current % GAME_TITLES.length],
+        genre: GENRES[counterRef.current % GENRES.length],
+        age: AGE_GROUPS[counterRef.current % AGE_GROUPS.length],
+        difficulty: DIFFICULTIES[counterRef.current % DIFFICULTIES.length],
+        time: "Just now",
+      };
+      setFeed((prev) => [entry, ...prev].slice(0, 10));
+      setProcessed((p) => p + 1);
+      if (counterRef.current % 5 === 0) setAlerts((a) => a + 1);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="mt-4 bg-card border border-border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold">Live Output</h3>
+        <div className="flex gap-2">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+            Last Run: just now
+          </span>
+          <span
+            className="text-[11px] px-2 py-0.5 rounded-full"
+            style={{
+              background: "oklch(0.52 0.14 155 / 0.15)",
+              color: "oklch(0.52 0.14 155)",
+            }}
+          >
+            Processed: {processed}
+          </span>
+          <span
+            className="text-[11px] px-2 py-0.5 rounded-full"
+            style={{
+              background: "oklch(0.72 0.17 85 / 0.15)",
+              color: "oklch(0.65 0.14 50)",
+            }}
+          >
+            Alerts: {alerts}
+          </span>
+        </div>
+      </div>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {feed.map((g) => (
+          <div
+            key={g.id}
+            className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 text-xs"
+          >
+            <div>
+              <span className="font-medium">{g.title}</span>
+              <span className="text-muted-foreground ml-2">
+                {g.genre} · {g.difficulty} · Age {g.age}
+              </span>
+            </div>
+            <span className="text-muted-foreground shrink-0">{g.time}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const COMIC_TITLES = [
+  "Monday Blues",
+  "The Chai Diaries",
+  "Office Life",
+  "Festival Chaos",
+  "Traffic Woes",
+  "Tech Troubles",
+  "Family Drama",
+];
+const PUNCHLINES = [
+  "When your phone battery dies at 1%... 😱",
+  "Monday morning alarm: a horror story 🔔",
+  "Boss: This should only take 5 minutes. Me: 3 days later... ⌛",
+  "When the delivery guy calls but you're on another call 📞",
+  "Me pretending to understand the meeting 🤝",
+];
+const MOODS = ["funny", "sarcastic", "wholesome"] as const;
+
+interface ComicEntry {
+  id: number;
+  title: string;
+  punchline: string;
+  mood: (typeof MOODS)[number];
+  time: string;
+}
+
+function Agent20LiveFeed() {
+  const [feed, setFeed] = useState<ComicEntry[]>([
+    {
+      id: 1,
+      title: "Monday Blues",
+      punchline:
+        "When your alarm goes off 5 minutes after you finally fell asleep 😅",
+      mood: "funny",
+      time: "Just now",
+    },
+    {
+      id: 2,
+      title: "The Chai Diaries",
+      punchline: "No meeting is complete without chai. Science. 🍵",
+      mood: "wholesome",
+      time: "8 min ago",
+    },
+  ]);
+  const [processed, setProcessed] = useState(23);
+  const [alerts, setAlerts] = useState(1);
+  const counterRef = useRef(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      counterRef.current += 1;
+      const entry: ComicEntry = {
+        id: Date.now(),
+        title: COMIC_TITLES[counterRef.current % COMIC_TITLES.length],
+        punchline: PUNCHLINES[counterRef.current % PUNCHLINES.length],
+        mood: MOODS[counterRef.current % MOODS.length],
+        time: "Just now",
+      };
+      setFeed((prev) => [entry, ...prev].slice(0, 10));
+      setProcessed((p) => p + 1);
+      if (counterRef.current % 4 === 0) setAlerts((a) => a + 1);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const moodColors: Record<(typeof MOODS)[number], string> = {
+    funny: "oklch(0.65 0.25 335)",
+    sarcastic: "oklch(0.72 0.17 85)",
+    wholesome: "oklch(0.52 0.14 155)",
+  };
+
+  return (
+    <div className="mt-4 bg-card border border-border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold">Live Output</h3>
+        <div className="flex gap-2">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+            Last Run: just now
+          </span>
+          <span
+            className="text-[11px] px-2 py-0.5 rounded-full"
+            style={{
+              background: "oklch(0.52 0.14 155 / 0.15)",
+              color: "oklch(0.52 0.14 155)",
+            }}
+          >
+            Generated: {processed}
+          </span>
+          <span
+            className="text-[11px] px-2 py-0.5 rounded-full"
+            style={{
+              background: "oklch(0.72 0.17 85 / 0.15)",
+              color: "oklch(0.65 0.14 50)",
+            }}
+          >
+            Alerts: {alerts}
+          </span>
+        </div>
+      </div>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {feed.map((c) => (
+          <div
+            key={c.id}
+            className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 text-xs"
+          >
+            <div>
+              <span className="font-medium">{c.title}</span>
+              <span className="text-muted-foreground ml-2">{c.punchline}</span>
+            </div>
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ml-2"
+              style={{
+                background: `${moodColors[c.mood]}18`,
+                color: moodColors[c.mood],
+              }}
+            >
+              {c.mood}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

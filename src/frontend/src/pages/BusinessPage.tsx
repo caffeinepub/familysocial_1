@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,10 +27,13 @@ import {
   Phone,
   QrCode,
   RefreshCw,
+  Sparkles,
   Star,
   Truck,
+  Upload,
   User,
   Utensils,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -119,6 +130,316 @@ const STATUS_COLORS: Record<string, string> = {
   Occupied: "oklch(0.58 0.22 25)",
   Ordered: "oklch(0.72 0.19 85)",
 };
+
+// ─── AI Marketing ────────────────────────────────────────────────────────────
+function BusinessAIMarketing() {
+  const [festival, setFestival] = useState("Diwali");
+  const [brand, setBrand] = useState("Spice Garden");
+  const [offerText, setOfferText] = useState(
+    "20% OFF on all orders above ₹500!",
+  );
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [preview, setPreview] = useState(false);
+
+  const FESTIVALS = [
+    "Diwali",
+    "Eid",
+    "Christmas",
+    "New Year",
+    "Holi",
+    "Independence Day",
+    "Navratri",
+    "Pongal",
+    "Onam",
+    "Baisakhi",
+  ];
+
+  const FESTIVAL_COLORS: Record<string, string> = {
+    Diwali: "from-yellow-500 via-orange-500 to-red-500",
+    Eid: "from-emerald-500 via-teal-500 to-cyan-500",
+    Christmas: "from-green-600 via-red-600 to-green-600",
+    "New Year": "from-purple-600 via-blue-600 to-purple-600",
+    Holi: "from-pink-500 via-purple-500 to-indigo-500",
+    "Independence Day": "from-orange-500 via-white to-green-600",
+    Navratri: "from-red-500 via-yellow-400 to-red-500",
+    Pongal: "from-yellow-400 via-green-400 to-yellow-400",
+    Onam: "from-yellow-500 via-green-500 to-yellow-500",
+    Baisakhi: "from-yellow-400 via-orange-400 to-yellow-400",
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-display font-bold">AI Marketing</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Generate festival posts and AI offer images for your customers
+        </p>
+      </div>
+      <Card className="rounded-2xl border-border">
+        <CardContent className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Festival / Occasion</Label>
+              <Select value={festival} onValueChange={setFestival}>
+                <SelectTrigger data-ocid="business.marketing.festival.select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FESTIVALS.map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Brand Name</Label>
+              <Input
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder="Your business name"
+                data-ocid="business.marketing.brand.input"
+              />
+            </div>
+            <div className="sm:col-span-2 space-y-2">
+              <Label className="text-xs">Offer Text</Label>
+              <Input
+                value={offerText}
+                onChange={(e) => setOfferText(e.target.value)}
+                placeholder="e.g. 30% OFF this Diwali!"
+                data-ocid="business.marketing.offer.input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Schedule Date</Label>
+              <Input
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                data-ocid="business.marketing.schedule.input"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={() => setPreview(true)}
+            className="gap-2"
+            data-ocid="business.marketing.primary_button"
+          >
+            <Sparkles size={15} /> Generate Festival Post
+          </Button>
+        </CardContent>
+      </Card>
+
+      {preview && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold">Preview</h3>
+          <div
+            className={`relative rounded-2xl p-8 bg-gradient-to-br ${FESTIVAL_COLORS[festival] || FESTIVAL_COLORS.Diwali} text-white text-center overflow-hidden`}
+            data-ocid="business.marketing.card"
+          >
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 20% 50%, white 0%, transparent 50%), radial-gradient(circle at 80% 20%, white 0%, transparent 40%)",
+              }}
+            />
+            <p className="text-[10px] uppercase tracking-widest opacity-80 mb-2">
+              ✨ {festival} Special ✨
+            </p>
+            <h2 className="text-2xl font-display font-bold mb-1">{brand}</h2>
+            <p className="text-lg font-semibold mb-4 opacity-90">{offerText}</p>
+            {scheduleDate && (
+              <p className="text-xs opacity-70">Scheduled: {scheduleDate}</p>
+            )}
+            <div className="mt-5 flex gap-3 justify-center flex-wrap">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-full text-xs"
+                onClick={() => toast.success("Pushed to all customers!")}
+                data-ocid="business.marketing.push.button"
+              >
+                Push to Customers
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full text-xs border-white/40 text-white hover:bg-white/20"
+                onClick={() => setPreview(false)}
+                data-ocid="business.marketing.close_button"
+              >
+                <X size={12} className="mr-1" /> Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CSV Import ────────────────────────────────────────────────────────────────
+function BusinessCSVImport() {
+  const [progress, setProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const MOCK_ROWS = [
+    { name: "Butter Chicken (250g)", status: "Approved" as const },
+    { name: "Masala Dosa Pack", status: "Approved" as const },
+    { name: "Gulab Jamun Mix", status: "Pending" as const },
+    { name: "Invalid Row — Missing Price", status: "Rejected" as const },
+    { name: "Paneer Tikka Masala", status: "Pending" as const },
+  ];
+  const [rows, setRows] = useState(MOCK_ROWS);
+
+  const simulateUpload = () => {
+    setUploading(true);
+    setDone(false);
+    setProgress(0);
+    const interval = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) {
+          clearInterval(interval);
+          setUploading(false);
+          setDone(true);
+          return 100;
+        }
+        return p + 10;
+      });
+    }, 200);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-display font-bold">CSV Product Import</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Upload a CSV file with product data and an images ZIP. Files are
+          scanned for viruses and deleted after processing.
+        </p>
+      </div>
+      <Card className="rounded-2xl border-border">
+        <CardContent className="p-5 space-y-4">
+          <button
+            type="button"
+            className="w-full border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={simulateUpload}
+            data-ocid="business.csv.dropzone"
+          >
+            <Upload size={28} className="mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm font-medium">
+              Click to upload CSV + images ZIP
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Accepted: .csv, .zip (max 50MB per file)
+            </p>
+          </button>
+          {uploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Scanning &amp; processing...</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress
+                value={progress}
+                data-ocid="business.csv.loading_state"
+              />
+            </div>
+          )}
+          {done && (
+            <div
+              className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-primary"
+              data-ocid="business.csv.success_state"
+            >
+              ✅ File processed. Temp file deleted. {rows.length} rows found.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {done && (
+        <Card className="rounded-2xl border-border">
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold mb-3">Import Results</h3>
+            <div className="space-y-2">
+              {rows.map((row, i) => (
+                <div
+                  key={row.name}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
+                  data-ocid={`business.csv.item.${i + 1}`}
+                >
+                  <span className="text-sm">{row.name}</span>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      className="text-xs"
+                      style={{
+                        background:
+                          row.status === "Approved"
+                            ? "oklch(0.52 0.14 155 / 0.15)"
+                            : row.status === "Rejected"
+                              ? "oklch(0.55 0.22 25 / 0.15)"
+                              : "oklch(0.65 0.14 50 / 0.15)",
+                        color:
+                          row.status === "Approved"
+                            ? "oklch(0.52 0.14 155)"
+                            : row.status === "Rejected"
+                              ? "oklch(0.55 0.22 25)"
+                              : "oklch(0.65 0.14 50)",
+                      }}
+                    >
+                      {row.status}
+                    </Badge>
+                    {row.status === "Pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs"
+                          onClick={() =>
+                            setRows((prev) =>
+                              prev.map((r, ri) =>
+                                ri === i
+                                  ? { ...r, status: "Approved" as const }
+                                  : r,
+                              ),
+                            )
+                          }
+                          data-ocid={`business.csv.confirm_button.${i + 1}`}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-6 text-xs"
+                          onClick={() =>
+                            setRows((prev) =>
+                              prev.map((r, ri) =>
+                                ri === i
+                                  ? { ...r, status: "Rejected" as const }
+                                  : r,
+                              ),
+                            )
+                          }
+                          data-ocid={`business.csv.delete_button.${i + 1}`}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 export default function BusinessPage() {
   const [tables, setTables] = useState([
@@ -218,6 +539,15 @@ export default function BusinessPage() {
           </TabsTrigger>
           <TabsTrigger value="payments" data-ocid="business.payments.tab">
             Payment Setup
+          </TabsTrigger>
+          <TabsTrigger
+            value="ai-marketing"
+            data-ocid="business.ai_marketing.tab"
+          >
+            AI Marketing
+          </TabsTrigger>
+          <TabsTrigger value="csv-import" data-ocid="business.csv_import.tab">
+            CSV Import
           </TabsTrigger>
         </TabsList>
 
@@ -1037,6 +1367,16 @@ export default function BusinessPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── AI Marketing ── */}
+        <TabsContent value="ai-marketing" className="mt-6 space-y-6">
+          <BusinessAIMarketing />
+        </TabsContent>
+
+        {/* ── CSV Import ── */}
+        <TabsContent value="csv-import" className="mt-6 space-y-6">
+          <BusinessCSVImport />
         </TabsContent>
       </Tabs>
 

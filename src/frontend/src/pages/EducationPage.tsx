@@ -2090,6 +2090,13 @@ function TeacherView() {
               <Library size={13} className="mr-1" />
               Library
             </TabsTrigger>
+            <TabsTrigger
+              value="mycourses"
+              data-ocid="education.teacher.mycourses.tab"
+            >
+              <BookOpen size={13} className="mr-1" />
+              My Courses
+            </TabsTrigger>
           </TabsList>
         </ScrollArea>
 
@@ -2794,7 +2801,579 @@ function TeacherView() {
         <TabsContent value="library">
           <LibraryTab />
         </TabsContent>
+
+        {/* My Courses */}
+        <TabsContent value="mycourses">
+          <TeacherCoursesTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── Teacher Courses Tab ──────────────────────────────────────────────────────
+
+interface Course {
+  id: number;
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  description: string;
+  curriculum: string;
+}
+
+const MOCK_QUESTIONS = [
+  {
+    id: 1,
+    type: "mcq",
+    text: "What is the primary function of a cell membrane?",
+    options: [
+      "Energy production",
+      "Selective permeability",
+      "Protein synthesis",
+      "DNA replication",
+    ],
+    answer: 1,
+  },
+  {
+    id: 2,
+    type: "mcq",
+    text: "Which organelle is known as the powerhouse of the cell?",
+    options: ["Nucleus", "Ribosome", "Mitochondria", "Golgi apparatus"],
+    answer: 2,
+  },
+  {
+    id: 3,
+    type: "mcq",
+    text: "What is the process of cell division called?",
+    options: ["Meiosis", "Osmosis", "Mitosis", "Diffusion"],
+    answer: 2,
+  },
+  {
+    id: 4,
+    type: "mcq",
+    text: "DNA stands for?",
+    options: [
+      "Deoxyribonucleic Acid",
+      "Deoxyribose Nucleic Acid",
+      "Dinitrogen Acid",
+      "None",
+    ],
+    answer: 0,
+  },
+  {
+    id: 5,
+    type: "mcq",
+    text: "The basic unit of life is?",
+    options: ["Atom", "Molecule", "Cell", "Organ"],
+    answer: 2,
+  },
+  {
+    id: 6,
+    type: "subjective",
+    text: "Explain the difference between prokaryotic and eukaryotic cells with examples.",
+    answer: "",
+  },
+  {
+    id: 7,
+    type: "subjective",
+    text: "Describe the steps of mitosis in detail.",
+    answer: "",
+  },
+];
+
+const MOCK_RESULTS = [
+  { student: "Arjun Sharma", score: 92, grade: "A", status: "Pass" },
+  { student: "Priya Patel", score: 78, grade: "B", status: "Pass" },
+  { student: "Rahul Kumar", score: 65, grade: "C", status: "Pass" },
+  { student: "Meera Singh", score: 45, grade: "F", status: "Fail" },
+  { student: "Akash Verma", score: 88, grade: "A", status: "Pass" },
+];
+
+function TeacherCoursesTab() {
+  const [courses, setCourses] = useState<Course[]>([
+    {
+      id: 1,
+      title: "Cell Biology Fundamentals",
+      subject: "Science",
+      gradeLevel: "Grade 10",
+      description:
+        "An in-depth study of cell structures, functions, and processes.",
+      curriculum: "Cell theory, organelles, mitosis, meiosis, DNA replication",
+    },
+    {
+      id: 2,
+      title: "Algebra & Quadratic Equations",
+      subject: "Math",
+      gradeLevel: "Grade 9",
+      description:
+        "Mastering polynomial equations and algebraic problem-solving.",
+      curriculum: "Linear equations, quadratics, factoring, graphing",
+    },
+  ]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [quizCourse, setQuizCourse] = useState<Course | null>(null);
+  const [resultCourse, setResultCourse] = useState<Course | null>(null);
+  const [questions, setQuestions] = useState(MOCK_QUESTIONS);
+  const [results, setResults] = useState(MOCK_RESULTS);
+  const [editingResult, setEditingResult] = useState<number | null>(null);
+  const [newCourse, setNewCourse] = useState({
+    title: "",
+    subject: "Science",
+    gradeLevel: "Grade 10",
+    curriculum: "",
+    description: "",
+  });
+  const [genDesc, setGenDesc] = useState(false);
+
+  const handleCreateCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCourse.title) return;
+    setCourses((p) => [...p, { id: Date.now(), ...newCourse }]);
+    setCreateOpen(false);
+    setNewCourse({
+      title: "",
+      subject: "Science",
+      gradeLevel: "Grade 10",
+      curriculum: "",
+      description: "",
+    });
+    toast.success("Course created!");
+  };
+
+  const generateDesc = () => {
+    setGenDesc(true);
+    setTimeout(() => {
+      setNewCourse((p) => ({
+        ...p,
+        description: `A comprehensive course on ${p.title || "this subject"}, designed to build foundational and advanced skills with engaging activities and assessments.`,
+      }));
+      setGenDesc(false);
+    }, 1000);
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">My Courses</h3>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              className="gap-1 h-8 text-xs"
+              data-ocid="education.course.open_modal_button"
+            >
+              <Plus size={13} /> Create New Course
+            </Button>
+          </DialogTrigger>
+          <DialogContent
+            className="sm:max-w-lg"
+            data-ocid="education.course.dialog"
+          >
+            <DialogHeader>
+              <DialogTitle>Create Course</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateCourse} className="space-y-3 mt-2">
+              <div>
+                <Label className="text-xs">Course Title</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. Introduction to Physics"
+                  value={newCourse.title}
+                  onChange={(e) =>
+                    setNewCourse((p) => ({ ...p, title: e.target.value }))
+                  }
+                  required
+                  data-ocid="education.course.title.input"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Subject</Label>
+                  <Select
+                    value={newCourse.subject}
+                    onValueChange={(v) =>
+                      setNewCourse((p) => ({ ...p, subject: v }))
+                    }
+                  >
+                    <SelectTrigger
+                      className="mt-1"
+                      data-ocid="education.course.subject.select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Math",
+                        "Science",
+                        "English",
+                        "History",
+                        "Geography",
+                        "Physics",
+                        "Chemistry",
+                        "Biology",
+                        "Computer Science",
+                      ].map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Grade Level</Label>
+                  <Select
+                    value={newCourse.gradeLevel}
+                    onValueChange={(v) =>
+                      setNewCourse((p) => ({ ...p, gradeLevel: v }))
+                    }
+                  >
+                    <SelectTrigger
+                      className="mt-1"
+                      data-ocid="education.course.grade.select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Grade 1",
+                        "Grade 2",
+                        "Grade 3",
+                        "Grade 4",
+                        "Grade 5",
+                        "Grade 6",
+                        "Grade 7",
+                        "Grade 8",
+                        "Grade 9",
+                        "Grade 10",
+                        "Grade 11",
+                        "Grade 12",
+                        "Undergraduate",
+                        "Postgraduate",
+                      ].map((g) => (
+                        <SelectItem key={g} value={g}>
+                          {g}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Curriculum</Label>
+                <Textarea
+                  className="mt-1 resize-none"
+                  rows={2}
+                  placeholder="Topics covered in this course..."
+                  value={newCourse.curriculum}
+                  onChange={(e) =>
+                    setNewCourse((p) => ({ ...p, curriculum: e.target.value }))
+                  }
+                  data-ocid="education.course.curriculum.textarea"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">Description</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-xs gap-1"
+                    onClick={generateDesc}
+                    disabled={genDesc}
+                    data-ocid="education.course.ai.button"
+                  >
+                    {genDesc ? (
+                      <>
+                        <Loader2 size={11} className="animate-spin" />{" "}
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Microscope size={11} /> AI Generate
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <Textarea
+                  className="mt-1 resize-none"
+                  rows={2}
+                  value={newCourse.description}
+                  onChange={(e) =>
+                    setNewCourse((p) => ({ ...p, description: e.target.value }))
+                  }
+                  data-ocid="education.course.desc.textarea"
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateOpen(false)}
+                  data-ocid="education.course.cancel_button"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  data-ocid="education.course.submit_button"
+                >
+                  Save Course
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="space-y-3">
+        {courses.map((course, i) => (
+          <div
+            key={course.id}
+            className="p-4 rounded-xl border border-border bg-card"
+            data-ocid={`education.course.item.${i + 1}`}
+          >
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div>
+                <h4 className="font-semibold text-sm">{course.title}</h4>
+                <div className="flex gap-2 mt-0.5">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {course.subject}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {course.gradeLevel}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {/* Generate Quiz */}
+                <Dialog
+                  open={quizCourse?.id === course.id}
+                  onOpenChange={(open) => !open && setQuizCourse(null)}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setQuizCourse(course)}
+                      data-ocid={`education.quiz.open_modal_button.${i + 1}`}
+                    >
+                      <FileText size={12} className="mr-1" /> Quiz
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent
+                    className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+                    data-ocid={`education.quiz.dialog.${i + 1}`}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>Quiz — {course.title}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        AI-generated questions based on curriculum. Edit before
+                        publishing.
+                      </p>
+                      {questions.map((q, qi) => (
+                        <div
+                          key={q.id}
+                          className="p-3 rounded-lg border border-border bg-secondary/20"
+                          data-ocid={`education.quiz.item.${qi + 1}`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-bold text-primary">
+                              {q.type === "mcq" ? "MCQ" : "Subjective"} — Q
+                              {qi + 1}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() =>
+                                setQuestions((prev) =>
+                                  prev.filter((x) => x.id !== q.id),
+                                )
+                              }
+                              data-ocid={`education.quiz.delete_button.${qi + 1}`}
+                            >
+                              <X size={12} />
+                            </Button>
+                          </div>
+                          <p className="text-sm mt-1">{q.text}</p>
+                          {q.type === "mcq" && q.options && (
+                            <div className="grid grid-cols-2 gap-1 mt-2">
+                              {" "}
+                              {q.options.map((opt, oi) => (
+                                <div
+                                  key={opt}
+                                  className={`text-xs px-2 py-1 rounded ${oi === q.answer ? "bg-primary/10 text-primary font-medium" : "bg-muted/40"}`}
+                                >
+                                  {String.fromCharCode(65 + oi)}. {opt}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() =>
+                          setQuestions((prev) => [
+                            ...prev,
+                            {
+                              id: Date.now(),
+                              type: "subjective",
+                              text: "New question",
+                              answer: "",
+                              options: undefined,
+                            },
+                          ])
+                        }
+                        data-ocid="education.quiz.add_button"
+                      >
+                        <Plus size={12} /> Add Question
+                      </Button>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setQuizCourse(null)}
+                        data-ocid="education.quiz.cancel_button"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          toast.success("Quiz published!");
+                          setQuizCourse(null);
+                        }}
+                        data-ocid="education.quiz.submit_button"
+                      >
+                        Publish Quiz
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* View Results */}
+                <Dialog
+                  open={resultCourse?.id === course.id}
+                  onOpenChange={(open) => !open && setResultCourse(null)}
+                  data-ocid={`education.results.dialog.${i + 1}`}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setResultCourse(course)}
+                      data-ocid={`education.results.open_modal_button.${i + 1}`}
+                    >
+                      <Trophy size={12} className="mr-1" /> Results
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent
+                    className="sm:max-w-2xl"
+                    data-ocid={`education.results.dialog.${i + 1}`}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>Results — {course.title}</DialogTitle>
+                    </DialogHeader>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Student</TableHead>
+                          <TableHead>Score</TableHead>
+                          <TableHead>Grade</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Edit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {results.map((r, ri) => (
+                          <TableRow
+                            key={r.student}
+                            data-ocid={`education.results.row.${ri + 1}`}
+                          >
+                            <TableCell className="text-sm">
+                              {r.student}
+                            </TableCell>
+                            <TableCell>
+                              {editingResult === ri ? (
+                                <Input
+                                  type="number"
+                                  defaultValue={r.score}
+                                  className="h-7 w-16 text-xs"
+                                  onBlur={(e) => {
+                                    setResults((prev) =>
+                                      prev.map((x, xi) =>
+                                        xi === ri
+                                          ? {
+                                              ...x,
+                                              score: Number(e.target.value),
+                                            }
+                                          : x,
+                                      ),
+                                    );
+                                    setEditingResult(null);
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-sm font-medium">
+                                  {r.score}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {r.grade}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={`text-xs ${r.status === "Pass" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                              >
+                                {r.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setEditingResult(ri)}
+                                data-ocid={`education.results.edit_button.${ri + 1}`}
+                              >
+                                <Edit3 size={12} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setResultCourse(null)}
+                        data-ocid="education.results.close_button"
+                      >
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {course.description}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -95,6 +95,7 @@ const TransportBookingPage = lazy(
 );
 const LoginPage = lazy(() => import("../pages/LoginPage"));
 import AgentConsentBanner from "./AgentConsentBanner";
+import Footer from "./Footer";
 import NearbySearchBar from "./NearbySearchBar";
 import SupportChatWidget from "./SupportChatWidget";
 
@@ -523,6 +524,7 @@ export default function AppShell({
             <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
           </PageErrorBoundary>
         </main>
+        <Footer />
         <CoworkerAssistant currentPage={currentPage} />
         <SupportChatWidget />
       </div>
@@ -721,6 +723,7 @@ export default function AppShell({
             <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
           </PageErrorBoundary>
         </main>
+        <Footer />
       </div>
 
       <SupportChatWidget />
