@@ -8,6 +8,8 @@ export function useAdminStatus() {
   const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
 
+  const noAdminYet = localStorage.getItem("ic-admin-claimed") !== "true";
+
   const assignAdmin = useMutation({
     mutationFn: async () => {
       if (!actor || !identity) throw new Error("Not available");
@@ -15,6 +17,7 @@ export function useAdminStatus() {
       await actor.assignCallerUserRole(principal, UserRole.admin);
     },
     onSuccess: () => {
+      localStorage.setItem("ic-admin-claimed", "true");
       queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
     },
   });
@@ -24,32 +27,21 @@ export function useAdminStatus() {
     queryFn: async () => {
       if (!actor) return false;
       const adminResult = await actor.isCallerAdmin();
-      if (!adminResult && identity) {
-        // Check if there's an existing role — if guest/none, this is first login
-        try {
-          const role = await actor.getCallerUserRole();
-          // If the role is guest (default), this is the first user — assign admin
-          if (role === UserRole.guest || role === null || role === undefined) {
-            const principal = identity.getPrincipal();
-            await actor.assignCallerUserRole(principal, UserRole.admin);
-            return true;
-          }
-        } catch {
-          // If getCallerUserRole fails, attempt to assign admin (first login)
-          try {
-            const principal = identity.getPrincipal();
-            await actor.assignCallerUserRole(principal, UserRole.admin);
-            return true;
-          } catch {
-            // Not first user, proceed as regular user
-          }
-        }
+      if (adminResult) {
+        localStorage.setItem("ic-admin-claimed", "true");
+        return true;
       }
+      // Do not auto-assign admin; only explicit claim via assignAdmin mutation
       return adminResult;
     },
     enabled: !!actor && !actorFetching && !!identity,
     staleTime: 60_000,
   });
 
-  return { isAdmin, isLoading: isLoading || actorFetching, assignAdmin };
+  return {
+    isAdmin,
+    isLoading: isLoading || actorFetching,
+    assignAdmin,
+    noAdminYet,
+  };
 }

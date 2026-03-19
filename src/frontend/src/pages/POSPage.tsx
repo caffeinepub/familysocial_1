@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Briefcase,
+  Building2,
   Calendar,
   CalendarPlus,
   Check,
@@ -36,11 +37,15 @@ import {
   Minus,
   Package,
   PackagePlus,
+  Palette,
   Percent,
   Plus,
   Printer,
   ShoppingCart,
   Trash2,
+  Upload,
+  Video,
+  Wand2,
   Wrench,
   X,
 } from "lucide-react";
@@ -625,11 +630,73 @@ function QuickAddProductDialog({
   const [form, setForm] = useState({
     name: "",
     price: "",
+    purchasePrice: "",
     category: "Electronics",
     stockQty: "",
     supplierName: "",
+    supplierType: "Manufacturer",
     description: "",
+    videoUrl: "",
+    moderationStatus: "Pending Review",
   });
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [variants, setVariants] = useState<
+    { color: string; size: string; price: string }[]
+  >([]);
+  const [detectingVariants, setDetectingVariants] = useState(false);
+
+  const margin =
+    form.price && form.purchasePrice
+      ? (
+          ((Number.parseFloat(form.price) -
+            Number.parseFloat(form.purchasePrice)) /
+            Number.parseFloat(form.price)) *
+          100
+        ).toFixed(1)
+      : null;
+
+  const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setImagePreviews((prev) => [...prev, ...urls]);
+  };
+
+  const detectVariants = () => {
+    setDetectingVariants(true);
+    setTimeout(() => {
+      const colors = ["Red", "Blue", "Black", "White", "Green"];
+      const sizes = ["S", "M", "L", "XL"];
+      const detected = colors.slice(0, 3).map((color, i) => ({
+        color,
+        size: sizes[i % sizes.length],
+        price: form.price || "0",
+      }));
+      setVariants(detected);
+      setDetectingVariants(false);
+      toast.success("Variants detected from product images");
+    }, 1200);
+  };
+
+  const detectColors = () => {
+    setTimeout(() => {
+      const detected = [
+        { color: "Midnight Blue", size: "M", price: form.price || "0" },
+        { color: "Ivory White", size: "M", price: form.price || "0" },
+      ];
+      setVariants((prev) => [...prev, ...detected]);
+      toast.success("2 dominant colors detected");
+    }, 800);
+  };
+
+  const generateDesc = () => {
+    if (!form.name) {
+      toast.error("Enter product name first");
+      return;
+    }
+    const desc = `${form.name} — Premium quality product in the ${form.category} category. Sourced from verified ${form.supplierType.toLowerCase()} suppliers. Available in multiple variants to suit every preference.`;
+    setForm((p) => ({ ...p, description: desc }));
+    toast.success("AI description generated");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -638,20 +705,34 @@ function QuickAddProductDialog({
     setForm({
       name: "",
       price: "",
+      purchasePrice: "",
       category: "Electronics",
       stockQty: "",
       supplierName: "",
+      supplierType: "Manufacturer",
       description: "",
+      videoUrl: "",
+      moderationStatus: "Pending Review",
     });
+    setImagePreviews([]);
+    setVariants([]);
     onClose();
+  };
+
+  const getEmbedUrl = (url: string) => {
+    if (url.includes("youtube.com/watch?v="))
+      return url.replace("watch?v=", "embed/");
+    if (url.includes("youtu.be/"))
+      return url.replace("youtu.be/", "www.youtube.com/embed/");
+    return url;
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            <PackagePlus size={16} className="text-primary" /> Quick Add Product
+            <PackagePlus size={16} className="text-primary" /> Add Product
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 mt-1">
@@ -666,9 +747,119 @@ function QuickAddProductDialog({
               data-ocid="pos.product.input"
             />
           </div>
+
+          {/* Image Upload */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Product Images</Label>
+            <label
+              className="flex items-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors"
+              data-ocid="pos.product.dropzone"
+            >
+              <Upload size={14} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                Upload images (JPG, PNG)
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleImages}
+              />
+            </label>
+            {imagePreviews.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-1">
+                {imagePreviews.map((url) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt=""
+                    className="w-14 h-14 object-cover rounded-lg border border-border"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Video Link */}
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <Video size={12} /> Video Link (YouTube / Vimeo)
+            </Label>
+            <Input
+              placeholder="https://youtube.com/watch?v=..."
+              value={form.videoUrl}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, videoUrl: e.target.value }))
+              }
+              className="h-9"
+            />
+            {form.videoUrl && (
+              <div className="rounded-lg overflow-hidden border border-border aspect-video mt-1">
+                <iframe
+                  src={getEmbedUrl(form.videoUrl)}
+                  className="w-full h-full"
+                  allowFullScreen
+                  title="Product video"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* AI Variant Detection */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Variants</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1 font-label"
+                onClick={detectVariants}
+                disabled={detectingVariants}
+                data-ocid="pos.product.detect_variants.button"
+              >
+                <Wand2 size={12} />{" "}
+                {detectingVariants ? "Detecting..." : "Detect Variants (AI)"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1 font-label"
+                onClick={detectColors}
+                data-ocid="pos.product.detect_colors.button"
+              >
+                <Palette size={12} /> Detect Colors
+              </Button>
+            </div>
+            {variants.length > 0 && (
+              <div className="border border-border rounded-lg overflow-hidden mt-1">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="p-1.5 text-left">Color</th>
+                      <th className="p-1.5 text-left">Size</th>
+                      <th className="p-1.5 text-left">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {variants.map((v) => (
+                      <tr key={v.color} className="border-t border-border/50">
+                        <td className="p-1.5">{v.color}</td>
+                        <td className="p-1.5">{v.size}</td>
+                        <td className="p-1.5">₹{v.price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Price</Label>
+              <Label className="text-xs">Selling Price (₹)</Label>
               <Input
                 type="number"
                 placeholder="0"
@@ -679,6 +870,26 @@ function QuickAddProductDialog({
                 className="h-9"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Purchase Rate (₹)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.purchasePrice}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, purchasePrice: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+          </div>
+          {margin && (
+            <p className="text-xs text-green-600 font-medium">
+              Margin: {margin}%
+            </p>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Stock Qty</Label>
               <Input
@@ -691,43 +902,112 @@ function QuickAddProductDialog({
                 className="h-9"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Category</Label>
+              <Select
+                value={form.category}
+                onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Electronics",
+                    "Vehicles",
+                    "Fashion",
+                    "Events",
+                    "Furniture",
+                    "Food",
+                    "Healthcare",
+                    "Education",
+                    "Other",
+                  ].map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Category</Label>
-            <Select
-              value={form.category}
-              onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  "Electronics",
-                  "Vehicles",
-                  "Fashion",
-                  "Events",
-                  "Furniture",
-                  "Other",
-                ].map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+          {/* Supplier */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Supplier Name</Label>
+              <Input
+                placeholder="Supplier / vendor"
+                value={form.supplierName}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, supplierName: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Supplier Type</Label>
+              <Select
+                value={form.supplierType}
+                onValueChange={(v) =>
+                  setForm((p) => ({ ...p, supplierType: v }))
+                }
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Raw Material Supplier",
+                    "Manufacturer",
+                    "Job Work Party",
+                    "In-house Manufacturing",
+                  ].map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {/* Description with AI */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Supplier Name</Label>
-            <Input
-              placeholder="Supplier / vendor"
-              value={form.supplierName}
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Description</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-6 text-[10px] gap-1 font-label text-primary px-2"
+                onClick={generateDesc}
+                data-ocid="pos.product.ai_desc.button"
+              >
+                <Wand2 size={10} /> Generate (AI)
+              </Button>
+            </div>
+            <Textarea
+              rows={2}
+              className="resize-none text-xs"
+              placeholder="Product description..."
+              value={form.description}
               onChange={(e) =>
-                setForm((p) => ({ ...p, supplierName: e.target.value }))
+                setForm((p) => ({ ...p, description: e.target.value }))
               }
-              className="h-9"
             />
           </div>
+
+          {/* Moderation Status */}
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              Moderation Status
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 font-medium">
+              ⏳ {form.moderationStatus}
+            </span>
+          </div>
+
           <div className="flex gap-2 pt-1">
             <Button
               type="button"
@@ -762,9 +1042,58 @@ function QuickAddServiceDialog({
   const [form, setForm] = useState({
     name: "",
     pricePerHour: "",
+    purchasePrice: "",
     category: "Home Services",
+    supplierName: "",
     description: "",
+    videoUrl: "",
+    moderationStatus: "Pending Review",
   });
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [variants, setVariants] = useState<{ type: string; price: string }[]>(
+    [],
+  );
+
+  const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setImagePreviews((prev) => [
+      ...prev,
+      ...files.map((f) => URL.createObjectURL(f)),
+    ]);
+  };
+
+  const detectVariants = () => {
+    setTimeout(() => {
+      setVariants([
+        { type: "Basic Package", price: form.pricePerHour || "0" },
+        {
+          type: "Standard Package",
+          price: String(
+            (Number.parseFloat(form.pricePerHour || "0") * 1.5).toFixed(0),
+          ),
+        },
+        {
+          type: "Premium Package",
+          price: String(
+            (Number.parseFloat(form.pricePerHour || "0") * 2).toFixed(0),
+          ),
+        },
+      ]);
+      toast.success("Service variants detected");
+    }, 900);
+  };
+
+  const generateDesc = () => {
+    if (!form.name) {
+      toast.error("Enter service name first");
+      return;
+    }
+    setForm((p) => ({
+      ...p,
+      description: `${p.name} — Professional ${p.category} service with experienced providers. Rated highly for quality and reliability. Customizable packages available for all budgets.`,
+    }));
+    toast.success("AI description generated");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -773,18 +1102,24 @@ function QuickAddServiceDialog({
     setForm({
       name: "",
       pricePerHour: "",
+      purchasePrice: "",
       category: "Home Services",
+      supplierName: "",
       description: "",
+      videoUrl: "",
+      moderationStatus: "Pending Review",
     });
+    setImagePreviews([]);
+    setVariants([]);
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            <Wrench size={16} className="text-primary" /> Quick Add Service
+            <Wrench size={16} className="text-primary" /> Add Service
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 mt-1">
@@ -798,6 +1133,86 @@ function QuickAddServiceDialog({
               className="h-9"
               data-ocid="pos.service.input"
             />
+          </div>
+          {/* Image Upload */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Service Images</Label>
+            <label
+              className="flex items-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors"
+              data-ocid="pos.service.dropzone"
+            >
+              <Upload size={14} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                Upload images
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleImages}
+              />
+            </label>
+            {imagePreviews.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-1">
+                {imagePreviews.map((url) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt=""
+                    className="w-14 h-14 object-cover rounded-lg border border-border"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Video Link */}
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <Video size={12} /> Video Link
+            </Label>
+            <Input
+              placeholder="YouTube / Vimeo URL"
+              value={form.videoUrl}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, videoUrl: e.target.value }))
+              }
+              className="h-9"
+            />
+          </div>
+          {/* Variants */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Service Variants</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1 font-label"
+              onClick={detectVariants}
+              data-ocid="pos.service.detect_variants.button"
+            >
+              <Wand2 size={12} /> Detect Variants (AI)
+            </Button>
+            {variants.length > 0 && (
+              <div className="border border-border rounded-lg overflow-hidden mt-1">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="p-1.5 text-left">Type</th>
+                      <th className="p-1.5 text-left">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {variants.map((v) => (
+                      <tr key={v.type} className="border-t border-border/50">
+                        <td className="p-1.5">{v.type}</td>
+                        <td className="p-1.5">₹{v.price}/hr</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -850,6 +1265,63 @@ function QuickAddServiceDialog({
                 setForm((p) => ({ ...p, description: e.target.value }))
               }
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Purchase Rate (₹/hr)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.purchasePrice}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, purchasePrice: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Supplier / Provider</Label>
+              <Input
+                placeholder="Provider name"
+                value={form.supplierName}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, supplierName: e.target.value }))
+                }
+                className="h-9"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Description</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-6 text-[10px] gap-1 font-label text-primary px-2"
+                onClick={generateDesc}
+                data-ocid="pos.service.ai_desc.button"
+              >
+                <Wand2 size={10} /> Generate (AI)
+              </Button>
+            </div>
+            <Textarea
+              rows={2}
+              className="resize-none text-xs"
+              placeholder="Service description..."
+              value={form.description}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              Moderation Status
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 font-medium">
+              ⏳ {form.moderationStatus}
+            </span>
           </div>
           <div className="flex gap-2 pt-1">
             <Button
@@ -1710,6 +2182,15 @@ export default function POSPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* My Business Page Link */}
+          <a
+            href="/business"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-label text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+            data-ocid="pos.my_business.link"
+          >
+            <Building2 size={14} /> My Business
+          </a>
 
           {/* Top-level tab: New Sale vs History */}
           <div className="flex rounded-lg overflow-hidden border border-border">

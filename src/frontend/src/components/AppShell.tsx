@@ -34,9 +34,11 @@ import {
   Plane,
   Search,
   Settings,
+  Shield,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  Star,
   TreePine,
   UserCircle,
   Users,
@@ -51,6 +53,7 @@ import {
   lazy,
   useState,
 } from "react";
+import { toast } from "sonner";
 import type { UserProfile } from "../backend.d";
 import { useUserLevel } from "../contexts/UserLevelContext";
 import { useAdminStatus } from "../hooks/useAdminStatus";
@@ -90,6 +93,9 @@ const ContactUsPage = lazy(() => import("../pages/ContactUsPage"));
 const MyAccountPage = lazy(() => import("../pages/MyAccountPage"));
 const RideBookingPage = lazy(() => import("../pages/RideBookingPage"));
 const BusinessPage = lazy(() => import("../pages/BusinessPage"));
+const SpiritualStoriesPage = lazy(
+  () => import("../pages/SpiritualStoriesPage"),
+);
 const TransportBookingPage = lazy(
   () => import("../pages/TransportBookingPage"),
 );
@@ -171,27 +177,19 @@ const GUEST_NAV_IDS = new Set(["social-feed", "shop", "contact-us", "jobs"]);
 const NAV_ITEMS: NavItem[] = [
   { id: "social-feed", label: "Home", icon: Home, badge: 3 },
   { id: "shop", label: "Shop", icon: ShoppingBag },
-  { id: "contact-us", label: "Contact Us", icon: PhoneCall },
   { id: "family-tree", label: "Family Tree", icon: TreePine },
-  { id: "map", label: "Geomap", icon: MapIcon },
-  { id: "personal-feed", label: "My Feed", icon: BookMarked },
-  { id: "timeline", label: "Timeline", icon: Clock },
+  { id: "business", label: "Business", icon: Building2 },
+  { id: "pos", label: "Point of Sale", icon: CreditCard },
   { id: "community", label: "Community", icon: Users },
   { id: "gated-community", label: "Gated Community", icon: Building2 },
-  { id: "pos", label: "Point of Sale", icon: CreditCard },
   { id: "jobs", label: "Jobs", icon: Briefcase },
   { id: "healthcare", label: "Healthcare", icon: Heart },
-  { id: "real-estate", label: "Real Estate", icon: Building2 },
   { id: "education", label: "Education", icon: GraduationCap },
+  { id: "spiritual", label: "Spiritual Stories", icon: Star },
+  { id: "real-estate", label: "Real Estate", icon: Building2 },
   { id: "travel", label: "Travel", icon: Plane },
   { id: "transport", label: "Transport & Pay", icon: Bus },
-  { id: "blog", label: "Blog & Affiliate", icon: BookOpen },
-  { id: "matrimony", label: "Matrimony", icon: Heart },
-  { id: "dating", label: "Dating", icon: Zap },
   { id: "rides", label: "Rides", icon: Car },
-  { id: "business", label: "Business", icon: Building2 },
-  { id: "my-account", label: "My Account", icon: UserCircle },
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "admin-panel", label: "Admin Panel", icon: ShieldCheck },
 ];
@@ -221,9 +219,9 @@ export default function AppShell({
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(5);
-  const { clear } = useInternetIdentity();
+  const { clear, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAdminStatus();
+  const { isAdmin, assignAdmin: claimAdminMutation } = useAdminStatus();
   const { level } = useUserLevel();
 
   const handleLogout = async () => {
@@ -278,6 +276,8 @@ export default function AppShell({
         return <JobsPage />;
       case "healthcare":
         return <HealthcarePage userProfile={userProfile} />;
+      case "spiritual":
+        return <SpiritualStoriesPage />;
       case "real-estate":
         return <RealEstatePage />;
       case "education":
@@ -465,7 +465,6 @@ export default function AppShell({
     const GUEST_LINKS = [
       { id: "social-feed", label: "Home" },
       { id: "shop", label: "Shop" },
-      { id: "contact-us", label: "Contact Us" },
       { id: "jobs", label: "Jobs" },
     ];
     return (
@@ -611,6 +610,25 @@ export default function AppShell({
 
           <CurrencySelector />
 
+          {!!identity && !isAdmin && (
+            <button
+              type="button"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-label font-semibold border border-amber-400/60 bg-amber-400/10 text-amber-600 dark:text-amber-400 hover:bg-amber-400/20 transition-colors"
+              onClick={() =>
+                claimAdminMutation.mutate(undefined, {
+                  onSuccess: () => toast.success("Admin access claimed!"),
+                  onError: () =>
+                    toast.error("Failed to claim admin. Try again."),
+                })
+              }
+              data-ocid="header.claim_admin_button"
+              title="Claim super admin access"
+            >
+              <Shield size={13} />
+              Claim Admin
+            </button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
@@ -699,16 +717,54 @@ export default function AppShell({
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onNavigate("my-account")}>
+              <DropdownMenuItem
+                onClick={() => onNavigate("personal-feed")}
+                data-ocid="account.myfeeds.link"
+              >
+                <BookMarked size={14} className="mr-2" /> My Feeds
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onNavigate("timeline")}
+                data-ocid="account.timeline.link"
+              >
+                <Clock size={14} className="mr-2" /> Timeline
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onNavigate("dashboard")}
+                data-ocid="account.dashboard.link"
+              >
+                <LayoutDashboard size={14} className="mr-2" /> Dashboard
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onNavigate("matrimony")}
+                data-ocid="account.matrimony.link"
+              >
+                <Heart size={14} className="mr-2" /> Matrimony
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onNavigate("dating")}
+                data-ocid="account.dating.link"
+              >
+                <Zap size={14} className="mr-2" /> Dating
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onNavigate("my-account")}
+                data-ocid="account.myaccount.link"
+              >
                 <UserCircle size={14} className="mr-2" /> My Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onNavigate("settings")}>
+              <DropdownMenuItem
+                onClick={() => onNavigate("settings")}
+                data-ocid="account.settings.link"
+              >
                 <Settings size={14} className="mr-2" /> Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="text-destructive focus:text-destructive"
+                data-ocid="account.logout.button"
               >
                 <LogOut size={14} className="mr-2" /> Sign out
               </DropdownMenuItem>

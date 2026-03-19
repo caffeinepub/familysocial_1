@@ -38,6 +38,7 @@ import {
   EyeOff,
   Globe2,
   Link2,
+  Lock,
   MapPin,
   Network,
   Package,
@@ -57,6 +58,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
 import QuickAddBar from "../components/QuickAddBar";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1113,6 +1115,8 @@ function RecruiterTab({
   jobs: JobEnhanced[];
   setJobs: React.Dispatch<React.SetStateAction<JobEnhanced[]>>;
 }) {
+  const { identity } = useInternetIdentity();
+  const isLoggedIn = !!identity;
   const [hasCompany, setHasCompany] = useState(false);
   const [myCompany, setMyCompany] = useState<Company | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>(APPLICANTS);
@@ -1193,6 +1197,31 @@ function RecruiterTab({
       prev.map((a) => (a.id === applicantId ? { ...a, note } : a)),
     );
   };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+          <Lock size={24} className="text-muted-foreground" />
+        </div>
+        <div className="text-center space-y-1">
+          <h3 className="font-semibold font-display text-base">
+            Login Required
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Create a company profile or register as a recruiter — login first.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-label font-semibold hover:bg-primary/90 transition-colors"
+          data-ocid="jobs.recruiter.login_required.button"
+        >
+          Login to Continue
+        </button>
+      </div>
+    );
+  }
 
   if (!hasCompany) {
     return (
@@ -1350,142 +1379,160 @@ function RecruiterTab({
         <h2 className="font-display font-bold text-foreground">
           Your Job Postings
         </h2>
-        <Dialog open={postOpen} onOpenChange={setPostOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2 font-label text-xs h-8">
-              <Plus size={14} /> Post New Job
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-display">Post a New Job</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handlePostJob} className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <Label>Job Title *</Label>
-                <Input
-                  placeholder="e.g. Senior Accountant"
-                  value={form.title}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, title: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  rows={3}
-                  className="resize-none"
-                  placeholder="Describe the role..."
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+        {isLoggedIn ? (
+          <Dialog open={postOpen} onOpenChange={setPostOpen}>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                className="gap-2 font-label text-xs h-8"
+                data-ocid="jobs.post.primary_button"
+              >
+                <Plus size={14} /> Post New Job
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="font-display">
+                  Post a New Job
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handlePostJob} className="space-y-4 mt-2">
                 <div className="space-y-2">
-                  <Label>Type</Label>
-                  <Select
-                    value={form.type}
-                    onValueChange={(v) =>
-                      setForm((p) => ({ ...p, type: v as JobType }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Full Time">Full Time</SelectItem>
-                      <SelectItem value="Part Time">Part Time</SelectItem>
-                      <SelectItem value="Delivery">Delivery</SelectItem>
-                      <SelectItem value="Freelance">Freelance</SelectItem>
-                      <SelectItem value="Contract">Contract</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Scope</Label>
-                  <Select
-                    value={form.scope}
-                    onValueChange={(v) =>
-                      setForm((p) => ({ ...p, scope: v as JobScope }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Local">Local</SelectItem>
-                      <SelectItem value="Global">Global</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Salary</Label>
+                  <Label>Job Title *</Label>
                   <Input
-                    placeholder="e.g. PKR 80,000/mo"
-                    value={form.salary}
+                    placeholder="e.g. Senior Accountant"
+                    value={form.title}
                     onChange={(e) =>
-                      setForm((p) => ({ ...p, salary: e.target.value }))
+                      setForm((p) => ({ ...p, title: e.target.value }))
                     }
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Location</Label>
-                  <Input
-                    placeholder="e.g. Lahore, Remote"
-                    value={form.location}
+                  <Label>Description</Label>
+                  <Textarea
+                    rows={3}
+                    className="resize-none"
+                    placeholder="Describe the role..."
+                    value={form.description}
                     onChange={(e) =>
-                      setForm((p) => ({ ...p, location: e.target.value }))
+                      setForm((p) => ({ ...p, description: e.target.value }))
                     }
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Required Skills (comma-separated)</Label>
-                <Input
-                  placeholder="e.g. React, Node.js, AWS"
-                  value={form.skills}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, skills: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Application Deadline</Label>
-                  <Input
-                    type="date"
-                    value={form.deadline}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, deadline: e.target.value }))
-                    }
-                  />
-                </div>
-                {form.type === "Delivery" && (
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Commission Rate</Label>
+                    <Label>Type</Label>
+                    <Select
+                      value={form.type}
+                      onValueChange={(v) =>
+                        setForm((p) => ({ ...p, type: v as JobType }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Full Time">Full Time</SelectItem>
+                        <SelectItem value="Part Time">Part Time</SelectItem>
+                        <SelectItem value="Delivery">Delivery</SelectItem>
+                        <SelectItem value="Freelance">Freelance</SelectItem>
+                        <SelectItem value="Contract">Contract</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Scope</Label>
+                    <Select
+                      value={form.scope}
+                      onValueChange={(v) =>
+                        setForm((p) => ({ ...p, scope: v as JobScope }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Local">Local</SelectItem>
+                        <SelectItem value="Global">Global</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Salary</Label>
                     <Input
-                      placeholder="e.g. PKR 700/delivery"
-                      value={form.commissionRate}
+                      placeholder="e.g. PKR 80,000/mo"
+                      value={form.salary}
                       onChange={(e) =>
-                        setForm((p) => ({
-                          ...p,
-                          commissionRate: e.target.value,
-                        }))
+                        setForm((p) => ({ ...p, salary: e.target.value }))
                       }
                     />
                   </div>
-                )}
-              </div>
-              <Button type="submit" className="w-full font-label">
-                Post Job
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                  <div className="space-y-2">
+                    <Label>Location</Label>
+                    <Input
+                      placeholder="e.g. Lahore, Remote"
+                      value={form.location}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, location: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Required Skills (comma-separated)</Label>
+                  <Input
+                    placeholder="e.g. React, Node.js, AWS"
+                    value={form.skills}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, skills: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Application Deadline</Label>
+                    <Input
+                      type="date"
+                      value={form.deadline}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, deadline: e.target.value }))
+                      }
+                    />
+                  </div>
+                  {form.type === "Delivery" && (
+                    <div className="space-y-2">
+                      <Label>Commission Rate</Label>
+                      <Input
+                        placeholder="e.g. PKR 700/delivery"
+                        value={form.commissionRate}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            commissionRate: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" className="w-full font-label">
+                  Post Job
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Button
+            size="sm"
+            className="gap-2 font-label text-xs h-8"
+            variant="outline"
+            onClick={() => {}}
+            data-ocid="jobs.login_to_post.button"
+          >
+            <Plus size={14} /> Login to Post Job
+          </Button>
+        )}
       </div>
 
       {/* Posted jobs with applicant expansion */}
@@ -3316,6 +3363,8 @@ function NetworkTab() {
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobEnhanced[]>(JOBS);
   const [dismissedBanner, setDismissedBanner] = useState(false);
+  const { identity } = useInternetIdentity();
+  const isLoggedIn = !!identity;
 
   const handleApply = (id: number) => {
     setJobs((prev) =>
@@ -3382,7 +3431,31 @@ export default function JobsPage() {
         </div>
       )}
 
-      <QuickAddBar moduleName="Jobs" />
+      {isLoggedIn ? (
+        <QuickAddBar moduleName="Jobs" />
+      ) : (
+        <div
+          className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+          data-ocid="jobs.guest.banner"
+        >
+          <span className="text-sm text-muted-foreground flex-1">
+            Login to post jobs, products, or services
+          </span>
+          <button
+            type="button"
+            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-foreground"
+            style={{ background: "oklch(0.65 0.25 335)" }}
+            onClick={() => {
+              import("sonner").then(({ toast }) =>
+                toast.info("Please login to add listings"),
+              );
+            }}
+            data-ocid="jobs.guest.primary_button"
+          >
+            Login
+          </button>
+        </div>
+      )}
 
       <Tabs defaultValue="browse">
         <TabsList className="mb-6 h-10 flex-wrap">
@@ -3438,7 +3511,18 @@ export default function JobsPage() {
 
         <TabsContent value="events">
           <div className="p-2">
-            <EventsTab moduleName="Jobs" moduleColor="oklch(0.52 0.14 155)" />
+            {isLoggedIn ? (
+              <EventsTab moduleName="Jobs" moduleColor="oklch(0.52 0.14 155)" />
+            ) : (
+              <div
+                className="py-12 text-center"
+                data-ocid="jobs.events.login_required"
+              >
+                <p className="text-muted-foreground text-sm">
+                  Login to create or manage events
+                </p>
+              </div>
+            )}
           </div>
         </TabsContent>
 

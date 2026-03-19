@@ -28,6 +28,7 @@ import {
   Building2,
   Filter,
   Heart,
+  Home,
   Layers,
   MapPin as MapPinIcon,
   Plane,
@@ -38,6 +39,76 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
+const SEED_BUSINESS_PINS = [
+  {
+    id: 1,
+    name: "TechPK Solutions",
+    type: "Technology",
+    city: "Mumbai",
+    lat: 19.076,
+    lng: 72.877,
+  },
+  {
+    id: 2,
+    name: "Spice Garden Restaurant",
+    type: "Food & Beverage",
+    city: "Delhi",
+    lat: 28.613,
+    lng: 77.209,
+  },
+  {
+    id: 3,
+    name: "MediCare Clinic",
+    type: "Healthcare",
+    city: "Bangalore",
+    lat: 12.971,
+    lng: 77.594,
+  },
+  {
+    id: 4,
+    name: "EduBright Academy",
+    type: "Education",
+    city: "Chennai",
+    lat: 13.082,
+    lng: 80.27,
+  },
+  {
+    id: 5,
+    name: "HomeStyle Realty",
+    type: "Real Estate",
+    city: "Hyderabad",
+    lat: 17.385,
+    lng: 78.486,
+  },
+];
+
+const SEED_COMMUNITY_PINS = [
+  {
+    id: 1,
+    name: "Sunrise Residency",
+    type: "Gated Community",
+    city: "Mumbai",
+    lat: 19.12,
+    lng: 72.85,
+  },
+  {
+    id: 2,
+    name: "Green Valley Society",
+    type: "Housing Society",
+    city: "Pune",
+    lat: 18.52,
+    lng: 73.856,
+  },
+  {
+    id: 3,
+    name: "River View Apartments",
+    type: "Apartment Complex",
+    city: "Delhi",
+    lat: 28.65,
+    lng: 77.23,
+  },
+];
 
 // ── Layer definitions ────────────────────────────────────────────────────────
 
@@ -1828,6 +1899,95 @@ export default function GeoMapPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Registered Locations Panel */}
+      <div className="mt-4 px-4 pb-4 space-y-4">
+        <h3 className="text-sm font-semibold font-display">
+          Registered Locations
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Business Locations */}
+          <div
+            data-ocid="geomap.business_pins.section"
+            className="bg-card border border-border rounded-xl p-4 space-y-3"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 size={15} style={{ color: "oklch(0.55 0.22 280)" }} />
+              <span className="text-xs font-label font-semibold">
+                Business Locations
+              </span>
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                {SEED_BUSINESS_PINS.length}
+              </Badge>
+            </div>
+            {SEED_BUSINESS_PINS.map((pin, i) => (
+              <div
+                key={pin.id}
+                className="flex items-center gap-2.5 p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                data-ocid={`geomap.business_pins.item.${i + 1}`}
+              >
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "oklch(0.55 0.22 280 / 0.15)" }}
+                >
+                  <Building2
+                    size={13}
+                    style={{ color: "oklch(0.55 0.22 280)" }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate">{pin.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pin.city}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[9px] shrink-0">
+                  {pin.type}
+                </Badge>
+              </div>
+            ))}
+          </div>
+
+          {/* Community Locations */}
+          <div
+            data-ocid="geomap.community_pins.section"
+            className="bg-card border border-border rounded-xl p-4 space-y-3"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Home size={15} style={{ color: "oklch(0.55 0.18 185)" }} />
+              <span className="text-xs font-label font-semibold">
+                Community Locations
+              </span>
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                {SEED_COMMUNITY_PINS.length}
+              </Badge>
+            </div>
+            {SEED_COMMUNITY_PINS.map((pin, i) => (
+              <div
+                key={pin.id}
+                className="flex items-center gap-2.5 p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                data-ocid={`geomap.community_pins.item.${i + 1}`}
+              >
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "oklch(0.55 0.18 185 / 0.15)" }}
+                >
+                  <Home size={13} style={{ color: "oklch(0.55 0.18 185)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate">{pin.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pin.city}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[9px] shrink-0">
+                  {pin.type}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Share settings dialog */}
       <Dialog

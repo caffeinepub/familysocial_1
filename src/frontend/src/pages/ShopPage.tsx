@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,9 +28,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Building2,
   Bus,
   CheckCircle2,
   ChevronRight,
+  Info as InfoIcon,
   MapPin,
   Minus,
   Package,
@@ -48,9 +52,10 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { useCurrency } from "../contexts/CurrencyContext";
+import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
 import { SAMPLE_PRODUCTS, SAMPLE_SERVICES } from "./ProductsServicesPage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -102,13 +107,15 @@ type SortOption =
   | "top-reviewed"
   | "newest"
   | "price-asc"
-  | "price-desc";
+  | "price-desc"
+  | "nearest";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
   "All",
   "Electronics",
+  "Food & Beverages",
   "Vehicles",
   "Fashion",
   "Events",
@@ -137,6 +144,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Real Estate": "oklch(0.55 0.14 240)",
   Travel: "oklch(0.60 0.18 200)",
   Other: "oklch(0.55 0.10 200)",
+  "Food & Beverages": "oklch(0.62 0.18 55)",
 };
 
 const TAX_RATE = 0.05;
@@ -232,6 +240,108 @@ const EXTRA_SHOP_ITEMS = [
     sourceModule: "Healthcare",
     votes: 305,
     photoUrl: undefined as string | undefined,
+  },
+  {
+    id: "food-1",
+    productId: 107,
+    name: "Biryani House Special",
+    description:
+      "Aromatic dum biryani with tender chicken, saffron rice, and raita. Serves 1.",
+    price: 299,
+    category: "Food & Beverages",
+    rating: 4.8,
+    seller: "Biryani House Mumbai",
+    isService: false,
+    sourceModule: "Food",
+    votes: 412,
+    photoUrl: undefined as string | undefined,
+    lat: 19.07,
+    lng: 72.87,
+  },
+  {
+    id: "food-2",
+    productId: 108,
+    name: "Fresh Organic Vegetables",
+    description:
+      "Seasonal fresh organic vegetables, locally sourced. 2kg assorted basket.",
+    price: 150,
+    category: "Food & Beverages",
+    rating: 4.6,
+    seller: "Green Earth Grocery",
+    isService: false,
+    sourceModule: "Food",
+    votes: 285,
+    photoUrl: undefined as string | undefined,
+    lat: 28.7,
+    lng: 77.1,
+  },
+  {
+    id: "food-3",
+    productId: 109,
+    name: "South Indian Thali",
+    description:
+      "Authentic South Indian thali with rice, sambar, rasam, 3 curries and papad.",
+    price: 199,
+    category: "Food & Beverages",
+    rating: 4.7,
+    seller: "Udupi Palace Bengaluru",
+    isService: false,
+    sourceModule: "Food",
+    votes: 356,
+    photoUrl: undefined as string | undefined,
+    lat: 12.97,
+    lng: 77.59,
+  },
+  {
+    id: "food-4",
+    productId: 110,
+    name: "Pizza & Pasta Combo",
+    description:
+      "7-inch wood-fired pizza with a side of pasta in choice of sauce. Vegetarian.",
+    price: 349,
+    category: "Food & Beverages",
+    rating: 4.5,
+    seller: "La Bella Chennai",
+    isService: false,
+    sourceModule: "Food",
+    votes: 198,
+    photoUrl: undefined as string | undefined,
+    lat: 13.08,
+    lng: 80.27,
+  },
+  {
+    id: "food-5",
+    productId: 111,
+    name: "Sweets & Namkeen Box",
+    description:
+      "Assorted traditional sweets and namkeen in a festive gift box, 500g.",
+    price: 250,
+    category: "Food & Beverages",
+    rating: 4.9,
+    seller: "Halwai Sweets Hyderabad",
+    isService: false,
+    sourceModule: "Food",
+    votes: 523,
+    photoUrl: undefined as string | undefined,
+    lat: 17.38,
+    lng: 78.48,
+  },
+  {
+    id: "food-6",
+    productId: 112,
+    name: "Fresh Fruit Basket",
+    description:
+      "Seasonal mixed fruit basket with mangoes, bananas, apples and pomegranates. 3kg.",
+    price: 199,
+    category: "Food & Beverages",
+    rating: 4.7,
+    seller: "Nature's Best Kolkata",
+    isService: false,
+    sourceModule: "Food",
+    votes: 301,
+    photoUrl: undefined as string | undefined,
+    lat: 22.57,
+    lng: 88.36,
   },
 ];
 
@@ -423,6 +533,7 @@ function ShopProductCard({
   votes,
   onAddToCart,
   onReview,
+  distanceKm,
 }: {
   name: string;
   description: string;
@@ -436,12 +547,18 @@ function ShopProductCard({
   votes?: number;
   onAddToCart: () => void;
   onReview: () => void;
+  distanceKm?: number;
 }) {
   const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[category] || "oklch(0.55 0.10 200)";
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
+    <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group relative">
+      {distanceKm !== undefined && distanceKm > 0 && (
+        <span className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-primary/90 text-primary-foreground">
+          ~{distanceKm.toFixed(1)} km
+        </span>
+      )}
       {photoUrl ? (
         <img src={photoUrl} alt={name} className="w-full h-44 object-cover" />
       ) : (
@@ -1374,10 +1491,84 @@ function DeliveryProvidersTab({
 
 // ─── Main Shop Page ───────────────────────────────────────────────────────────
 
+function FamilyTreeBizLinker() {
+  const [ftBizList] = React.useState(() => getFamilyTreeBusinesses());
+  const [selected, setSelected] = React.useState("none");
+
+  if (ftBizList.length === 0) return null;
+
+  return (
+    <div className="space-y-1.5 p-3 rounded-lg border border-border bg-secondary/20">
+      <Label className="text-xs font-semibold">
+        Link to Family Tree Business
+      </Label>
+      <Select value={selected} onValueChange={setSelected}>
+        <SelectTrigger className="h-9" data-ocid="shop.ft_biz.select">
+          <SelectValue placeholder="Select existing business..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">— Register as new —</SelectItem>
+          {ftBizList.map((b) => (
+            <SelectItem key={b.id} value={b.id}>
+              {b.name} ({b.category})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {selected && selected !== "none" && (
+        <p className="text-[10px] text-green-600 dark:text-green-400">
+          ✓ Linked to your family tree business. Fields will be pre-filled.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function ShopPage() {
+  const [bizRegOpen, setBizRegOpen] = useState(false);
+  const [dpRegOpen, setDpRegOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("relevance");
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  // Get user geolocation on mount
+  useState(() => {
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+          setSortBy("nearest");
+        },
+        () => {
+          /* denied or unavailable */
+        },
+      );
+    }
+  });
   const [cartItems, setCartItems] = useState<ShopCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -1437,6 +1628,21 @@ export default function ShopPage() {
     if (sortBy === "top-reviewed") return b.rating - a.rating;
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
+    if (sortBy === "nearest" && userLocation) {
+      const aDist = haversineKm(
+        userLocation.lat,
+        userLocation.lng,
+        (a as { lat?: number }).lat ?? 0,
+        (a as { lng?: number }).lng ?? 0,
+      );
+      const bDist = haversineKm(
+        userLocation.lat,
+        userLocation.lng,
+        (b as { lat?: number }).lat ?? 0,
+        (b as { lng?: number }).lng ?? 0,
+      );
+      return aDist - bDist;
+    }
     return 0; // relevance / newest: original order
   });
 
@@ -1522,6 +1728,297 @@ export default function ShopPage() {
         </div>
       </div>
 
+      {/* ── Register CTA Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="bg-card border border-border rounded-xl p-5 flex items-start gap-4">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "oklch(0.55 0.22 280 / 0.15)" }}
+          >
+            <Building2 size={20} style={{ color: "oklch(0.55 0.22 280)" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display font-bold text-sm text-foreground">
+              Register Your Business
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+              List your products & services, reach thousands of customers
+            </p>
+            <Dialog open={bizRegOpen} onOpenChange={setBizRegOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  size="sm"
+                  className="font-label h-8 text-xs gap-1.5"
+                  data-ocid="shop.register_business.open_modal_button"
+                >
+                  <Plus size={13} /> Register Business
+                </Button>
+              </DialogTrigger>
+              <DialogContent
+                className="sm:max-w-md"
+                data-ocid="shop.register_business.dialog"
+              >
+                <DialogHeader>
+                  <DialogTitle className="font-display">
+                    Register Your Business
+                  </DialogTitle>
+                  <DialogDescription>
+                    Fill in the details to get listed on IndyaCentral Shop
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    toast.success(
+                      "Business registration submitted! Login to complete.",
+                    );
+                    setBizRegOpen(false);
+                  }}
+                  className="space-y-3 mt-2"
+                >
+                  <FamilyTreeBizLinker />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Business Name *</Label>
+                    <Input
+                      placeholder="e.g. Spice Garden Restaurant"
+                      required
+                      data-ocid="shop.biz_name.input"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Category</Label>
+                      <Select defaultValue="Food">
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            "Food",
+                            "Electronics",
+                            "Fashion",
+                            "Healthcare",
+                            "Education",
+                            "Real Estate",
+                            "Travel",
+                            "Services",
+                            "Other",
+                          ].map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Pincode *</Label>
+                      <Input
+                        placeholder="110001"
+                        required
+                        data-ocid="shop.biz_pincode.input"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Area / Locality</Label>
+                    <Input
+                      placeholder="e.g. Connaught Place, New Delhi"
+                      data-ocid="shop.biz_area.input"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Phone</Label>
+                    <Input
+                      placeholder="+91 98765 43210"
+                      data-ocid="shop.biz_phone.input"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description</Label>
+                    <Textarea
+                      rows={2}
+                      placeholder="What does your business offer?"
+                      className="resize-none"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <InfoIcon size={11} /> You'll need to login to complete
+                    registration
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 font-label h-9"
+                      onClick={() => setBizRegOpen(false)}
+                      data-ocid="shop.biz_reg.cancel_button"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1 font-label h-9"
+                      data-ocid="shop.biz_reg.submit_button"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-5 flex items-start gap-4">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "oklch(0.52 0.14 155 / 0.15)" }}
+          >
+            <Truck size={20} style={{ color: "oklch(0.52 0.14 155)" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display font-bold text-sm text-foreground">
+              Become a Delivery Partner
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+              Set your own rates and earn delivering orders
+            </p>
+            <Dialog open={dpRegOpen} onOpenChange={setDpRegOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="font-label h-8 text-xs gap-1.5 border-green-500/40 text-green-700 hover:bg-green-50"
+                  data-ocid="shop.delivery_partner.open_modal_button"
+                >
+                  <Plus size={13} /> Register as Partner
+                </Button>
+              </DialogTrigger>
+              <DialogContent
+                className="sm:max-w-md max-h-[90vh] overflow-y-auto"
+                data-ocid="shop.delivery_partner.dialog"
+              >
+                <DialogHeader>
+                  <DialogTitle className="font-display">
+                    Become a Delivery Partner
+                  </DialogTitle>
+                  <DialogDescription>
+                    Register with your coverage area and rates
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    toast.success("Delivery partner registration submitted!");
+                    setDpRegOpen(false);
+                  }}
+                  className="space-y-3 mt-2"
+                >
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Your Name *</Label>
+                    <Input
+                      placeholder="Full name"
+                      required
+                      data-ocid="shop.dp_name.input"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Pincode(s)</Label>
+                      <Input
+                        placeholder="110001, 110002"
+                        data-ocid="shop.dp_pincode.input"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Per-km Rate (₹)</Label>
+                      <Input
+                        type="number"
+                        placeholder="12"
+                        data-ocid="shop.dp_rate.input"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Area / Locality</Label>
+                    <Input
+                      placeholder="e.g. South Delhi"
+                      data-ocid="shop.dp_area.input"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Vehicle Type</Label>
+                    <Select defaultValue="Bike">
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["Bike", "Scooter", "Auto", "Car", "Van", "Cycle"].map(
+                          (v) => (
+                            <SelectItem key={v} value={v}>
+                              {v}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Weight Rates (₹)</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        ["Up to 1 kg", "dp_w1"],
+                        ["1–5 kg", "dp_w2"],
+                        ["5–10 kg", "dp_w3"],
+                        ["10 kg+", "dp_w4"],
+                      ].map(([label, id]) => (
+                        <div key={id} className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">
+                            {label}
+                          </Label>
+                          <Input
+                            type="number"
+                            placeholder="₹0"
+                            className="h-8 text-xs"
+                            data-ocid={`shop.${id}.input`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Phone</Label>
+                    <Input
+                      placeholder="+91 98765 43210"
+                      data-ocid="shop.dp_phone.input"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 font-label h-9"
+                      onClick={() => setDpRegOpen(false)}
+                      data-ocid="shop.dp_reg.cancel_button"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1 font-label h-9"
+                      data-ocid="shop.dp_reg.submit_button"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
+
       <Tabs defaultValue="listings">
         <TabsList className="mb-6">
           <TabsTrigger value="listings" data-ocid="shop.listings.tab">
@@ -1571,6 +2068,7 @@ export default function ShopPage() {
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="nearest">Nearest First</SelectItem>
                 <SelectItem value="relevance">Relevance</SelectItem>
                 <SelectItem value="top-voted">Top Voted</SelectItem>
                 <SelectItem value="top-reviewed">Top Reviewed</SelectItem>
@@ -1648,6 +2146,16 @@ export default function ShopPage() {
                   onAddToCart={() => addToCart(item)}
                   onReview={() =>
                     setReviewTarget({ id: item.id, name: item.name })
+                  }
+                  distanceKm={
+                    userLocation && (item as { lat?: number; lng?: number }).lat
+                      ? haversineKm(
+                          userLocation.lat,
+                          userLocation.lng,
+                          (item as { lat?: number }).lat!,
+                          (item as { lng?: number }).lng!,
+                        )
+                      : undefined
                   }
                 />
               ))}

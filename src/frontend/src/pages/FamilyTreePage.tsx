@@ -66,6 +66,10 @@ import {
   useGetFamilyTree,
   useSaveUserProfile,
 } from "../hooks/useQueries";
+import {
+  getFamilyTreeBusinesses,
+  saveFamilyTreeBusiness,
+} from "../utils/familyTreeState";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -333,6 +337,12 @@ interface MemberForm {
   occupation: string;
   medicalConditions: string;
   isPublic: boolean;
+  bizCategory?: string;
+  bizMode?: "none" | "add" | "link";
+  bizName?: string;
+  bizLocation?: string;
+  bizPhone?: string;
+  bizLinkId?: string;
 }
 
 interface ProfileForm {
@@ -352,6 +362,12 @@ const DEFAULT_MEMBER_FORM: MemberForm = {
   occupation: "",
   medicalConditions: "",
   isPublic: false,
+  bizCategory: "",
+  bizMode: "none",
+  bizName: "",
+  bizLocation: "",
+  bizPhone: "",
+  bizLinkId: "",
 };
 
 // ─── EditMemberDialog ─────────────────────────────────────────────────────────
@@ -1212,6 +1228,19 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
         isPublic: form.isPublic,
       });
       toast.success(`${form.name} added to your family tree`);
+      // Save business if user chose to add one
+      if (form.bizMode === "add" && form.bizCategory && form.bizName?.trim()) {
+        saveFamilyTreeBusiness({
+          id: `biz-${Date.now()}`,
+          name: form.bizName.trim(),
+          category: form.bizCategory,
+          ownerName: form.name.trim(),
+          phone: form.bizPhone?.trim() ?? "",
+          location: form.bizLocation?.trim() ?? "",
+        });
+      } else if (form.bizMode === "link" && form.bizLinkId) {
+        // link is already saved, nothing extra needed
+      }
       setOpen(false);
       setForm(DEFAULT_MEMBER_FORM);
     } catch {
@@ -1247,6 +1276,16 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
         return next;
       }
       return [...prev, b];
+    });
+    // Sync to shared cross-module state
+    saveFamilyTreeBusiness({
+      id: b.id,
+      name: b.name,
+      category: b.category,
+      type: b.type,
+      ownerName: identity?.getPrincipal().toString() ?? "anonymous",
+      phone: b.phone,
+      location: b.location,
     });
     toast.success(
       editingBusiness
@@ -1475,6 +1514,124 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
                       setForm((p) => ({ ...p, isPublic: v }))
                     }
                   />
+                </div>
+
+                {/* Business & Services Section */}
+                <div className="space-y-3 rounded-xl border border-border bg-secondary/20 p-3">
+                  <p className="text-xs font-semibold text-foreground">
+                    Business &amp; Services
+                  </p>
+                  <Select
+                    value={form.bizCategory ?? ""}
+                    onValueChange={(v) =>
+                      setForm((p) => ({
+                        ...p,
+                        bizCategory: v,
+                        bizMode: p.bizMode ?? "none",
+                      }))
+                    }
+                  >
+                    <SelectTrigger
+                      className="h-8 text-xs"
+                      data-ocid="family.member.biz.select"
+                    >
+                      <SelectValue placeholder="Select category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="retail">Retail</SelectItem>
+                      <SelectItem value="food">Food &amp; Beverage</SelectItem>
+                      <SelectItem value="healthcare">Healthcare</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="realestate">Real Estate</SelectItem>
+                      <SelectItem value="travel">Travel</SelectItem>
+                      <SelectItem value="technology">Technology</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
+                      <SelectItem value="manufacturing">
+                        Manufacturing
+                      </SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.bizCategory && (
+                    <div className="flex gap-2">
+                      {(["none", "add", "link"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${(form.bizMode ?? "none") === mode ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                          onClick={() =>
+                            setForm((p) => ({ ...p, bizMode: mode }))
+                          }
+                          data-ocid={`family.member.biz.${mode}.toggle`}
+                        >
+                          {mode === "none"
+                            ? "Skip"
+                            : mode === "add"
+                              ? "Add New"
+                              : "Link Existing"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {form.bizMode === "add" && form.bizCategory && (
+                    <div className="space-y-2">
+                      <input
+                        className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Business name"
+                        value={form.bizName ?? ""}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, bizName: e.target.value }))
+                        }
+                        data-ocid="family.member.biz.input"
+                      />
+                      <input
+                        className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Location"
+                        value={form.bizLocation ?? ""}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            bizLocation: e.target.value,
+                          }))
+                        }
+                      />
+                      <input
+                        className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Phone number"
+                        value={form.bizPhone ?? ""}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, bizPhone: e.target.value }))
+                        }
+                      />
+                    </div>
+                  )}
+                  {form.bizMode === "link" && form.bizCategory && (
+                    <Select
+                      value={form.bizLinkId ?? ""}
+                      onValueChange={(v) =>
+                        setForm((p) => ({ ...p, bizLinkId: v }))
+                      }
+                    >
+                      <SelectTrigger
+                        className="h-8 text-xs"
+                        data-ocid="family.member.biz.link.select"
+                      >
+                        <SelectValue placeholder="Select existing business" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getFamilyTreeBusinesses().map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                        {getFamilyTreeBusinesses().length === 0 && (
+                          <SelectItem value="_none" disabled>
+                            No businesses found — add one first
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <Button

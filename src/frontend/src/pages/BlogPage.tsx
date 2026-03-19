@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -755,6 +756,280 @@ function StatusBadge({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+// ─── Spiritual Stories Tab ────────────────────────────────────────────────────
+const SPIRITUAL_STORIES = [
+  {
+    id: "1",
+    title: "The Churning of the Ocean (Samudra Manthan)",
+    culture: "Hindu",
+    icon: "🕉️",
+    summary:
+      "Gods and demons churn the cosmic ocean using Mount Mandara as a churning rod and the serpent Vasuki as a rope, bringing forth treasures including Amrita — the nectar of immortality. The story speaks to the universal struggle between light and darkness, and the rewards of cooperative effort.",
+    themes: ["Creation", "Cooperation", "Good vs Evil", "Transformation"],
+    expanded: false,
+  },
+  {
+    id: "2",
+    title: "Pandora's Box",
+    culture: "Greek",
+    icon: "🏛️",
+    summary:
+      "Zeus gifts Pandora a sealed box with instructions never to open it. Overwhelmed by curiosity, she opens it, releasing all the world's evils — but also Hope, which remains inside. This myth explores the dual nature of curiosity and the gift of hope in the face of suffering.",
+    themes: ["Curiosity", "Hope", "Consequences", "Human Nature"],
+    expanded: false,
+  },
+  {
+    id: "3",
+    title: "Yggdrasil — The World Tree",
+    culture: "Norse",
+    icon: "🌲",
+    summary:
+      "At the center of Norse cosmology stands Yggdrasil, an immense ash tree connecting the nine worlds. Odin hung himself from it for nine days to gain the wisdom of runes. The tree represents the interconnectedness of all life and the sacrifices required for wisdom.",
+    themes: ["Sacrifice", "Knowledge", "Interconnection", "Cosmos"],
+    expanded: false,
+  },
+  {
+    id: "4",
+    title: "Ra's Journey Through the Night",
+    culture: "Egyptian",
+    icon: "☀️",
+    summary:
+      "Every night, the sun god Ra travels through the twelve hours of the underworld on his solar barque, battling the serpent Apep who tries to devour him. Each dawn represents his victorious rebirth. The myth reflects human hope that light always returns after darkness.",
+    themes: ["Death & Rebirth", "Light vs Darkness", "Renewal", "Journey"],
+    expanded: false,
+  },
+  {
+    id: "5",
+    title: "Izanagi and Izanami",
+    culture: "Japanese (Shinto)",
+    icon: "🌸",
+    summary:
+      "The divine couple Izanagi and Izanami descend to create the islands of Japan. After Izanami dies giving birth to fire, Izanagi follows her into Yomi (the underworld) only to find her decaying. His horrified flight and ritual purification marks the separation of life and death.",
+    themes: ["Creation", "Death", "Grief", "Purification"],
+    expanded: false,
+  },
+  {
+    id: "6",
+    title: "Quetzalcoatl and the Fifth Sun",
+    culture: "Aztec",
+    icon: "🐍",
+    summary:
+      "In Aztec cosmology, four suns were destroyed before the current world. The gods sacrificed themselves to create the fifth sun, and Quetzalcoatl — the feathered serpent — descended to the underworld to retrieve human bones so humanity could live again. Life requires sacrifice.",
+    themes: ["Sacrifice", "Creation", "Renewal", "Death & Rebirth"],
+    expanded: false,
+  },
+  {
+    id: "7",
+    title: "Anansi the Spider and the Stories",
+    culture: "West African (Akan)",
+    icon: "🕷️",
+    summary:
+      "Anansi the spider-trickster bargains with Nyame, the sky god, to buy all the world's stories. Nyame demands impossible tasks — capturing a python, hornets, and a leopard — but Anansi uses wit to succeed. He becomes the keeper of all tales, showing that wisdom and cleverness can overcome any obstacle.",
+    themes: ["Wisdom", "Storytelling", "Cleverness", "Perseverance"],
+    expanded: false,
+  },
+  {
+    id: "8",
+    title: "Enkidu and the Wild — The Epic of Gilgamesh",
+    culture: "Mesopotamian (Sumerian)",
+    icon: "🏺",
+    summary:
+      "Enkidu, created by the gods as a wild man of nature, is brought into civilization through friendship with King Gilgamesh. Together they face great challenges until Enkidu dies, sending Gilgamesh on a quest for immortality. The oldest recorded epic explores friendship, loss, and the acceptance of mortality.",
+    themes: ["Friendship", "Mortality", "Civilization vs Nature", "Quest"],
+    expanded: false,
+  },
+  {
+    id: "9",
+    title: "The Tale of Midir and Étaín",
+    culture: "Celtic (Irish)",
+    icon: "🍀",
+    summary:
+      "The god Midir falls in love with the mortal woman Étaín, but jealous rivals transform her into a fly, then a pool, then a human baby born again centuries later. Midir searches for her across time and reincarnation, representing love that transcends death and the eternal cycle of souls.",
+    themes: ["Love", "Reincarnation", "Transformation", "Eternal Soul"],
+    expanded: false,
+  },
+  {
+    id: "10",
+    title: "The Story of Savitri and Satyavan",
+    culture: "Hindu",
+    icon: "🪔",
+    summary:
+      "Savitri chooses Satyavan as her husband knowing he is fated to die in one year. When Yama, the god of death, comes for Satyavan's soul, Savitri follows him into the realm of death and engages him in philosophical debate. Her devotion and wisdom move even the god of death to restore her husband's life.",
+    themes: ["Devotion", "Courage", "Wisdom", "Love conquering Death"],
+    expanded: false,
+  },
+];
+
+const CROSS_CULTURE_THEMES = [
+  {
+    theme: "Great Flood / Deluge",
+    cultures: [
+      "Hindu (Manu)",
+      "Mesopotamian (Utnapishtim)",
+      "Greek (Deucalion)",
+      "Norse (Bergelmir)",
+      "Aztec (Tata & Nene)",
+    ],
+    count: 12,
+  },
+  {
+    theme: "World Tree / Cosmic Axis",
+    cultures: [
+      "Norse (Yggdrasil)",
+      "Hindu (Ashvattha)",
+      "Mayan (Ceiba)",
+      "Siberian shamanism",
+      "Celtic (Oak)",
+    ],
+    count: 9,
+  },
+  {
+    theme: "Death & Resurrection / Rebirth",
+    cultures: [
+      "Egyptian (Osiris)",
+      "Hindu (Vishnu avatars)",
+      "Greek (Persephone)",
+      "Aztec (Quetzalcoatl)",
+      "Japanese (Izanami)",
+    ],
+    count: 15,
+  },
+  {
+    theme: "Trickster Figure",
+    cultures: [
+      "West African (Anansi)",
+      "Norse (Loki)",
+      "Native American (Coyote)",
+      "Greek (Hermes)",
+      "Hindu (Krishna as child)",
+    ],
+    count: 11,
+  },
+  {
+    theme: "Hero's Quest / Descent to Underworld",
+    cultures: [
+      "Greek (Orpheus)",
+      "Mesopotamian (Gilgamesh)",
+      "Hindu (Savitri)",
+      "Japanese (Izanagi)",
+      "Mayan (Hero Twins)",
+    ],
+    count: 14,
+  },
+];
+
+function SpiritualStoriesTab() {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-start gap-3">
+        <div className="text-3xl">🕉️</div>
+        <div>
+          <h2 className="text-xl font-display font-bold text-foreground">
+            Spiritual Stories & Mythology
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Explore ancient wisdom from cultures across the world — stories that
+            have guided humanity for millennia.
+          </p>
+        </div>
+      </div>
+
+      {/* Stories grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {SPIRITUAL_STORIES.map((story) => (
+          <Card
+            key={story.id}
+            className="rounded-2xl border-border"
+            data-ocid="spiritual.story.card"
+          >
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0">{story.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-display font-bold text-foreground leading-snug">
+                    {story.title}
+                  </h3>
+                  <Badge variant="secondary" className="mt-1 text-[10px]">
+                    {story.culture}
+                  </Badge>
+                </div>
+              </div>
+              <p
+                className={`text-xs text-muted-foreground leading-relaxed ${expanded.has(story.id) ? "" : "line-clamp-3"}`}
+              >
+                {story.summary}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-wrap gap-1">
+                  {story.themes.slice(0, 2).map((t) => (
+                    <span
+                      key={t}
+                      className="text-[9px] px-2 py-0.5 rounded-full border border-border text-muted-foreground"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(story.id)}
+                  className="text-[10px] text-primary hover:underline underline-offset-2 shrink-0 ml-2 bg-transparent border-0 p-0 cursor-pointer"
+                  data-ocid="spiritual.story.toggle"
+                >
+                  {expanded.has(story.id) ? "Read Less ↑" : "Read More ↓"}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Cross-Culture Connections */}
+      <div>
+        <h3 className="text-base font-display font-bold text-foreground mb-4 flex items-center gap-2">
+          <span>🌐</span> Cross-Culture Connections
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          The same archetypes appear independently across cultures separated by
+          oceans — evidence of our shared human experience.
+        </p>
+        <div className="space-y-3">
+          {CROSS_CULTURE_THEMES.map((item) => (
+            <Card key={item.theme} className="rounded-xl border-border">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-label font-semibold text-foreground">
+                      {item.theme}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {item.cultures.join(" · ")}
+                    </p>
+                  </div>
+                  <Badge className="shrink-0 text-[10px]">
+                    {item.count} cultures
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BlogPage() {
   // Composer state
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -959,6 +1234,9 @@ export default function BlogPage() {
           </TabsTrigger>
           <TabsTrigger value="affiliate" className="font-label text-sm">
             🔗 Affiliate
+          </TabsTrigger>
+          <TabsTrigger value="spiritual" className="font-label text-sm">
+            🕉️ Spiritual Stories
           </TabsTrigger>
         </TabsList>
 
@@ -2036,6 +2314,10 @@ export default function BlogPage() {
               </div>
             </TabsContent>
           </Tabs>
+        </TabsContent>
+        {/* ── Spiritual Stories Tab ── */}
+        <TabsContent value="spiritual" className="mt-0">
+          <SpiritualStoriesTab />
         </TabsContent>
       </Tabs>
 

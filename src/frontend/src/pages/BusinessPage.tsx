@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +26,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Plus,
   QrCode,
   RefreshCw,
   Sparkles,
@@ -35,12 +37,13 @@ import {
   Utensils,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
+import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
-const MOCK_PRODUCTS = [
+const _MOCK_PRODUCTS = [
   { id: 1, name: "Masala Chai", price: 60, category: "Beverages", stock: 200 },
   {
     id: 2,
@@ -55,7 +58,7 @@ const MOCK_PRODUCTS = [
   { id: 6, name: "Mango Lassi", price: 100, category: "Beverages", stock: 100 },
 ];
 
-const MOCK_SERVICES = [
+const _MOCK_SERVICES = [
   { id: 1, name: "Home Delivery", price: 40, duration: "30-45 min" },
   { id: 2, name: "Catering Package", price: 5000, duration: "Per event" },
   { id: 3, name: "Private Dining", price: 2000, duration: "2 hours" },
@@ -441,6 +444,475 @@ function BusinessCSVImport() {
   );
 }
 
+// ─── Business Delivery Setup ──────────────────────────────────────────────────
+function BusinessDeliverySetup() {
+  const [pincodes, setPincodes] = useState("110001, 110002, 110003");
+  const [area, setArea] = useState("South Delhi, Central Delhi");
+  const [radius, setRadius] = useState([10]);
+  const [perKmRate, setPerKmRate] = useState("12");
+  const [minOrder, setMinOrder] = useState("200");
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold">Coverage Area</h3>
+        <div className="space-y-2">
+          <Label className="text-xs">Pincodes Served (comma-separated)</Label>
+          <Input
+            value={pincodes}
+            onChange={(e) => setPincodes(e.target.value)}
+            placeholder="110001, 110002..."
+            data-ocid="business.delivery.pincodes.input"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Area / Locality</Label>
+          <Input
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            placeholder="e.g. South Delhi, Saket"
+            data-ocid="business.delivery.area.input"
+          />
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Delivery Radius</Label>
+            <span className="text-xs font-semibold text-primary">
+              {radius[0]} km
+            </span>
+          </div>
+          <Slider
+            value={radius}
+            onValueChange={setRadius}
+            min={1}
+            max={50}
+            step={1}
+            className="w-full"
+            data-ocid="business.delivery.radius.toggle"
+          />
+        </div>
+      </div>
+      <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold">Rate Configuration</h3>
+        <div className="space-y-2">
+          <Label className="text-xs">Per-km Rate (₹)</Label>
+          <Input
+            type="number"
+            value={perKmRate}
+            onChange={(e) => setPerKmRate(e.target.value)}
+            placeholder="12"
+            data-ocid="business.delivery.per_km.input"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Minimum Order Amount (₹)</Label>
+          <Input
+            type="number"
+            value={minOrder}
+            onChange={(e) => setMinOrder(e.target.value)}
+            placeholder="200"
+            data-ocid="business.delivery.min_order.input"
+          />
+        </div>
+        <div className="pt-2">
+          <div className="bg-muted/40 rounded-lg p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">
+              Delivery Estimate
+            </p>
+            <p>Base fare: ₹30 + ₹{perKmRate}/km</p>
+            <p>Coverage: {radius[0]} km radius from business location</p>
+          </div>
+        </div>
+        <Button
+          onClick={() => toast.success("Delivery setup saved")}
+          className="w-full font-label"
+          data-ocid="business.delivery.save.primary_button"
+        >
+          Save Delivery Setup
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Business Commission Config ────────────────────────────────────────────────
+function BusinessCommissionConfig() {
+  const [categories, setCategories] = useState([
+    { name: "Electronics", percent: "8", flat: "50" },
+    { name: "Clothing & Fashion", percent: "12", flat: "30" },
+    { name: "Food & Beverages", percent: "15", flat: "20" },
+    { name: "Services", percent: "10", flat: "0" },
+    { name: "Healthcare", percent: "7", flat: "100" },
+    { name: "Real Estate", percent: "2", flat: "500" },
+    { name: "Travel", percent: "10", flat: "200" },
+    { name: "Education", percent: "5", flat: "50" },
+    { name: "Other", percent: "10", flat: "25" },
+  ]);
+
+  const updateCategory = (
+    i: number,
+    field: "percent" | "flat",
+    value: string,
+  ) => {
+    setCategories((prev) =>
+      prev.map((c, idx) => (idx === i ? { ...c, [field]: value } : c)),
+    );
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="p-4 border-b border-border bg-muted/30">
+        <p className="text-xs text-muted-foreground">
+          Set commission rates per category. Platform charges the lower of % or
+          flat amount.
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="p-3 text-left text-xs font-semibold text-muted-foreground">
+                Category
+              </th>
+              <th className="p-3 text-left text-xs font-semibold text-muted-foreground">
+                Commission %
+              </th>
+              <th className="p-3 text-left text-xs font-semibold text-muted-foreground">
+                Flat Amount (₹)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((cat, i) => (
+              <tr
+                key={cat.name}
+                className="border-b border-border/50 hover:bg-secondary/20"
+                data-ocid={`business.commission.row.${i + 1}`}
+              >
+                <td className="p-3 font-medium text-xs">{cat.name}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={cat.percent}
+                      onChange={(e) =>
+                        updateCategory(i, "percent", e.target.value)
+                      }
+                      className="h-8 w-20 text-xs"
+                      data-ocid={`business.commission.percent.input.${i + 1}`}
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
+                  </div>
+                </td>
+                <td className="p-3">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">₹</span>
+                    <Input
+                      type="number"
+                      value={cat.flat}
+                      onChange={(e) =>
+                        updateCategory(i, "flat", e.target.value)
+                      }
+                      className="h-8 w-20 text-xs"
+                      data-ocid={`business.commission.flat.input.${i + 1}`}
+                    />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="p-4 border-t border-border">
+        <Button
+          onClick={() => toast.success("Commission rates saved")}
+          className="font-label"
+          data-ocid="business.commission.save.primary_button"
+        >
+          Save Commission Rates
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StorefrontTab() {
+  const [bizList, setBizList] = React.useState<
+    ReturnType<typeof getFamilyTreeBusinesses>
+  >([]);
+
+  React.useEffect(() => {
+    setBizList(getFamilyTreeBusinesses());
+    const handleStorage = () => setBizList(getFamilyTreeBusinesses());
+    window.addEventListener("storage", handleStorage);
+    const interval = setInterval(
+      () => setBizList(getFamilyTreeBusinesses()),
+      2000,
+    );
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (bizList.length === 0) {
+    return (
+      <div
+        className="rounded-xl border border-dashed border-border p-12 text-center space-y-4"
+        data-ocid="business.storefront.empty_state"
+      >
+        <Building2 size={40} className="mx-auto text-muted-foreground" />
+        <div>
+          <p className="text-base font-display font-semibold text-foreground">
+            No businesses registered yet
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Register a business through <strong>Family Tree</strong> module to
+            see your storefront here.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.hash = "family-tree";
+          }}
+          className="text-sm text-primary underline-offset-4 hover:underline cursor-pointer bg-transparent border-0 p-0"
+        >
+          → Go to Family Tree to register a business
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {bizList.map((biz) => (
+        <Card
+          key={biz.id}
+          className="rounded-2xl border-border"
+          data-ocid="business.storefront.card"
+        >
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row gap-6">
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
+                style={{ background: "oklch(0.65 0.25 335 / 0.15)" }}
+              >
+                <Building2
+                  size={32}
+                  style={{ color: "oklch(0.65 0.25 335)" }}
+                />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-display font-bold text-foreground">
+                  {biz.name}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {biz.category} · {biz.type}
+                </p>
+                <div className="flex flex-wrap gap-3 mt-3 text-xs text-muted-foreground">
+                  {biz.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin size={12} /> {biz.location}
+                    </span>
+                  )}
+                  {biz.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone size={12} /> {biz.phone}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div
+                className="rounded-xl border-2 p-4 text-center shrink-0 w-40"
+                style={{ borderColor: "oklch(0.65 0.25 335 / 0.4)" }}
+                data-ocid="business.qr.card"
+              >
+                <div
+                  className="w-20 h-20 border-2 rounded-lg mx-auto flex items-center justify-center mb-2"
+                  style={{ borderColor: "oklch(0.55 0.22 280)" }}
+                >
+                  <QrCode size={36} style={{ color: "oklch(0.55 0.22 280)" }} />
+                </div>
+                <p className="text-[10px] font-bold text-foreground">
+                  {biz.name}
+                </p>
+                {biz.location && (
+                  <p className="text-[9px] text-muted-foreground">
+                    {biz.location}
+                  </p>
+                )}
+                {biz.phone && (
+                  <p className="text-[9px] text-muted-foreground">
+                    {biz.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      <p className="text-xs text-muted-foreground text-center">
+        Showing {bizList.length} business{bizList.length !== 1 ? "es" : ""} from
+        your Family Tree.{" "}
+        <button
+          type="button"
+          onClick={() => {
+            window.location.hash = "family-tree";
+          }}
+          className="text-primary underline-offset-4 hover:underline cursor-pointer bg-transparent border-0 p-0"
+        >
+          Add more in Family Tree →
+        </button>
+      </p>
+    </div>
+  );
+}
+
+function MyBusinessesTab({
+  onNavigate,
+}: { onNavigate?: (page: string) => void }) {
+  const [bizList, setBizList] = React.useState<
+    ReturnType<typeof getFamilyTreeBusinesses>
+  >([]);
+
+  React.useEffect(() => {
+    setBizList(getFamilyTreeBusinesses());
+    const handleStorage = () => setBizList(getFamilyTreeBusinesses());
+    window.addEventListener("storage", handleStorage);
+    // Also poll for same-tab updates
+    const interval = setInterval(
+      () => setBizList(getFamilyTreeBusinesses()),
+      2000,
+    );
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Refresh when tab becomes visible
+  const refresh = () => setBizList(getFamilyTreeBusinesses());
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-display font-bold">My Businesses</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Businesses registered through your Family Tree profile
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1"
+            onClick={refresh}
+            data-ocid="business.refresh.button"
+          >
+            ↻ Refresh
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.hash = "family-tree";
+            }}
+            className="text-xs text-primary underline-offset-4 hover:underline cursor-pointer bg-transparent border-0 p-0"
+          >
+            → Go to Family Tree
+          </button>
+        </div>
+      </div>
+      <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
+        💡 Business registration is done through the{" "}
+        <strong>Family Tree</strong> module. Add a business to yourself or a
+        family member there and it will appear here automatically.
+      </div>
+      {bizList.length === 0 && (
+        <div
+          className="rounded-xl border border-dashed border-border p-8 text-center space-y-3"
+          data-ocid="business.my_business.empty_state"
+        >
+          <Building2 size={32} className="mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            No businesses linked yet. Register a business via Family Tree to see
+            it here.
+          </p>
+          {onNavigate && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onNavigate("family-tree")}
+            >
+              Go to Family Tree
+            </Button>
+          )}
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {bizList.map((biz, i) => (
+          <div
+            key={biz.id}
+            className="bg-card border border-border rounded-xl p-4"
+            data-ocid={`business.my_business.card.${i + 1}`}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ background: "oklch(0.65 0.25 335 / 0.12)" }}
+              >
+                <Building2
+                  size={18}
+                  style={{ color: "oklch(0.65 0.25 335)" }}
+                />
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                Active
+              </span>
+            </div>
+            <h3 className="font-semibold text-sm text-foreground mt-2">
+              {biz.name}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {biz.category}
+              {biz.type ? ` · ${biz.type}` : ""}
+            </p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              <MapPin size={10} /> <span>{biz.location}</span>
+            </div>
+            {biz.phone && (
+              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                <Phone size={10} /> <span>{biz.phone}</span>
+              </div>
+            )}
+            {biz.category?.toLowerCase().includes("health") && (
+              <div className="mt-2 text-[10px] px-2 py-1 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+                💊 Healthcare — Advisor profile available
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full mt-3 h-8 text-xs font-label"
+              data-ocid={`business.manage.primary_button.${i + 1}`}
+              onClick={() => toast.success(`Managing ${biz.name}`)}
+            >
+              Manage
+            </Button>
+          </div>
+        ))}
+        <div className="bg-card border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center gap-2 min-h-[160px] cursor-pointer hover:border-primary/50 transition-colors">
+          <Plus size={24} className="text-muted-foreground" />
+          <p className="text-sm text-muted-foreground font-label text-center">
+            Add via Family Tree
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessPage() {
   const [tables, setTables] = useState([
     {
@@ -473,8 +945,8 @@ export default function BusinessPage() {
     },
   ]);
   const [newTableNo, setNewTableNo] = useState("");
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
+  const [_rating, _setRating] = useState(0);
+  const [_hoverRating, _setHoverRating] = useState(0);
   const [selectedBranch, setSelectedBranch] = useState("b1");
   const [dynamicQrGenerated, setDynamicQrGenerated] = useState(false);
   const [paymentModes, setPaymentModes] = useState({
@@ -523,8 +995,14 @@ export default function BusinessPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="storefront">
+      <Tabs defaultValue="my-businesses">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50">
+          <TabsTrigger
+            value="my-businesses"
+            data-ocid="business.my_businesses.tab"
+          >
+            My Businesses
+          </TabsTrigger>
           <TabsTrigger value="storefront" data-ocid="business.storefront.tab">
             Storefront
           </TabsTrigger>
@@ -541,6 +1019,15 @@ export default function BusinessPage() {
             Payment Setup
           </TabsTrigger>
           <TabsTrigger
+            value="delivery-setup"
+            data-ocid="business.delivery_setup.tab"
+          >
+            Delivery Setup
+          </TabsTrigger>
+          <TabsTrigger value="commission" data-ocid="business.commission.tab">
+            Commission
+          </TabsTrigger>
+          <TabsTrigger
             value="ai-marketing"
             data-ocid="business.ai_marketing.tab"
           >
@@ -551,208 +1038,39 @@ export default function BusinessPage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* ── My Businesses ── */}
+        <TabsContent value="my-businesses" className="mt-6 space-y-4">
+          <MyBusinessesTab />
+        </TabsContent>
+
+        {/* ── Delivery Setup ── */}
+        <TabsContent value="delivery-setup" className="mt-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-display font-bold">Delivery Setup</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Configure delivery zones, radius, and per-km rates for your
+              business
+            </p>
+          </div>
+          <BusinessDeliverySetup />
+        </TabsContent>
+
+        {/* ── Commission Configuration ── */}
+        <TabsContent value="commission" className="mt-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-display font-bold">
+              Commission Configuration
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Set platform commission rates per product category
+            </p>
+          </div>
+          <BusinessCommissionConfig />
+        </TabsContent>
+
         {/* ── Storefront ── */}
         <TabsContent value="storefront" className="mt-6 space-y-6">
-          {/* Business Header */}
-          <Card className="rounded-2xl border-border">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-6">
-                <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ background: "oklch(0.65 0.25 335 / 0.15)" }}
-                >
-                  <Building2
-                    size={32}
-                    style={{ color: "oklch(0.65 0.25 335)" }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-display font-bold text-foreground">
-                    Spice Garden Restaurant
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Authentic North Indian Cuisine · Est. 2018
-                  </p>
-                  <div className="flex flex-wrap gap-3 mt-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <MapPin size={12} /> Connaught Place, New Delhi
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Phone size={12} /> +91 98765 43210
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Mail size={12} /> hello@spicegarden.in
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-3">
-                    {[1, 2, 3, 4].map((s) => (
-                      <Star
-                        key={s}
-                        size={14}
-                        fill="oklch(0.72 0.19 85)"
-                        style={{ color: "oklch(0.72 0.19 85)" }}
-                      />
-                    ))}
-                    <Star size={14} className="text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground ml-1">
-                      4.2 (128 reviews)
-                    </span>
-                  </div>
-                </div>
-                {/* Business QR Card */}
-                <div
-                  className="rounded-xl border-2 p-4 text-center shrink-0 w-40"
-                  style={{ borderColor: "oklch(0.65 0.25 335 / 0.4)" }}
-                  data-ocid="business.qr.card"
-                >
-                  <div
-                    className="w-20 h-20 border-2 rounded-lg mx-auto flex items-center justify-center mb-2"
-                    style={{ borderColor: "oklch(0.55 0.22 280)" }}
-                  >
-                    <QrCode
-                      size={36}
-                      style={{ color: "oklch(0.55 0.22 280)" }}
-                    />
-                  </div>
-                  <p className="text-[10px] font-bold text-foreground">
-                    Spice Garden
-                  </p>
-                  <p className="text-[9px] text-muted-foreground">
-                    CP, New Delhi
-                  </p>
-                  <p className="text-[9px] text-muted-foreground">
-                    +91 98765 43210
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Products */}
-          <div>
-            <h3 className="text-base font-display font-semibold text-foreground mb-3">
-              Products
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {MOCK_PRODUCTS.map((p) => (
-                <Card key={p.id} className="rounded-xl border-border">
-                  <CardContent className="p-3">
-                    <Badge variant="secondary" className="text-[10px] mb-2">
-                      {p.category}
-                    </Badge>
-                    <p className="text-sm font-label font-semibold text-foreground">
-                      {p.name}
-                    </p>
-                    <p
-                      className="text-xs font-bold mt-1"
-                      style={{ color: "oklch(0.52 0.14 155)" }}
-                    >
-                      ₹{p.price}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className="text-base font-display font-semibold text-foreground mb-3">
-              Services
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {MOCK_SERVICES.map((s) => (
-                <Card key={s.id} className="rounded-xl border-border">
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-label font-semibold text-foreground">
-                        {s.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {s.duration}
-                      </p>
-                    </div>
-                    <span
-                      className="text-sm font-bold"
-                      style={{ color: "oklch(0.55 0.22 280)" }}
-                    >
-                      ₹{s.price}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Customer Care */}
-          <Card className="rounded-2xl border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-display flex items-center gap-2">
-                <Phone size={15} style={{ color: "oklch(0.52 0.14 155)" }} />
-                Customer Care
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <Phone size={13} /> +91 98765 43210
-              </p>
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <Mail size={13} /> support@spicegarden.in
-              </p>
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <Clock size={13} /> Mon–Sun: 11 AM – 11 PM
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Rate Business */}
-          <Card className="rounded-2xl border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-display">
-                Rate This Business
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setRating(s)}
-                    onMouseEnter={() => setHoverRating(s)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    data-ocid="business.star.button"
-                  >
-                    <Star
-                      size={28}
-                      fill={
-                        (hoverRating || rating) >= s
-                          ? "oklch(0.72 0.19 85)"
-                          : "transparent"
-                      }
-                      style={{
-                        color:
-                          (hoverRating || rating) >= s
-                            ? "oklch(0.72 0.19 85)"
-                            : "oklch(0.7 0.05 280)",
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-              <Button
-                size="sm"
-                disabled={rating === 0}
-                onClick={() => {
-                  toast.success("Thank you for your review!");
-                  setRating(0);
-                }}
-                data-ocid="business.rating.submit_button"
-              >
-                Submit Rating
-              </Button>
-            </CardContent>
-          </Card>
+          <StorefrontTab />
         </TabsContent>
 
         {/* ── Table Management ── */}

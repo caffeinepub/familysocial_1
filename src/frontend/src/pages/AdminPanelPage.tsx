@@ -2,6 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,6 +26,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Activity,
   AlertTriangle,
@@ -38,12 +46,14 @@ import {
   Image,
   ImageIcon,
   Link2,
+  Loader2,
   MapPin,
   MessageSquare,
   MoreHorizontal,
   Package,
   Palette,
   Percent,
+  Plus,
   RefreshCw,
   RotateCcw,
   Search,
@@ -61,7 +71,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1756,6 +1766,7 @@ export default function AdminPanelPage() {
               { value: "agent18", label: "💰 A18: Pricing" },
               { value: "agent19", label: "🎮 A19: Games" },
               { value: "agent20", label: "😂 A20: Comics" },
+              { value: "agent21", label: "🕉️ A21: Spiritual" },
               { value: "social-queue", label: "📱 Social Queue" },
               { value: "promotions-queue", label: "📣 Promotions" },
               { value: "whatsapp-api", label: "📲 WhatsApp API" },
@@ -2539,9 +2550,12 @@ export default function AdminPanelPage() {
               <Button
                 size="sm"
                 className="h-8 text-xs gap-1"
-                onClick={() =>
-                  toast.success("Agoda sync started — fetching hotels...")
-                }
+                onClick={() => {
+                  toast.success("Agoda sync started — fetching hotels...");
+                  toast.success("Agoda: 247 hotels synced — 2 min ago", {
+                    duration: 3000,
+                  });
+                }}
                 data-ocid="admin.agoda.sync_button"
               >
                 🔄 Sync Now
@@ -2685,6 +2699,42 @@ export default function AdminPanelPage() {
               ))}
             </TabsContent>
           </Tabs>
+          {/* Open & Affiliate APIs */}
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">
+                Open &amp; Affiliate APIs
+              </h3>
+              <AddNewApiDialog />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  name: "OpenFoodFacts",
+                  type: "Products",
+                  lastSynced: "5 min ago",
+                  records: 1247,
+                  icon: "🥗",
+                },
+                {
+                  name: "FakeStore API",
+                  type: "Products",
+                  lastSynced: "12 min ago",
+                  records: 200,
+                  icon: "🛍️",
+                },
+                {
+                  name: "Open Library",
+                  type: "Books",
+                  lastSynced: "1 hour ago",
+                  records: 3840,
+                  icon: "📚",
+                },
+              ].map((api, i) => (
+                <OpenApiCard key={api.name} api={api} index={i + 1} />
+              ))}
+            </div>
+          </div>
         </TabsContent>
 
         {/* ── AGENT 4: EVOLUTION ── */}
@@ -5091,108 +5141,7 @@ export default function AdminPanelPage() {
               </div>
               <Switch defaultChecked data-ocid="admin.agent19.toggle" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-                <h3 className="text-sm font-semibold">Configuration</h3>
-                <div>
-                  <Label className="text-xs">
-                    User Interest Tags (comma separated)
-                  </Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="cricket, cooking, travel, music"
-                    data-ocid="admin.agent19.input"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Game Difficulty</Label>
-                  <Select defaultValue="medium">
-                    <SelectTrigger
-                      className="mt-1"
-                      data-ocid="admin.agent19.select"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Game Type</Label>
-                  <Select defaultValue="trivia">
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="puzzle">Puzzle</SelectItem>
-                      <SelectItem value="trivia">Trivia</SelectItem>
-                      <SelectItem value="adventure">Adventure</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Auto-Generate (Daily)</Label>
-                  <Switch
-                    defaultChecked
-                    data-ocid="admin.agent19.auto.toggle"
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() => toast.success("Game generation triggered")}
-                  data-ocid="admin.agent19.primary_button"
-                >
-                  Generate Now
-                </Button>
-              </div>
-              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-                <h3 className="text-sm font-semibold">Last Generated Games</h3>
-                {[
-                  {
-                    name: "Cricket Trivia Blitz",
-                    type: "Trivia",
-                    difficulty: "Medium",
-                    users: 142,
-                    date: "Today",
-                  },
-                  {
-                    name: "Mumbai Street Puzzle",
-                    type: "Puzzle",
-                    difficulty: "Hard",
-                    users: 89,
-                    date: "Yesterday",
-                  },
-                  {
-                    name: "Spice Route Adventure",
-                    type: "Adventure",
-                    difficulty: "Easy",
-                    users: 203,
-                    date: "2 days ago",
-                  },
-                ].map((game, i) => (
-                  <div
-                    key={game.name}
-                    className="flex items-start justify-between p-3 rounded-lg bg-secondary/30"
-                    data-ocid={`admin.agent19.item.${i + 1}`}
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{game.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {game.type} · {game.difficulty} · {game.users} players
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {game.date}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Agent19LiveFeed />
+            <Agent19FullPanel />
           </TabsContent>
 
           {/* ── AGENT 20: COMIC AGENT ── */}
@@ -5208,108 +5157,24 @@ export default function AdminPanelPage() {
               </div>
               <Switch defaultChecked data-ocid="admin.agent20.toggle" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-                <h3 className="text-sm font-semibold">Configuration</h3>
-                <div>
-                  <Label className="text-xs">Humor Style</Label>
-                  <Select defaultValue="witty">
-                    <SelectTrigger
-                      className="mt-1"
-                      data-ocid="admin.agent20.select"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="slapstick">Slapstick</SelectItem>
-                      <SelectItem value="witty">Witty</SelectItem>
-                      <SelectItem value="dry">Dry</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Content Source</Label>
-                  <Select defaultValue="daily-feed">
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily-feed">Daily Feed</SelectItem>
-                      <SelectItem value="trending">Trending Posts</SelectItem>
-                      <SelectItem value="community">
-                        Community Events
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Generation Frequency</Label>
-                  <Select defaultValue="daily">
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() => toast.success("Comic generated!")}
-                  data-ocid="admin.agent20.primary_button"
-                >
-                  Generate Comic
-                </Button>
+            <Agent20FullPanel />
+          </TabsContent>
+
+          {/* ── AGENT 21: SPIRITUAL & MYTHOLOGY CURATOR ── */}
+          <TabsContent value="agent21" className="mt-0 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-display font-bold">
+                  Agent 21 — Spiritual & Mythology Curator
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-curates mythological stories, rituals, and cross-culture
+                  connections for the Spiritual Stories page.
+                </p>
               </div>
-              <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-                <h3 className="text-sm font-semibold">Sample Comic Preview</h3>
-                <div
-                  className="rounded-xl border border-border overflow-hidden"
-                  data-ocid="admin.agent20.panel"
-                >
-                  <div className="grid grid-cols-2 gap-0">
-                    {[
-                      {
-                        panel: 1,
-                        text: "Rahul checks his phone for the 50th time today... 📱",
-                      },
-                      {
-                        panel: 2,
-                        text: "Just one more reel... He says. Its 3 AM. 🌙",
-                      },
-                      { panel: 3, text: "Next morning: alarm goes off 🔔" },
-                      {
-                        panel: 4,
-                        text: "Rahul: already on his phone. Some things never change. 😅",
-                      },
-                    ].map((p) => (
-                      <div
-                        key={p.panel}
-                        className="p-3 border border-border/50 text-xs"
-                        style={{
-                          minHeight: "80px",
-                          background:
-                            p.panel % 2 === 0
-                              ? "oklch(var(--muted)/0.3)"
-                              : "transparent",
-                        }}
-                      >
-                        <span className="text-[10px] font-bold text-primary">
-                          Panel {p.panel}
-                        </span>
-                        <p className="mt-1 text-muted-foreground">{p.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-2 text-center text-[10px] text-muted-foreground border-t border-border">
-                    Generated by IC.ComicAgent · Today 8:00 AM
-                  </div>
-                </div>
-              </div>
+              <Switch defaultChecked data-ocid="admin.agent21.toggle" />
             </div>
-            <Agent20LiveFeed />
+            <Agent21FullPanel />
           </TabsContent>
 
           {/* ── SOCIAL MEDIA QUEUE ── */}
@@ -5362,7 +5227,7 @@ export default function AdminPanelPage() {
                 Manage drivers, vehicles, and fare rate cards.
               </p>
             </div>
-            <RideManagement />
+            <RideManagementWithZones />
           </TabsContent>
         </TabsContent>
       </Tabs>
@@ -8562,18 +8427,16 @@ function SocialMediaQueue() {
   const [items, setItems] = useState([
     {
       id: 1,
-      preview:
-        "Check out our new organic honey range — now 20% off! Perfect for the health-conscious.",
-      platforms: ["Instagram", "Facebook", "Twitter"],
+      preview: "Check out our new organic honey range — now 20% off!",
+      platforms: ["Instagram", "Facebook", "Twitter/X"],
       user: "Priya S.",
       date: "13 Mar 2026",
       status: "pending" as "pending" | "approved" | "rejected",
     },
     {
       id: 2,
-      preview:
-        "Just listed: 3BHK in Bandra West with sea view. Contact for pricing details.",
-      platforms: ["Facebook", "Twitter"],
+      preview: "Just listed: 3BHK in Bandra West with sea view.",
+      platforms: ["Facebook", "Twitter/X"],
       user: "Rahul V.",
       date: "12 Mar 2026",
       status: "pending" as "pending" | "approved" | "rejected",
@@ -8581,13 +8444,60 @@ function SocialMediaQueue() {
     {
       id: 3,
       preview:
-        "Calling all foodies! Our weekend food festival is on March 20th. Free entry!",
-      platforms: ["Instagram", "Pinterest", "Twitter"],
+        "Calling all foodies! Our weekend food festival is on March 20th.",
+      platforms: ["Instagram", "Pinterest", "Twitter/X"],
       user: "Anita K.",
       date: "11 Mar 2026",
       status: "approved" as "pending" | "approved" | "rejected",
     },
   ]);
+  const [platformConnected, setPlatformConnected] = useState<
+    Record<string, boolean>
+  >({});
+  const [platformKeys, setPlatformKeys] = useState<Record<string, string>>({});
+  const [composeText, setComposeText] = useState("");
+  const [composeChecked, setComposeChecked] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [scheduleDate, setScheduleDate] = useState("");
+
+  const ALL_PLATFORMS = [
+    { name: "Instagram", icon: "📸", color: "oklch(0.65 0.25 335)" },
+    { name: "Facebook", icon: "📘", color: "oklch(0.52 0.18 260)" },
+    { name: "YouTube", icon: "▶️", color: "oklch(0.55 0.22 22)" },
+    { name: "LinkedIn", icon: "💼", color: "oklch(0.48 0.18 245)" },
+    { name: "Twitter/X", icon: "🐦", color: "oklch(0.30 0.05 230)" },
+    { name: "Pinterest", icon: "📌", color: "oklch(0.52 0.22 12)" },
+    { name: "Google Shopping", icon: "🛒", color: "oklch(0.55 0.22 155)" },
+    { name: "Google Events", icon: "📅", color: "oklch(0.52 0.20 100)" },
+    { name: "Snapchat", icon: "👻", color: "oklch(0.85 0.20 88)" },
+    { name: "Telegram", icon: "✈️", color: "oklch(0.55 0.18 240)" },
+  ];
+
+  const BOOST_PLANS = [
+    {
+      name: "Basic Boost",
+      price: "₹299",
+      platforms: "1 platform",
+      duration: "3 days",
+      color: "oklch(0.52 0.14 155)",
+    },
+    {
+      name: "Standard Boost",
+      price: "₹799",
+      platforms: "3 platforms",
+      duration: "7 days",
+      color: "oklch(0.55 0.22 280)",
+      badge: "Popular",
+    },
+    {
+      name: "Premium Boost",
+      price: "₹2,499",
+      platforms: "All platforms + Google",
+      duration: "30 days",
+      color: "oklch(0.65 0.25 335)",
+    },
+  ];
 
   const approve = (id: number) => {
     setItems((prev) =>
@@ -8607,243 +8517,1605 @@ function SocialMediaQueue() {
   };
 
   return (
-    <div
-      className="bg-card border border-border rounded-xl overflow-hidden"
-      data-ocid="admin.social_queue.panel"
-    >
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <TH>Post Preview</TH>
-            <TH>Platforms</TH>
-            <TH>User</TH>
-            <TH>Date</TH>
-            <TH>Status</TH>
-            <TH>Actions</TH>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, i) => (
-            <tr
-              key={item.id}
-              className="border-b border-border/50 hover:bg-secondary/20"
-              data-ocid={`admin.social_queue.row.${i + 1}`}
+    <div className="space-y-4">
+      {/* Platform Connections */}
+      <div
+        className="bg-card border border-border rounded-xl p-4 space-y-4"
+        data-ocid="admin.social_queue.panel"
+      >
+        <h3 className="text-sm font-semibold">Platform Connections</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {ALL_PLATFORMS.map((platform) => (
+            <div
+              key={platform.name}
+              className="border border-border rounded-xl p-3 space-y-2"
             >
-              <TD className="max-w-[200px]">
-                <p className="truncate">{item.preview}</p>
-              </TD>
-              <TD>
-                <div className="flex flex-wrap gap-1">
-                  {item.platforms.map((p) => (
-                    <span
-                      key={p}
-                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </TD>
-              <TD className="text-muted-foreground">{item.user}</TD>
-              <TD className="text-muted-foreground">{item.date}</TD>
-              <TD>
-                <SBadge
-                  label={item.status}
-                  color={
-                    item.status === "approved"
-                      ? "green"
-                      : item.status === "rejected"
-                        ? "red"
-                        : "amber"
-                  }
-                />
-              </TD>
-              <TD>
-                {item.status === "pending" ? (
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs text-green-600 border-green-200"
-                      onClick={() => approve(item.id)}
-                      data-ocid={`admin.social_queue.confirm_button.${i + 1}`}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs text-destructive border-destructive/20"
-                      onClick={() => reject(item.id)}
-                      data-ocid={`admin.social_queue.delete_button.${i + 1}`}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                ) : item.status === "approved" ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs text-primary"
-                    onClick={() =>
-                      toast.info(
-                        `Share link: https://share.indyacentral.com/p/${item.id}`,
-                      )
-                    }
-                    data-ocid={`admin.social_queue.secondary_button.${i + 1}`}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {platform.icon} {platform.name}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${platformConnected[platform.name] ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-secondary text-muted-foreground"}`}
                   >
-                    Get Link
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </TD>
-            </tr>
+                    {platformConnected[platform.name]
+                      ? "Connected"
+                      : "Not Connected"}
+                  </span>
+                  <Switch
+                    checked={!!platformConnected[platform.name]}
+                    onCheckedChange={(v) =>
+                      setPlatformConnected((p) => ({
+                        ...p,
+                        [platform.name]: v,
+                      }))
+                    }
+                    data-ocid={`admin.social_queue.${platform.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.toggle`}
+                  />
+                </div>
+              </div>
+              <Input
+                className="h-7 text-xs"
+                placeholder="API Key / Access Token"
+                value={platformKeys[platform.name] ?? ""}
+                onChange={(e) =>
+                  setPlatformKeys((p) => ({
+                    ...p,
+                    [platform.name]: e.target.value,
+                  }))
+                }
+                data-ocid={`admin.social_queue.${platform.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.input`}
+              />
+              <Button
+                size="sm"
+                className="w-full h-7 text-xs"
+                variant={
+                  platformConnected[platform.name] ? "default" : "outline"
+                }
+                onClick={() => {
+                  if (!platformKeys[platform.name]) {
+                    toast.error("Enter API key first");
+                    return;
+                  }
+                  setPlatformConnected((p) => ({
+                    ...p,
+                    [platform.name]: true,
+                  }));
+                  toast.success(`${platform.name} connected successfully`);
+                }}
+                data-ocid={`admin.social_queue.${platform.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.primary_button`}
+              >
+                {platformConnected[platform.name] ? "✓ Connected" : "Connect"}
+              </Button>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
+
+      {/* Compose & Schedule */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Compose &amp; Schedule</h3>
+        <Textarea
+          className="text-xs"
+          placeholder="Write your post content..."
+          rows={3}
+          value={composeText}
+          onChange={(e) => setComposeText(e.target.value)}
+          data-ocid="admin.social_queue.compose.textarea"
+        />
+        <div className="flex flex-wrap gap-3">
+          {ALL_PLATFORMS.map((p) => (
+            <label
+              key={p.name}
+              className="flex items-center gap-1.5 text-xs cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={!!composeChecked[p.name]}
+                onChange={(e) =>
+                  setComposeChecked((prev) => ({
+                    ...prev,
+                    [p.name]: e.target.checked,
+                  }))
+                }
+                className="rounded"
+              />
+              {p.icon} {p.name}
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-2 items-center">
+          <Label className="text-xs shrink-0">Schedule:</Label>
+          <Input
+            type="datetime-local"
+            className="h-8 text-xs flex-1"
+            value={scheduleDate}
+            onChange={(e) => setScheduleDate(e.target.value)}
+            data-ocid="admin.social_queue.schedule.input"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={() => {
+              if (!composeText.trim()) {
+                toast.error("Post content required");
+                return;
+              }
+              const newItem = {
+                id: Date.now(),
+                preview: composeText,
+                platforms: Object.keys(composeChecked).filter(
+                  (k) => composeChecked[k],
+                ),
+                user: "Admin",
+                date: new Date().toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                }),
+                status: "pending" as const,
+              };
+              setItems((p) => [newItem, ...p]);
+              setComposeText("");
+              setComposeChecked({});
+              toast.success("Post added to queue");
+            }}
+            data-ocid="admin.social_queue.add.primary_button"
+          >
+            Schedule Post
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => toast.success("Preview generated")}
+            data-ocid="admin.social_queue.secondary_button"
+          >
+            Preview
+          </Button>
+        </div>
+      </div>
+
+      {/* Promotion Boost Plans */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Boost &amp; Promote Plans</h3>
+        <p className="text-xs text-muted-foreground">
+          Users pay to boost posts across social platforms and search engines.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {BOOST_PLANS.map((plan) => (
+            <div
+              key={plan.name}
+              className="border border-border rounded-xl p-4 space-y-3 relative"
+            >
+              {"badge" in plan && plan.badge && (
+                <span className="absolute top-3 right-3 text-[10px] px-2 py-0.5 rounded-full font-bold bg-primary text-primary-foreground">
+                  {plan.badge}
+                </span>
+              )}
+              <div
+                className="text-base font-bold"
+                style={{ color: plan.color }}
+              >
+                {plan.name}
+              </div>
+              <div className="text-2xl font-bold">{plan.price}</div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>📱 {plan.platforms}</div>
+                <div>⏱ {plan.duration}</div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-xs"
+                onClick={() => toast.success(`${plan.name} plan updated`)}
+                data-ocid={"admin.social_queue.boost.edit_button"}
+              >
+                Edit Pricing
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Scheduled Posts Queue */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold">Scheduled Posts</h3>
+        </div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <TH>Post Preview</TH>
+              <TH>Platforms</TH>
+              <TH>User</TH>
+              <TH>Date</TH>
+              <TH>Status</TH>
+              <TH>Actions</TH>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => (
+              <tr
+                key={item.id}
+                className="border-b border-border/50 hover:bg-secondary/20"
+                data-ocid={`admin.social_queue.row.${i + 1}`}
+              >
+                <TD className="max-w-[200px]">
+                  <p className="truncate">{item.preview}</p>
+                </TD>
+                <TD>
+                  <div className="flex flex-wrap gap-1">
+                    {item.platforms.map((p) => (
+                      <span
+                        key={p}
+                        className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                      >
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </TD>
+                <TD>{item.user}</TD>
+                <TD className="text-muted-foreground">{item.date}</TD>
+                <TD>
+                  <SBadge
+                    label={item.status}
+                    color={
+                      item.status === "approved"
+                        ? "green"
+                        : item.status === "rejected"
+                          ? "red"
+                          : "amber"
+                    }
+                  />
+                </TD>
+                <TD>
+                  {item.status === "pending" && (
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-green-600"
+                        onClick={() => approve(item.id)}
+                        data-ocid={`admin.social_queue.confirm_button.${i + 1}`}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-destructive"
+                        onClick={() => reject(item.id)}
+                        data-ocid={`admin.social_queue.delete_button.${i + 1}`}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </TD>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 // ─── Promotions Queue ─────────────────────────────────────────────────────────
 function PromotionsQueue() {
-  const [items, setItems] = useState([
+  const [activeTab, setActiveTab] = React.useState("plans");
+  const [plans, setPlans] = React.useState([
     {
       id: 1,
-      title: "Summer Sale 50% Off",
-      module: "Travel",
-      budget: "₹5,000",
-      isAdult: false,
-      user: "Amit R.",
-      date: "13 Mar 2026",
-      status: "pending" as "pending" | "approved" | "rejected",
+      name: "Basic",
+      price: "₹499",
+      duration: "7 days",
+      scope: "City-level",
+      features: ["Shop listing boost", "1 image", "500 impressions"],
+      color: "oklch(0.52 0.14 155)",
+      active: true,
     },
     {
       id: 2,
-      title: "Exclusive Wellness Package",
-      module: "Healthcare",
-      budget: "₹2,500",
-      isAdult: false,
-      user: "Sunita M.",
-      date: "12 Mar 2026",
-      status: "pending" as "pending" | "approved" | "rejected",
+      name: "Standard",
+      price: "₹1,499",
+      duration: "15 days",
+      scope: "State-level",
+      features: [
+        "Priority listing",
+        "3 images",
+        "WhatsApp blast",
+        "5,000 impressions",
+      ],
+      color: "oklch(0.55 0.22 280)",
+      active: true,
+      badge: "Popular",
     },
     {
       id: 3,
-      title: "Adults Only Resort Deals",
-      module: "Travel",
-      budget: "₹8,000",
-      isAdult: true,
-      user: "Anonymous",
-      date: "11 Mar 2026",
-      status: "pending" as "pending" | "approved" | "rejected",
+      name: "Premium",
+      price: "₹4,999",
+      duration: "30 days",
+      scope: "National",
+      features: [
+        "Top placement",
+        "Video support",
+        "WhatsApp + Social push",
+        "Google Shopping",
+        "50,000 impressions",
+      ],
+      color: "oklch(0.65 0.25 335)",
+      active: true,
     },
   ]);
+  const [modItems] = React.useState([
+    {
+      id: 1,
+      advertiser: "Sharma Spices",
+      title: "Masala Fest Sale 50% Off",
+      adCopy: "Buy 2 get 1 free on all masalas — limited time!",
+      channels: ["WhatsApp", "Instagram"],
+      region: "Mumbai",
+      aiResult: "Safe" as
+        | "Safe"
+        | "Flagged for Nudity"
+        | "Flagged for Violence"
+        | "Flagged for Hate Speech",
+      plan: "Standard",
+      color: "oklch(0.52 0.14 155 / 0.3)",
+    },
+    {
+      id: 2,
+      advertiser: "TechFix Mumbai",
+      title: "Free Screen Protector Offer",
+      adCopy: "Free screen protector with every repair this week",
+      channels: ["Facebook"],
+      region: "Pune",
+      aiResult: "Safe" as
+        | "Safe"
+        | "Flagged for Nudity"
+        | "Flagged for Violence"
+        | "Flagged for Hate Speech",
+      plan: "Basic",
+      color: "oklch(0.55 0.22 280 / 0.3)",
+    },
+    {
+      id: 3,
+      advertiser: "Unknown Business",
+      title: "Adults Only Content",
+      adCopy: "18+ entertainment and adult services...",
+      channels: ["Social Feed"],
+      region: "Delhi",
+      aiResult: "Flagged for Nudity" as
+        | "Safe"
+        | "Flagged for Nudity"
+        | "Flagged for Violence"
+        | "Flagged for Hate Speech",
+      plan: "Basic",
+      color: "oklch(0.55 0.22 22 / 0.3)",
+    },
+    {
+      id: 4,
+      advertiser: "Green Leaf Nursery",
+      title: "Summer Plant Festival",
+      adCopy: "40% off indoor plants + free delivery this summer!",
+      channels: ["WhatsApp", "Instagram", "Facebook"],
+      region: "Bangalore",
+      aiResult: "Safe" as
+        | "Safe"
+        | "Flagged for Nudity"
+        | "Flagged for Violence"
+        | "Flagged for Hate Speech",
+      plan: "Premium",
+      color: "oklch(0.52 0.14 155 / 0.3)",
+    },
+  ]);
+  const [activePromos, setActivePromos] = React.useState([
+    {
+      id: 1,
+      title: "Mumbai Bites Food Festival",
+      advertiser: "Mumbai Bites",
+      plan: "Premium",
+      channels: ["WhatsApp", "Instagram", "Facebook"],
+      region: "Mumbai",
+      start: "1 Mar 2026",
+      end: "30 Mar 2026",
+      impressions: 34520,
+      status: "active" as "active" | "paused",
+    },
+    {
+      id: 2,
+      title: "Sharma Spices Masala Dhamaka",
+      advertiser: "Sharma Spices",
+      plan: "Standard",
+      channels: ["WhatsApp", "Social Feed"],
+      region: "Delhi",
+      start: "15 Mar 2026",
+      end: "30 Mar 2026",
+      impressions: 8240,
+      status: "active" as "active" | "paused",
+    },
+    {
+      id: 3,
+      title: "TechFix Repair Offer",
+      advertiser: "TechFix Solutions",
+      plan: "Basic",
+      channels: ["Facebook"],
+      region: "Pune",
+      start: "10 Mar 2026",
+      end: "17 Mar 2026",
+      impressions: 1205,
+      status: "paused" as "active" | "paused",
+    },
+  ]);
+  const [modActionId, setModActionId] = React.useState<number | null>(null);
+  const [rejectReason, setRejectReason] = React.useState("");
+  const [modStatuses, setModStatuses] = React.useState<
+    Record<number, "approved" | "rejected">
+  >({});
+  const [editingPlan, setEditingPlan] = React.useState<number | null>(null);
 
-  const approve = (id: number) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, status: "approved" as const } : i,
-      ),
-    );
-    toast.success("Promotion approved and published");
-  };
-  const reject = (id: number) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, status: "rejected" as const } : i,
-      ),
-    );
-    toast.info("Promotion rejected");
+  const AIResultColor = (r: string) => {
+    if (r === "Safe")
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
   };
 
   return (
-    <div
-      className="bg-card border border-border rounded-xl overflow-hidden"
-      data-ocid="admin.promotions.panel"
-    >
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <TH>Ad Title</TH>
-            <TH>Module</TH>
-            <TH>Budget</TH>
-            <TH>18+</TH>
-            <TH>User</TH>
-            <TH>Status</TH>
-            <TH>Actions</TH>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, i) => (
-            <tr
-              key={item.id}
-              className="border-b border-border/50 hover:bg-secondary/20"
-              data-ocid={`admin.promotions.row.${i + 1}`}
-            >
-              <TD className="font-medium">{item.title}</TD>
-              <TD>
-                <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">
-                  {item.module}
-                </span>
-              </TD>
-              <TD className="font-semibold text-green-600">{item.budget}</TD>
-              <TD>
-                {item.isAdult ? (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-600">
-                    18+
+    <div className="space-y-4" data-ocid="admin.promotions.panel">
+      {/* Analytics */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          {
+            label: "Revenue This Month",
+            value: "₹38,200",
+            icon: "💰",
+            color: "oklch(0.52 0.14 155)",
+          },
+          {
+            label: "Active Promotions",
+            value: String(
+              activePromos.filter((p) => p.status === "active").length,
+            ),
+            icon: "📣",
+            color: "oklch(0.55 0.22 280)",
+          },
+          {
+            label: "Pending Approval",
+            value: String(modItems.filter((m) => !modStatuses[m.id]).length),
+            icon: "⏳",
+            color: "oklch(0.72 0.17 85)",
+          },
+          {
+            label: "Flagged by AI",
+            value: String(modItems.filter((m) => m.aiResult !== "Safe").length),
+            icon: "🚩",
+            color: "oklch(0.55 0.22 22)",
+          },
+          {
+            label: "Approved Today",
+            value: String(
+              Object.values(modStatuses).filter((s) => s === "approved").length,
+            ),
+            icon: "✅",
+            color: "oklch(0.52 0.14 155)",
+          },
+        ].map((stat, i) => (
+          <div
+            key={stat.label}
+            className="bg-card border border-border rounded-xl p-3 text-center"
+            data-ocid={`admin.promotions.stat.card.${i + 1}`}
+          >
+            <div className="text-2xl mb-1">{stat.icon}</div>
+            <div className="text-lg font-bold" style={{ color: stat.color }}>
+              {stat.value}
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger
+            value="plans"
+            className="text-xs"
+            data-ocid="admin.promotions.plans.tab"
+          >
+            Plans
+          </TabsTrigger>
+          <TabsTrigger
+            value="moderation"
+            className="text-xs"
+            data-ocid="admin.promotions.moderation.tab"
+          >
+            Moderation Queue{" "}
+            {modItems.filter((m) => !modStatuses[m.id]).length > 0 && (
+              <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold">
+                {modItems.filter((m) => !modStatuses[m.id]).length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger
+            value="active"
+            className="text-xs"
+            data-ocid="admin.promotions.active.tab"
+          >
+            Active Promotions
+          </TabsTrigger>
+          <TabsTrigger
+            value="create"
+            className="text-xs"
+            data-ocid="admin.promotions.create.tab"
+          >
+            Create Preview
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Plans Tab */}
+        <TabsContent value="plans" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                className="border border-border rounded-xl p-5 space-y-4 relative"
+                data-ocid={`admin.promotions.plan.row.${plan.id}`}
+              >
+                {"badge" in plan && plan.badge && (
+                  <span className="absolute top-3 right-3 text-[10px] px-2 py-0.5 rounded-full font-bold bg-primary text-primary-foreground">
+                    {plan.badge}
                   </span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
                 )}
-              </TD>
-              <TD className="text-muted-foreground">{item.user}</TD>
-              <TD>
-                <SBadge
-                  label={item.status}
-                  color={
-                    item.status === "approved"
-                      ? "green"
-                      : item.status === "rejected"
-                        ? "red"
-                        : "amber"
-                  }
-                />
-              </TD>
-              <TD>
-                {item.status === "pending" ? (
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs text-green-600 border-green-200"
-                      onClick={() => approve(item.id)}
-                      data-ocid={`admin.promotions.confirm_button.${i + 1}`}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs text-destructive border-destructive/20"
-                      onClick={() => reject(item.id)}
-                      data-ocid={`admin.promotions.delete_button.${i + 1}`}
-                    >
-                      Reject
-                    </Button>
+                <div className="flex items-center justify-between">
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: plan.color }}
+                  >
+                    {plan.name}
+                  </span>
+                  <Switch
+                    checked={plan.active}
+                    onCheckedChange={(v) =>
+                      setPlans((p) =>
+                        p.map((pl) =>
+                          pl.id === plan.id ? { ...pl, active: v } : pl,
+                        ),
+                      )
+                    }
+                    data-ocid={`admin.promotions.plan.toggle.${plan.id}`}
+                  />
+                </div>
+                {editingPlan === plan.id ? (
+                  <div className="space-y-2">
+                    <Input
+                      className="h-8 text-xs"
+                      defaultValue={plan.price}
+                      placeholder="Price (e.g. ₹499)"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          setEditingPlan(null);
+                          toast.success("Plan updated");
+                        }}
+                        data-ocid={`admin.promotions.plan.save_button.${plan.id}`}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => setEditingPlan(null)}
+                        data-ocid={`admin.promotions.plan.cancel_button.${plan.id}`}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {item.status}
-                  </span>
+                  <>
+                    <div className="text-3xl font-bold">{plan.price}</div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <div>⏱ {plan.duration}</div>
+                      <div>🗺️ {plan.scope}</div>
+                    </div>
+                    <ul className="space-y-1">
+                      {plan.features.map((f) => (
+                        <li
+                          key={f}
+                          className="text-xs flex items-center gap-1.5"
+                        >
+                          <span className="text-green-500">✓</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-xs"
+                      onClick={() => setEditingPlan(plan.id)}
+                      data-ocid={`admin.promotions.plan.edit_button.${plan.id}`}
+                    >
+                      Edit Plan
+                    </Button>
+                  </>
                 )}
-              </TD>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 bg-card border border-border rounded-xl p-4">
+            <h4 className="text-sm font-semibold mb-3">
+              Payment Gate Settings
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">
+              Users must pay before their promotion goes live. Payment
+              verification is required for all plans.
+            </p>
+            <div className="flex items-center gap-3">
+              <Switch
+                defaultChecked
+                data-ocid="admin.promotions.payment_gate.switch"
+              />
+              <Label className="text-xs">
+                Require payment before promotion is submitted for review
+              </Label>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Moderation Queue */}
+        <TabsContent value="moderation" className="mt-0">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+              <span className="text-lg">🤖</span>
+              <span>
+                AI content moderation checks for nudity, violence, hate speech,
+                and inappropriate imagery automatically. Admin makes the final
+                decision.
+              </span>
+            </div>
+            {modItems.map((item, i) => {
+              const status = modStatuses[item.id];
+              return (
+                <div
+                  key={item.id}
+                  className="bg-card border border-border rounded-xl p-4 space-y-3"
+                  data-ocid={`admin.promotions.mod.row.${i + 1}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-16 h-16 rounded-lg shrink-0 flex items-center justify-center text-2xl"
+                        style={{ background: item.color }}
+                      >
+                        📣
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold">
+                          {item.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.advertiser} · {item.plan} Plan · {item.region}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.adCopy}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.channels.map((c) => (
+                            <span
+                              key={c}
+                              className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 space-y-2 text-right">
+                      <div
+                        className={`text-[10px] px-2 py-1 rounded-full font-medium ${AIResultColor(item.aiResult)}`}
+                      >
+                        🤖 {item.aiResult}
+                      </div>
+                      {status ? (
+                        <span
+                          className={`text-[10px] px-2 py-1 rounded-full font-medium ${status === "approved" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
+                        >
+                          {status === "approved" ? "✓ Approved" : "✗ Rejected"}
+                        </span>
+                      ) : (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => {
+                              setModStatuses((p) => ({
+                                ...p,
+                                [item.id]: "approved",
+                              }));
+                              toast.success(`"${item.title}" approved`);
+                            }}
+                            data-ocid={`admin.promotions.mod.confirm_button.${i + 1}`}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-destructive"
+                            onClick={() => setModActionId(item.id)}
+                            data-ocid={`admin.promotions.mod.delete_button.${i + 1}`}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {modActionId === item.id && (
+                    <div className="border border-border rounded-xl p-3 space-y-2 bg-secondary/20">
+                      <Label className="text-xs">Rejection Reason</Label>
+                      <Textarea
+                        className="text-xs"
+                        rows={2}
+                        placeholder="Explain why this promotion is being rejected..."
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        data-ocid={`admin.promotions.mod.textarea.${i + 1}`}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="text-xs flex-1"
+                          variant="destructive"
+                          onClick={() => {
+                            setModStatuses((p) => ({
+                              ...p,
+                              [item.id]: "rejected",
+                            }));
+                            setModActionId(null);
+                            setRejectReason("");
+                            toast.error(`"${item.title}" rejected`);
+                          }}
+                          data-ocid={`admin.promotions.mod.confirm_button.${i + 1}`}
+                        >
+                          Confirm Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs"
+                          onClick={() => setModActionId(null)}
+                          data-ocid={`admin.promotions.mod.cancel_button.${i + 1}`}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* Active Promotions */}
+        <TabsContent value="active" className="mt-0">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <TH>Title</TH>
+                  <TH>Advertiser</TH>
+                  <TH>Plan</TH>
+                  <TH>Channels</TH>
+                  <TH>Period</TH>
+                  <TH>Impressions</TH>
+                  <TH>Status</TH>
+                  <TH>Actions</TH>
+                </tr>
+              </thead>
+              <tbody>
+                {activePromos.map((promo, i) => (
+                  <tr
+                    key={promo.id}
+                    className="border-b border-border/50 hover:bg-secondary/20"
+                    data-ocid={`admin.promotions.active.row.${i + 1}`}
+                  >
+                    <TD className="font-medium max-w-[140px]">
+                      <p className="truncate">{promo.title}</p>
+                    </TD>
+                    <TD>{promo.advertiser}</TD>
+                    <TD>
+                      <SBadge
+                        label={promo.plan}
+                        color={
+                          promo.plan === "Premium"
+                            ? "violet"
+                            : promo.plan === "Standard"
+                              ? "blue"
+                              : "green"
+                        }
+                      />
+                    </TD>
+                    <TD>
+                      <div className="flex flex-wrap gap-1">
+                        {promo.channels.map((c) => (
+                          <span
+                            key={c}
+                            className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </TD>
+                    <TD className="text-muted-foreground text-[10px]">
+                      {promo.start}
+                      <br />→ {promo.end}
+                    </TD>
+                    <TD className="font-medium">
+                      {promo.impressions.toLocaleString()}
+                    </TD>
+                    <TD>
+                      <SBadge
+                        label={promo.status}
+                        color={promo.status === "active" ? "green" : "amber"}
+                      />
+                    </TD>
+                    <TD>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={() => {
+                            setActivePromos((p) =>
+                              p.map((x) =>
+                                x.id === promo.id
+                                  ? {
+                                      ...x,
+                                      status:
+                                        x.status === "active"
+                                          ? "paused"
+                                          : "active",
+                                    }
+                                  : x,
+                              ),
+                            );
+                            toast.success("Status updated");
+                          }}
+                          data-ocid={`admin.promotions.active.toggle.${i + 1}`}
+                        >
+                          {promo.status === "active" ? "Pause" : "Resume"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px] text-destructive"
+                          onClick={() => {
+                            setActivePromos((p) =>
+                              p.filter((x) => x.id !== promo.id),
+                            );
+                            toast.info("Promotion stopped");
+                          }}
+                          data-ocid={`admin.promotions.active.delete_button.${i + 1}`}
+                        >
+                          Stop
+                        </Button>
+                      </div>
+                    </TD>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* Create Preview (user-facing flow) */}
+        <TabsContent value="create" className="mt-0">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <div className="flex items-center gap-2 text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+              <span className="text-lg">👁️</span>
+              <span className="text-xs font-medium">
+                This is the user-facing promotion creation flow (admin preview)
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              {[
+                "Select Plan & Pay",
+                "Upload Creative",
+                "Choose Region",
+                "Select Channels",
+              ].map((step, i) => (
+                <div
+                  key={step}
+                  className="border border-border rounded-xl p-4 space-y-2"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                    {i + 1}
+                  </div>
+                  <div className="text-sm font-semibold">{step}</div>
+                  {i === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      User selects a plan and completes payment before promotion
+                      is submitted for review.
+                    </p>
+                  )}
+                  {i === 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      Upload image/video ad creative. AI moderates content for
+                      nudity, violence, hate speech automatically.
+                    </p>
+                  )}
+                  {i === 2 && (
+                    <p className="text-xs text-muted-foreground">
+                      Select city, state, or national reach based on the plan
+                      purchased.
+                    </p>
+                  )}
+                  {i === 3 && (
+                    <p className="text-xs text-muted-foreground">
+                      Choose platforms: WhatsApp, Social Feed, Search Engines,
+                      Instagram, Facebook.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
+  );
+}
+
+// ─── Agent 19 Full Panel (3 inner tabs) ───────────────────────────────────────
+function Agent19FullPanel() {
+  const [genres, setGenres] = React.useState({
+    Sports: true,
+    Bollywood: true,
+    Tech: true,
+    History: true,
+    Science: true,
+    Food: true,
+  });
+  const [gamesPerDay, setGamesPerDay] = React.useState([5]);
+  const [targetUsers, setTargetUsers] = React.useState("all");
+  const [autoPublish, setAutoPublish] = React.useState(true);
+  const [gamesCreated, setGamesCreated] = React.useState(12);
+  const [activePlayers, setActivePlayers] = React.useState(847);
+  const avgScore = 68;
+  const [monitorLog, setMonitorLog] = React.useState<string[]>([
+    "Generated: Cricket Champions Trivia • 42 players active",
+    "Generated: Bollywood Blockbuster Quiz • 28 players active",
+    "Generated: Tech Innovators Challenge • 15 players active",
+  ]);
+  const logRef = React.useRef(0);
+
+  const GAME_LOG_ENTRIES = [
+    "Generated: Bollywood Trivia Round 3 • 2 players active",
+    "Generated: Sports Quiz — Cricket Edition • 7 players active",
+    "Generated: Tech MCQ Blitz 2026 • 11 players active",
+    "Generated: History of India Challenge • 5 players active",
+    "Generated: Food & Spice Trivia • 9 players active",
+    "Generated: Science Wonders Quiz • 14 players active",
+    "Generated: IPL Champions 2026 Quiz • 19 players active",
+    "Published: Monsoon Food Recipes Game → Social Feed",
+  ];
+
+  React.useEffect(() => {
+    const t = setInterval(() => {
+      logRef.current += 1;
+      const entry = GAME_LOG_ENTRIES[logRef.current % GAME_LOG_ENTRIES.length];
+      setMonitorLog((p) =>
+        [`[${new Date().toLocaleTimeString()}] ${entry}`, ...p].slice(0, 20),
+      );
+      setGamesCreated((c) => c + 1);
+      if (logRef.current % 3 === 0)
+        setActivePlayers((p) => p + Math.floor(Math.random() * 8));
+    }, 8000);
+    return () => clearInterval(t);
+  }, []);
+
+  const PREVIEW_GAMES = [
+    {
+      title: "Cricket Champions 2026",
+      genre: "Sports",
+      difficulty: "Medium",
+      plays: 142,
+      color: "oklch(0.52 0.14 155)",
+    },
+    {
+      title: "Bollywood Legends Quiz",
+      genre: "Bollywood",
+      difficulty: "Easy",
+      plays: 203,
+      color: "oklch(0.65 0.25 335)",
+    },
+    {
+      title: "Tech Trivia Blitz",
+      genre: "Tech",
+      difficulty: "Hard",
+      plays: 89,
+      color: "oklch(0.55 0.22 280)",
+    },
+  ];
+
+  return (
+    <Tabs defaultValue="config" className="w-full">
+      <TabsList className="mb-4 h-8">
+        <TabsTrigger
+          value="config"
+          className="text-xs h-7"
+          data-ocid="admin.agent19.config.tab"
+        >
+          Config
+        </TabsTrigger>
+        <TabsTrigger
+          value="monitoring"
+          className="text-xs h-7"
+          data-ocid="admin.agent19.monitoring.tab"
+        >
+          Monitoring{" "}
+          <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500 font-bold">
+            ● LIVE
+          </span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="preview"
+          className="text-xs h-7"
+          data-ocid="admin.agent19.preview.tab"
+        >
+          Preview
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="config" className="mt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold">Genre Targets</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(genres) as (keyof typeof genres)[]).map((g) => (
+                <label
+                  key={g}
+                  className="flex items-center gap-2 text-xs cursor-pointer select-none"
+                >
+                  <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={genres[g]}
+                    onChange={() =>
+                      setGenres((prev) => ({ ...prev, [g]: !prev[g] }))
+                    }
+                    data-ocid={`admin.agent19.genre.${g.toLowerCase()}.checkbox`}
+                  />
+                  {g === "Sports"
+                    ? "⚽"
+                    : g === "Bollywood"
+                      ? "🎬"
+                      : g === "Tech"
+                        ? "💻"
+                        : g === "History"
+                          ? "📜"
+                          : g === "Science"
+                            ? "🔬"
+                            : "🍛"}{" "}
+                  {g}
+                </label>
+              ))}
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs">Games per Day</Label>
+                <span className="text-xs font-semibold text-primary">
+                  {gamesPerDay[0]}
+                </span>
+              </div>
+              <Slider
+                min={1}
+                max={20}
+                step={1}
+                value={gamesPerDay}
+                onValueChange={setGamesPerDay}
+                data-ocid="admin.agent19.games_per_day.toggle"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Target Users</Label>
+              <Select value={targetUsers} onValueChange={setTargetUsers}>
+                <SelectTrigger
+                  className="mt-1 h-8"
+                  data-ocid="admin.agent19.target.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Users</SelectItem>
+                  <SelectItem value="active">
+                    Active Only (last 7 days)
+                  </SelectItem>
+                  <SelectItem value="premium">Premium Members</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Auto-publish to Social Feed</Label>
+              <Switch
+                checked={autoPublish}
+                onCheckedChange={setAutoPublish}
+                data-ocid="admin.agent19.auto_publish.toggle"
+              />
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => toast.success("Agent 19 config saved")}
+              data-ocid="admin.agent19.save.primary_button"
+            >
+              Save Config
+            </Button>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Quick Actions</h3>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setGamesCreated((c) => c + 1);
+                toast.success("Game generation triggered manually");
+              }}
+              data-ocid="admin.agent19.generate.primary_button"
+            >
+              ⚡ Generate Now
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Agent runs automatically every day at 6:00 AM IST. Manual trigger
+              available anytime.
+            </p>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="monitoring" className="mt-0 space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            {
+              label: "Games Created Today",
+              value: gamesCreated,
+              icon: "🎮",
+              color: "oklch(0.55 0.22 280)",
+            },
+            {
+              label: "Active Players",
+              value: activePlayers.toLocaleString(),
+              icon: "👥",
+              color: "oklch(0.52 0.14 155)",
+            },
+            {
+              label: "Avg Score %",
+              value: `${avgScore}%`,
+              icon: "📊",
+              color: "oklch(0.72 0.17 85)",
+            },
+          ].map((s, i) => (
+            <div
+              key={s.label}
+              className="bg-card border border-border rounded-xl p-3 text-center"
+              data-ocid={`admin.agent19.stat.card.${i + 1}`}
+            >
+              <div className="text-2xl mb-1">{s.icon}</div>
+              <div className="text-xl font-bold" style={{ color: s.color }}>
+                {s.value}
+              </div>
+              <div className="text-[10px] text-muted-foreground">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              Live Activity Log
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                style={{
+                  background: "oklch(0.52 0.14 155 / 0.15)",
+                  color: "oklch(0.52 0.14 155)",
+                }}
+              >
+                ● Running
+              </span>
+            </h3>
+          </div>
+          <div
+            className="space-y-1.5 h-64 overflow-y-auto"
+            data-ocid="admin.agent19.log.panel"
+          >
+            {monitorLog.map((entry, i) => (
+              <div
+                key={entry}
+                className="text-[11px] px-3 py-1.5 rounded-lg bg-secondary/40 text-muted-foreground font-mono"
+                data-ocid={i === 0 ? "admin.agent19.log.item.1" : undefined}
+              >
+                {entry}
+              </div>
+            ))}
+          </div>
+        </div>
+        <Agent19LiveFeed />
+      </TabsContent>
+
+      <TabsContent value="preview" className="mt-0 space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Last 3 games generated by Agent 19, as they appear to users:
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {PREVIEW_GAMES.map((g, i) => (
+            <div
+              key={g.title}
+              className="bg-card border border-border rounded-xl p-4 space-y-3"
+              data-ocid={`admin.agent19.preview.card.${i + 1}`}
+            >
+              <div className="flex items-start justify-between">
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white"
+                  style={{ background: g.color }}
+                >
+                  {g.genre}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {g.difficulty}
+                </span>
+              </div>
+              <h4 className="text-sm font-semibold leading-tight">{g.title}</h4>
+              <p className="text-xs text-muted-foreground">
+                👥 {g.plays} plays
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-7 text-xs"
+                onClick={() => toast.success(`Previewing: ${g.title}`)}
+                data-ocid={`admin.agent19.preview.primary_button.${i + 1}`}
+              >
+                Preview Game
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Agent19PreviewDialog />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+// ─── Agent 20 Full Panel (3 inner tabs) ───────────────────────────────────────
+function Agent20FullPanel() {
+  const [comicStyle, setComicStyle] = React.useState("funny");
+  const [postsPerDay, setPostsPerDay] = React.useState([3]);
+  const [filterLevel, setFilterLevel] = React.useState("family-safe");
+  const [autoPublish, setAutoPublish] = React.useState(true);
+  const [comicsGenerated, setComicsGenerated] = React.useState(8);
+  const [totalLikes, setTotalLikes] = React.useState(2340);
+  const sharesThisWeek = 187;
+  const [comicLog, setComicLog] = React.useState<string[]>([
+    "New comic: Monday Morning Chaos • 12 likes",
+    "New comic: The Chai Diaries • 28 likes",
+    "New comic: Office Life Vol 3 • 9 likes",
+  ]);
+  const logRef = React.useRef(0);
+
+  const COMIC_LOG_ENTRIES = [
+    "New comic: Monday Morning Chaos • 12 likes",
+    "New comic: Traffic Tales — Mumbai Edition • 6 likes",
+    "New comic: When the WiFi Drops • 18 likes",
+    "New comic: Festival Shopping Frenzy • 22 likes",
+    "New comic: Rains & Rickshaws • 14 likes",
+    "Published: The Deadline Diaries → Social Feed",
+    "New comic: Dadi's WhatsApp Adventures • 31 likes",
+  ];
+
+  React.useEffect(() => {
+    const t = setInterval(() => {
+      logRef.current += 1;
+      const entry =
+        COMIC_LOG_ENTRIES[logRef.current % COMIC_LOG_ENTRIES.length];
+      setComicLog((p) =>
+        [`[${new Date().toLocaleTimeString()}] ${entry}`, ...p].slice(0, 20),
+      );
+      setComicsGenerated((c) => c + 1);
+      if (logRef.current % 2 === 0)
+        setTotalLikes((l) => l + Math.floor(Math.random() * 15));
+    }, 10000);
+    return () => clearInterval(t);
+  }, []);
+
+  const PREVIEW_COMICS = [
+    {
+      title: "Monday Morning Chaos",
+      caption:
+        "When the alarm rings but your body says 'just 5 more minutes'... every single day 😴",
+      mood: "funny",
+      bg: "oklch(0.65 0.25 335 / 0.12)",
+      accent: "oklch(0.65 0.25 335)",
+    },
+    {
+      title: "The Chai Diaries",
+      caption:
+        "No meeting can start without chai. That's not tradition, that's law. ☕",
+      mood: "wholesome",
+      bg: "oklch(0.72 0.17 85 / 0.12)",
+      accent: "oklch(0.72 0.17 85)",
+    },
+    {
+      title: "Tech Support Tales",
+      caption: "Boss: just restart it. Me: 3 hours of debugging later... 💻",
+      mood: "sarcastic",
+      bg: "oklch(0.55 0.22 280 / 0.12)",
+      accent: "oklch(0.55 0.22 280)",
+    },
+  ];
+
+  return (
+    <Tabs defaultValue="config" className="w-full">
+      <TabsList className="mb-4 h-8">
+        <TabsTrigger
+          value="config"
+          className="text-xs h-7"
+          data-ocid="admin.agent20.config.tab"
+        >
+          Config
+        </TabsTrigger>
+        <TabsTrigger
+          value="monitoring"
+          className="text-xs h-7"
+          data-ocid="admin.agent20.monitoring.tab"
+        >
+          Monitoring{" "}
+          <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500 font-bold">
+            ● LIVE
+          </span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="preview"
+          className="text-xs h-7"
+          data-ocid="admin.agent20.preview.tab"
+        >
+          Preview
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="config" className="mt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold">Comic Style</h3>
+            <div>
+              <Label className="text-xs">Style</Label>
+              <Select value={comicStyle} onValueChange={setComicStyle}>
+                <SelectTrigger
+                  className="mt-1 h-8"
+                  data-ocid="admin.agent20.style.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="funny">😂 Funny</SelectItem>
+                  <SelectItem value="satirical">🎭 Satirical</SelectItem>
+                  <SelectItem value="wholesome">🌸 Wholesome</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs">Posts per Day</Label>
+                <span className="text-xs font-semibold text-primary">
+                  {postsPerDay[0]}
+                </span>
+              </div>
+              <Slider
+                min={1}
+                max={10}
+                step={1}
+                value={postsPerDay}
+                onValueChange={setPostsPerDay}
+                data-ocid="admin.agent20.posts_per_day.toggle"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Content Filter Level</Label>
+              <Select value={filterLevel} onValueChange={setFilterLevel}>
+                <SelectTrigger
+                  className="mt-1 h-8"
+                  data-ocid="admin.agent20.filter.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="family-safe">
+                    👨‍👩‍👧 Family-Safe
+                  </SelectItem>
+                  <SelectItem value="general">👥 General</SelectItem>
+                  <SelectItem value="mature-lite">🔞 Mature-Lite</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Auto-publish to Social Feed</Label>
+              <Switch
+                checked={autoPublish}
+                onCheckedChange={setAutoPublish}
+                data-ocid="admin.agent20.auto_publish.toggle"
+              />
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => toast.success("Agent 20 config saved")}
+              data-ocid="admin.agent20.save.primary_button"
+            >
+              Save Config
+            </Button>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Quick Actions</h3>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setComicsGenerated((c) => c + 1);
+                toast.success("Comic generated and queued");
+              }}
+              data-ocid="admin.agent20.generate.primary_button"
+            >
+              ⚡ Generate Now
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Agent runs daily at 7:30 AM IST, pulling from yesterday's social
+              feed highlights.
+            </p>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="monitoring" className="mt-0 space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            {
+              label: "Comics Generated Today",
+              value: comicsGenerated,
+              icon: "😄",
+              color: "oklch(0.65 0.25 335)",
+            },
+            {
+              label: "Total Likes",
+              value: totalLikes.toLocaleString(),
+              icon: "❤️",
+              color: "oklch(0.65 0.25 335)",
+            },
+            {
+              label: "Shares This Week",
+              value: sharesThisWeek,
+              icon: "🔁",
+              color: "oklch(0.52 0.14 155)",
+            },
+          ].map((s, i) => (
+            <div
+              key={s.label}
+              className="bg-card border border-border rounded-xl p-3 text-center"
+              data-ocid={`admin.agent20.stat.card.${i + 1}`}
+            >
+              <div className="text-2xl mb-1">{s.icon}</div>
+              <div className="text-xl font-bold" style={{ color: s.color }}>
+                {s.value}
+              </div>
+              <div className="text-[10px] text-muted-foreground">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              Live Comic Feed
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                style={{
+                  background: "oklch(0.52 0.14 155 / 0.15)",
+                  color: "oklch(0.52 0.14 155)",
+                }}
+              >
+                ● Running
+              </span>
+            </h3>
+          </div>
+          <div
+            className="space-y-1.5 h-64 overflow-y-auto"
+            data-ocid="admin.agent20.log.panel"
+          >
+            {comicLog.map((entry, i) => (
+              <div
+                key={entry}
+                className="text-[11px] px-3 py-1.5 rounded-lg bg-secondary/40 text-muted-foreground font-mono"
+                data-ocid={i === 0 ? "admin.agent20.log.item.1" : undefined}
+              >
+                {entry}
+              </div>
+            ))}
+          </div>
+        </div>
+        <Agent20LiveFeed />
+      </TabsContent>
+
+      <TabsContent value="preview" className="mt-0 space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Last 3 comics generated by Agent 20, as they appear to users:
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {PREVIEW_COMICS.map((c, i) => (
+            <div
+              key={c.title}
+              className="rounded-xl border border-border overflow-hidden"
+              data-ocid={`admin.agent20.preview.card.${i + 1}`}
+            >
+              <div
+                className="h-28 flex items-center justify-center text-4xl"
+                style={{ background: c.bg }}
+              >
+                {c.mood === "funny"
+                  ? "😂"
+                  : c.mood === "wholesome"
+                    ? "🥰"
+                    : "😏"}
+              </div>
+              <div className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold">{c.title}</span>
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                    style={{ background: `${c.accent}20`, color: c.accent }}
+                  >
+                    {c.mood}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {c.caption}
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    className="text-[11px] text-muted-foreground hover:text-pink-500 transition-colors"
+                    onClick={() => toast.success("Liked!")}
+                    data-ocid={`admin.agent20.preview.toggle.${i + 1}`}
+                  >
+                    ❤️ Like
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => toast.success("Copied share link")}
+                    data-ocid={`admin.agent20.preview.secondary_button.${i + 1}`}
+                  >
+                    🔁 Share
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Agent20PreviewDialog />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -8857,390 +10129,1656 @@ function WhatsAppAPISettings() {
     webhookUrl: "",
   });
   const [testing, setTesting] = useState(false);
+  const [templates, setTemplates] = useState([
+    {
+      id: 1,
+      name: "Welcome",
+      status: "approved",
+      preview: "Welcome to IndyaCentral! Your account is ready.",
+    },
+    {
+      id: 2,
+      name: "Order Confirmation",
+      status: "approved",
+      preview: "Your order #{{1}} has been confirmed. Expected: {{2}}",
+    },
+    {
+      id: 3,
+      name: "OTP",
+      status: "approved",
+      preview: "Your OTP is {{1}}. Valid for {{2}} minutes.",
+    },
+    {
+      id: 4,
+      name: "Offer",
+      status: "pending",
+      preview: "Exclusive offer: {{1}} — valid till {{2}}",
+    },
+  ]);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({ name: "", preview: "" });
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [broadcastTarget, setBroadcastTarget] = useState("all");
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [otpExpiry, setOtpExpiry] = useState("5");
+  const [otpLength, setOtpLength] = useState("6");
+  const [maxRetries, setMaxRetries] = useState("3");
+  const [showApiKey, setShowApiKey] = React.useState(false);
+  const [liveMode, setLiveMode] = React.useState(false);
+  const [testPhone, setTestPhone] = React.useState("");
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-        <h3 className="text-sm font-semibold">API Credentials</h3>
-        {(
-          [
-            {
-              label: "Phone Number ID",
-              key: "phoneNumberId",
-              placeholder: "123456789012345",
-            },
-            {
-              label: "Business Account ID",
-              key: "businessAccountId",
-              placeholder: "987654321098765",
-            },
-            {
-              label: "Access Token",
-              key: "accessToken",
-              placeholder: "EAAxxxxx...",
-            },
-            {
-              label: "Webhook Verify Token",
-              key: "webhookToken",
-              placeholder: "my_verify_token",
-            },
-            {
-              label: "Webhook URL",
-              key: "webhookUrl",
-              placeholder: "https://your-domain.com/webhook",
-            },
-          ] as { label: string; key: keyof typeof form; placeholder: string }[]
-        ).map((field) => (
-          <div key={field.key}>
-            <Label className="text-xs">{field.label}</Label>
-            <Input
-              className="mt-1"
-              placeholder={field.placeholder}
-              value={form[field.key]}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, [field.key]: e.target.value }))
-              }
-              data-ocid="admin.whatsapp.input"
+    <Tabs defaultValue="credentials">
+      <TabsList className="mb-4">
+        <TabsTrigger
+          value="credentials"
+          className="text-xs"
+          data-ocid="whatsapp.credentials_tab"
+        >
+          Credentials
+        </TabsTrigger>
+        <TabsTrigger value="templates" className="text-xs">
+          Templates
+        </TabsTrigger>
+        <TabsTrigger value="broadcast" className="text-xs">
+          Broadcast
+        </TabsTrigger>
+        <TabsTrigger value="otp" className="text-xs">
+          OTP Config
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="credentials" className="mt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold">API Credentials</h3>
+            <div>
+              <Label className="text-xs">Phone Number ID</Label>
+              <Input
+                className="mt-1"
+                placeholder="123456789012345"
+                value={form.phoneNumberId}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, phoneNumberId: e.target.value }))
+                }
+                data-ocid="admin.whatsapp.phone_id.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Business Account ID</Label>
+              <Input
+                className="mt-1"
+                placeholder="987654321098765"
+                value={form.businessAccountId}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, businessAccountId: e.target.value }))
+                }
+                data-ocid="admin.whatsapp.biz_id.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">API Key / Access Token</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showApiKey ? "text" : "password"}
+                  placeholder="EAAxxxxx..."
+                  value={form.accessToken}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, accessToken: e.target.value }))
+                  }
+                  className="pr-10"
+                  data-ocid="whatsapp.api_key_input"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                  onClick={() => setShowApiKey((v) => !v)}
+                  data-ocid="whatsapp.api_key_toggle"
+                >
+                  {showApiKey ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Webhook Verify Token</Label>
+              <Input
+                className="mt-1"
+                placeholder="my_verify_token"
+                value={form.webhookToken}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, webhookToken: e.target.value }))
+                }
+                data-ocid="admin.whatsapp.webhook_token.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Webhook URL</Label>
+              <Input
+                className="mt-1"
+                placeholder="https://your-domain.com/webhook"
+                value={form.webhookUrl}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, webhookUrl: e.target.value }))
+                }
+                data-ocid="admin.whatsapp.webhook_url.input"
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/20">
+              <div>
+                <p className="text-xs font-medium">API Mode</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {liveMode
+                    ? "Live — real messages sent"
+                    : "Test — sandbox only"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Test</span>
+                <Switch
+                  checked={liveMode}
+                  onCheckedChange={setLiveMode}
+                  data-ocid="admin.whatsapp.mode.switch"
+                />
+                <span className="text-xs text-muted-foreground">Live</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                onClick={() => toast.success("WhatsApp API settings saved")}
+                data-ocid="whatsapp.save_button"
+              >
+                Save Credentials
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={testing}
+                onClick={() => {
+                  setTesting(true);
+                  setTimeout(() => {
+                    setTesting(false);
+                    toast.success("WhatsApp connection test successful!");
+                  }, 1500);
+                }}
+                data-ocid="admin.whatsapp.test.secondary_button"
+              >
+                {testing ? "Testing..." : "Test Connection"}
+              </Button>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Quick Setup Guide</h3>
+            {[
+              "1. Create a Meta Business Account at business.facebook.com",
+              "2. Set up a WhatsApp Business App in Meta Developers Console",
+              "3. Add your phone number and verify it",
+              "4. Generate a permanent access token",
+              "5. Configure the webhook URL with your verify token",
+              "6. Test the connection and start sending messages",
+            ].map((step, i) => (
+              <div key={step} className="flex gap-2 text-xs">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
+                  {i + 1}
+                </span>
+                <span className="text-muted-foreground">{step.slice(3)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="templates" className="mt-0">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Message Templates</h3>
+            <Button
+              size="sm"
+              onClick={() => setShowTemplateForm((p) => !p)}
+              data-ocid="admin.whatsapp.template.primary_button"
+            >
+              + Create Template
+            </Button>
+          </div>
+          {showTemplateForm && (
+            <div className="border border-border rounded-xl p-3 space-y-2 bg-secondary/20">
+              <Input
+                className="h-8 text-xs"
+                placeholder="Template name"
+                value={newTemplate.name}
+                onChange={(e) =>
+                  setNewTemplate((p) => ({ ...p, name: e.target.value }))
+                }
+                data-ocid="admin.whatsapp.template.input"
+              />
+              <Textarea
+                className="text-xs"
+                rows={2}
+                placeholder="Template preview text with {{1}} placeholders..."
+                value={newTemplate.preview}
+                onChange={(e) =>
+                  setNewTemplate((p) => ({ ...p, preview: e.target.value }))
+                }
+                data-ocid="admin.whatsapp.template.textarea"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!newTemplate.name.trim()) {
+                    toast.error("Template name required");
+                    return;
+                  }
+                  setTemplates((p) => [
+                    ...p,
+                    { id: Date.now(), ...newTemplate, status: "pending" },
+                  ]);
+                  setNewTemplate({ name: "", preview: "" });
+                  setShowTemplateForm(false);
+                  toast.success("Template created");
+                }}
+                data-ocid="admin.whatsapp.template.confirm_button"
+              >
+                Save Template
+              </Button>
+            </div>
+          )}
+          <div className="space-y-2">
+            {templates.map((t, i) => (
+              <div
+                key={t.id}
+                className="border border-border rounded-xl p-3 flex items-start gap-3"
+                data-ocid={`admin.whatsapp.template.row.${i + 1}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold">{t.name}</span>
+                    <SBadge
+                      label={t.status}
+                      color={t.status === "approved" ? "green" : "amber"}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {t.preview}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="broadcast" className="mt-0">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <h3 className="text-sm font-semibold">Send Broadcast</h3>
+          <div>
+            <Label className="text-xs">Recipients</Label>
+            <Select value={broadcastTarget} onValueChange={setBroadcastTarget}>
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin.whatsapp.broadcast.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="business">Business Subscribers</SelectItem>
+                <SelectItem value="custom">Custom List</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Message</Label>
+            <Textarea
+              className="mt-1 text-xs"
+              rows={4}
+              placeholder="Type your broadcast message..."
+              value={broadcastMsg}
+              onChange={(e) => setBroadcastMsg(e.target.value)}
+              data-ocid="admin.whatsapp.broadcast.textarea"
             />
           </div>
-        ))}
-        <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={scheduleEnabled}
+              onCheckedChange={setScheduleEnabled}
+              data-ocid="admin.whatsapp.broadcast.schedule.switch"
+            />
+            <Label className="text-xs">Schedule</Label>
+            {scheduleEnabled && (
+              <Input
+                type="datetime-local"
+                className="h-8 text-xs flex-1"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                data-ocid="admin.whatsapp.broadcast.schedule.input"
+              />
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={() => {
+                if (!broadcastMsg.trim()) {
+                  toast.error("Message required");
+                  return;
+                }
+                toast.success("Broadcast sent successfully!");
+                setBroadcastMsg("");
+              }}
+              data-ocid="whatsapp.broadcast_button"
+            >
+              Send Now
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!scheduleEnabled}
+              onClick={() => {
+                if (!scheduleDate) {
+                  toast.error("Set a schedule date first");
+                  return;
+                }
+                toast.success(`Broadcast scheduled for ${scheduleDate}`);
+              }}
+              data-ocid="admin.whatsapp.broadcast.schedule.secondary_button"
+            >
+              Schedule
+            </Button>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="otp" className="mt-0">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <h3 className="text-sm font-semibold">OTP Configuration</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs">OTP Expiry (minutes)</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                value={otpExpiry}
+                onChange={(e) => setOtpExpiry(e.target.value)}
+                data-ocid="admin.whatsapp.otp.expiry.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">OTP Length</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                min="4"
+                max="8"
+                value={otpLength}
+                onChange={(e) => setOtpLength(e.target.value)}
+                data-ocid="admin.whatsapp.otp.length.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Max Retries</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                value={maxRetries}
+                onChange={(e) => setMaxRetries(e.target.value)}
+                data-ocid="admin.whatsapp.otp.retries.input"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Test Phone Number</Label>
+            <Input
+              className="mt-1"
+              placeholder="+91 98765 43210"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+              data-ocid="admin.whatsapp.otp.test_phone.input"
+            />
+          </div>
           <Button
             size="sm"
-            className="flex-1"
-            onClick={() => toast.success("WhatsApp API settings saved")}
-            data-ocid="admin.whatsapp.save.primary_button"
+            onClick={() => toast.success("OTP config saved")}
+            data-ocid="admin.whatsapp.otp.save.primary_button"
           >
-            Save Settings
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={testing}
-            onClick={() => {
-              setTesting(true);
-              setTimeout(() => {
-                setTesting(false);
-                toast.success("WhatsApp connection test successful!");
-              }, 1500);
-            }}
-            data-ocid="admin.whatsapp.test.secondary_button"
-          >
-            {testing ? "Testing..." : "Test Connection"}
+            Save OTP Config
           </Button>
         </div>
-      </div>
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold">Quick Setup Guide</h3>
-        {[
-          "1. Create a Meta Business Account at business.facebook.com",
-          "2. Set up a WhatsApp Business App in Meta Developers Console",
-          "3. Add your phone number and verify it",
-          "4. Generate a permanent access token",
-          "5. Configure the webhook URL with your verify token",
-          "6. Test the connection and start sending messages",
-        ].map((step, i) => (
-          <div key={step} className="flex gap-2 text-xs">
-            <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
-              {i + 1}
-            </span>
-            <span className="text-muted-foreground">{step.slice(3)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
 
-// ─── Ride Management ──────────────────────────────────────────────────────────
-function RideManagement() {
-  const [drivers, setDrivers] = useState([
+function RideManagementWithZones() {
+  const [activeTab, setActiveTab] = React.useState("ratecards");
+
+  // Rate Cards State
+  const [selectedCountry, setSelectedCountry] = React.useState("India");
+  const [selectedState, setSelectedState] = React.useState("Maharashtra");
+  const [selectedCity, setSelectedCity] = React.useState("Mumbai");
+  const [rateCards, setRateCards] = React.useState<
+    Record<
+      string,
+      Record<string, { baseFare: string; perKm: string; minFare: string }>
+    >
+  >({
+    Mumbai: {
+      Bike: { baseFare: "20", perKm: "8", minFare: "30" },
+      Auto: { baseFare: "25", perKm: "12", minFare: "40" },
+      Taxi: { baseFare: "50", perKm: "15", minFare: "80" },
+      Premium: { baseFare: "80", perKm: "22", minFare: "120" },
+    },
+    Pune: {
+      Bike: { baseFare: "18", perKm: "7", minFare: "25" },
+      Auto: { baseFare: "22", perKm: "11", minFare: "35" },
+      Taxi: { baseFare: "45", perKm: "14", minFare: "70" },
+      Premium: { baseFare: "70", perKm: "20", minFare: "100" },
+    },
+    Nagpur: {
+      Bike: { baseFare: "15", perKm: "6", minFare: "20" },
+      Auto: { baseFare: "20", perKm: "10", minFare: "30" },
+      Taxi: { baseFare: "40", perKm: "12", minFare: "60" },
+      Premium: { baseFare: "60", perKm: "18", minFare: "90" },
+    },
+    Delhi: {
+      Bike: { baseFare: "22", perKm: "9", minFare: "35" },
+      Auto: { baseFare: "30", perKm: "13", minFare: "45" },
+      Taxi: { baseFare: "55", perKm: "16", minFare: "90" },
+      Premium: { baseFare: "90", perKm: "24", minFare: "130" },
+    },
+    Gurgaon: {
+      Bike: { baseFare: "20", perKm: "9", minFare: "30" },
+      Auto: { baseFare: "28", perKm: "12", minFare: "40" },
+      Taxi: { baseFare: "50", perKm: "15", minFare: "85" },
+      Premium: { baseFare: "85", perKm: "23", minFare: "125" },
+    },
+    Bangalore: {
+      Bike: { baseFare: "20", perKm: "8", minFare: "30" },
+      Auto: { baseFare: "25", perKm: "12", minFare: "40" },
+      Taxi: { baseFare: "50", perKm: "15", minFare: "80" },
+      Premium: { baseFare: "80", perKm: "22", minFare: "120" },
+    },
+  });
+
+  const COUNTRIES = ["India", "Sri Lanka", "Bangladesh", "Nepal"];
+  const STATES: Record<string, string[]> = {
+    India: ["Maharashtra", "Delhi NCR", "Karnataka", "Tamil Nadu", "Gujarat"],
+  };
+  const CITIES: Record<string, string[]> = {
+    Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad"],
+    "Delhi NCR": ["Delhi", "Gurgaon", "Noida", "Faridabad", "Ghaziabad"],
+    Karnataka: ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem"],
+    Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+  };
+  const VEHICLE_TYPES = ["Bike", "Auto", "Taxi", "Premium"] as const;
+
+  const currentRates = rateCards[selectedCity] || {
+    Bike: { baseFare: "15", perKm: "7", minFare: "25" },
+    Auto: { baseFare: "20", perKm: "11", minFare: "35" },
+    Taxi: { baseFare: "40", perKm: "13", minFare: "65" },
+    Premium: { baseFare: "65", perKm: "19", minFare: "95" },
+  };
+
+  // Subscription plans
+  const [subPlans] = React.useState([
+    {
+      id: 1,
+      name: "Basic",
+      price: "Free",
+      period: "",
+      rides: "50 rides/month",
+      features: ["Standard support", "Basic insurance", "Platform access"],
+      color: "oklch(0.52 0.14 155)",
+    },
+    {
+      id: 2,
+      name: "Standard",
+      price: "₹299",
+      period: "/month",
+      rides: "Unlimited rides",
+      features: [
+        "Priority support",
+        "Enhanced insurance",
+        "Lower commission rate (13%)",
+        "Weekly payout",
+      ],
+      color: "oklch(0.55 0.22 280)",
+      badge: "Popular",
+    },
+    {
+      id: 3,
+      name: "Premium",
+      price: "₹999",
+      period: "/month",
+      rides: "Unlimited + bonuses",
+      features: [
+        "Dedicated support",
+        "Full insurance",
+        "Lowest commission (10%)",
+        "Daily payout",
+        "Priority assignments",
+        "Training & certification",
+      ],
+      color: "oklch(0.65 0.25 335)",
+    },
+  ]);
+
+  // Commission & Blocking
+  const [commission, setCommission] = React.useState("15");
+  const [threshold, setThreshold] = React.useState("1000");
+  const [autoBlock, setAutoBlock] = React.useState(true);
+  const [riders, setRiders] = React.useState([
     {
       id: 1,
       name: "Suresh Kumar",
-      vehicle: "Taxi",
-      license: "MH02AB1234",
-      phone: "+91 98765 43210",
-      status: true,
+      rides: 42,
+      zone: "Mumbai Central",
+      earned: 3780,
+      outstanding: 0,
+      status: "active" as "active" | "blocked",
     },
     {
       id: 2,
       name: "Ramesh Patel",
-      vehicle: "Bike",
-      license: "MH04CD5678",
-      phone: "+91 87654 32109",
-      status: true,
+      rides: 28,
+      zone: "Andheri",
+      earned: 2100,
+      outstanding: 350,
+      status: "active" as "active" | "blocked",
     },
     {
       id: 3,
       name: "Vijay Singh",
-      vehicle: "Auto",
-      license: "MH01EF9012",
-      phone: "+91 76543 21098",
-      status: false,
+      rides: 15,
+      zone: "Bandra",
+      earned: 900,
+      outstanding: 1200,
+      status: "blocked" as "active" | "blocked",
+    },
+    {
+      id: 4,
+      name: "Arjun Nair",
+      rides: 61,
+      zone: "Powai",
+      earned: 5490,
+      outstanding: 0,
+      status: "active" as "active" | "blocked",
+    },
+    {
+      id: 5,
+      name: "Kavita Yadav",
+      rides: 33,
+      zone: "Thane",
+      earned: 2970,
+      outstanding: 800,
+      status: "active" as "active" | "blocked",
     },
   ]);
-  const [rates, setRates] = useState(() => {
-    try {
-      const raw = localStorage.getItem("ride-rate-cards");
-      const saved = raw ? JSON.parse(raw) : null;
-      return {
-        taxi: {
-          baseFare: saved?.taxi?.baseFare ?? 50,
-          perKm: saved?.taxi?.perKm ?? 12,
-          surge: saved?.taxi?.surgeMult ?? 1.5,
-        },
-        bike: {
-          baseFare: saved?.bike?.baseFare ?? 25,
-          perKm: saved?.bike?.perKm ?? 6,
-          surge: saved?.bike?.surgeMult ?? 1.2,
-        },
-        auto: {
-          baseFare: saved?.auto?.baseFare ?? 30,
-          perKm: saved?.auto?.perKm ?? 8,
-          surge: saved?.auto?.surgeMult ?? 1.3,
-        },
-      };
-    } catch {
-      return {
-        taxi: { baseFare: 50, perKm: 12, surge: 1.5 },
-        bike: { baseFare: 25, perKm: 6, surge: 1.2 },
-        auto: { baseFare: 30, perKm: 8, surge: 1.3 },
-      };
-    }
-  });
-  const [newDriver, setNewDriver] = useState({
+
+  // Rider Registration
+  const [pendingRegistrations, setPendingRegistrations] = React.useState([
+    {
+      id: 1,
+      name: "Deepak Sharma",
+      phone: "+91 98765 43210",
+      aadhaar: true,
+      pan: true,
+      dl: true,
+      rc: true,
+      permit: true,
+      selfie: true,
+      aiBlur: "Pass",
+      faceMatch: "Match",
+      status: "Pending" as "Pending" | "Approved" | "Rejected",
+    },
+    {
+      id: 2,
+      name: "Sunita Devi",
+      phone: "+91 87654 32109",
+      aadhaar: true,
+      pan: false,
+      dl: true,
+      rc: true,
+      permit: true,
+      selfie: true,
+      aiBlur: "Fail",
+      faceMatch: "Pending",
+      status: "Pending" as "Pending" | "Approved" | "Rejected",
+    },
+    {
+      id: 3,
+      name: "Mohan Lal",
+      phone: "+91 76543 21098",
+      aadhaar: true,
+      pan: true,
+      dl: true,
+      rc: false,
+      permit: false,
+      selfie: true,
+      aiBlur: "Pass",
+      faceMatch: "No Match",
+      status: "Pending" as "Pending" | "Approved" | "Rejected",
+    },
+    {
+      id: 4,
+      name: "Priya Gupta",
+      phone: "+91 65432 10987",
+      aadhaar: true,
+      pan: true,
+      dl: true,
+      rc: true,
+      permit: true,
+      selfie: true,
+      aiBlur: "Pass",
+      faceMatch: "Match",
+      status: "Pending" as "Pending" | "Approved" | "Rejected",
+    },
+  ]);
+  const [showRegForm, setShowRegForm] = React.useState(false);
+  const [regForm, setRegForm] = React.useState({
     name: "",
-    vehicle: "Taxi",
-    license: "",
+    aadhaar: "",
+    pan: "",
+    dl: "",
+    vehicleReg: "",
+    vehicleNo: "",
     phone: "",
+    email: "",
+    permitType: "Commercial",
   });
+  const [selectedReg, setSelectedReg] = React.useState<number | null>(null);
+
+  const DocBadge = ({ ok, label }: { ok: boolean; label: string }) => (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded font-medium ${ok ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
+    >
+      {ok ? "✓" : "✗"} {label}
+    </span>
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Add Driver */}
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-          <h3 className="text-sm font-semibold">Add Driver</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Name</Label>
-              <Input
-                className="mt-1"
-                placeholder="Driver name"
-                value={newDriver.name}
-                onChange={(e) =>
-                  setNewDriver((p) => ({ ...p, name: e.target.value }))
-                }
-                data-ocid="admin.rides.driver.input"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Vehicle Type</Label>
-              <Select
-                value={newDriver.vehicle}
-                onValueChange={(v) =>
-                  setNewDriver((p) => ({ ...p, vehicle: v }))
-                }
-              >
-                <SelectTrigger
-                  className="mt-1"
-                  data-ocid="admin.rides.driver.select"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Taxi">Taxi</SelectItem>
-                  <SelectItem value="Bike">Bike</SelectItem>
-                  <SelectItem value="Auto">Auto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">License Plate</Label>
-              <Input
-                className="mt-1"
-                placeholder="MH02AB1234"
-                value={newDriver.license}
-                onChange={(e) =>
-                  setNewDriver((p) => ({ ...p, license: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Phone</Label>
-              <Input
-                className="mt-1"
-                placeholder="+91 98765..."
-                value={newDriver.phone}
-                onChange={(e) =>
-                  setNewDriver((p) => ({ ...p, phone: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <Button
-            size="sm"
-            className="w-full"
-            onClick={() => {
-              if (!newDriver.name) {
-                toast.error("Driver name required");
-                return;
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="mb-4 flex-wrap gap-1 h-auto">
+        <TabsTrigger
+          value="ratecards"
+          className="text-xs"
+          data-ocid="admin.rides.ratecards.tab"
+        >
+          Rate Cards
+        </TabsTrigger>
+        <TabsTrigger
+          value="subscriptions"
+          className="text-xs"
+          data-ocid="admin.rides.subscriptions.tab"
+        >
+          Subscription Plans
+        </TabsTrigger>
+        <TabsTrigger
+          value="commission"
+          className="text-xs"
+          data-ocid="admin.rides.commission.tab"
+        >
+          Commission &amp; Blocking
+        </TabsTrigger>
+        <TabsTrigger
+          value="registration"
+          className="text-xs"
+          data-ocid="admin.rides.registration.tab"
+        >
+          Rider Registration{" "}
+          {pendingRegistrations.filter((r) => r.status === "Pending").length >
+            0 && (
+            <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold">
+              {
+                pendingRegistrations.filter((r) => r.status === "Pending")
+                  .length
               }
-              setDrivers((prev) => [
-                ...prev,
-                { id: prev.length + 1, ...newDriver, status: true },
-              ]);
-              setNewDriver({
-                name: "",
-                vehicle: "Taxi",
-                license: "",
-                phone: "",
-              });
-              toast.success("Driver added");
-            }}
-            data-ocid="admin.rides.driver.primary_button"
-          >
-            Add Driver
-          </Button>
-        </div>
+            </span>
+          )}
+        </TabsTrigger>
+        <TabsTrigger
+          value="active"
+          className="text-xs"
+          data-ocid="admin.rides.active.tab"
+        >
+          Active Riders
+        </TabsTrigger>
+      </TabsList>
 
-        {/* Rate Cards */}
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-          <h3 className="text-sm font-semibold">Rate Cards</h3>
-          {(
-            Object.entries(rates) as [keyof typeof rates, typeof rates.taxi][]
-          ).map(([type, r]) => (
-            <div
-              key={type}
-              className="p-3 rounded-lg bg-secondary/30 space-y-2"
+      {/* Rate Cards */}
+      <TabsContent value="ratecards" className="mt-0 space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs">Country</Label>
+            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <SelectTrigger
+                className="mt-1 h-8"
+                data-ocid="admin.rides.country.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">State / Region</Label>
+            <Select
+              value={selectedState}
+              onValueChange={(v) => {
+                setSelectedState(v);
+                setSelectedCity((CITIES[v] || [])[0] || "");
+              }}
             >
-              <p className="text-xs font-bold capitalize">{type}</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label className="text-[10px]">Base Fare (₹)</Label>
-                  <Input
-                    className="mt-0.5 h-8 text-xs"
-                    type="number"
-                    value={r.baseFare}
-                    onChange={(e) =>
-                      setRates((p) => ({
-                        ...p,
-                        [type]: { ...r, baseFare: +e.target.value },
-                      }))
-                    }
-                    data-ocid={`admin.rides.${type}.input`}
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px]">Per KM (₹)</Label>
-                  <Input
-                    className="mt-0.5 h-8 text-xs"
-                    type="number"
-                    value={r.perKm}
-                    onChange={(e) =>
-                      setRates((p) => ({
-                        ...p,
-                        [type]: { ...r, perKm: +e.target.value },
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px]">Surge ×</Label>
-                  <Input
-                    className="mt-0.5 h-8 text-xs"
-                    type="number"
-                    step="0.1"
-                    value={r.surge}
-                    onChange={(e) =>
-                      setRates((p) => ({
-                        ...p,
-                        [type]: { ...r, surge: +e.target.value },
-                      }))
-                    }
-                  />
-                </div>
+              <SelectTrigger
+                className="mt-1 h-8"
+                data-ocid="admin.rides.state.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(STATES[selectedCountry] || []).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">City</Label>
+            <Select value={selectedCity} onValueChange={setSelectedCity}>
+              <SelectTrigger
+                className="mt-1 h-8"
+                data-ocid="admin.rides.city.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(CITIES[selectedState] || []).map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <h4 className="text-sm font-semibold">
+              Rates for {selectedCity}, {selectedState}
+            </h4>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <TH>Vehicle Type</TH>
+                <TH>Base Fare (₹)</TH>
+                <TH>Per KM (₹)</TH>
+                <TH>Min Fare (₹)</TH>
+              </tr>
+            </thead>
+            <tbody>
+              {VEHICLE_TYPES.map((vt, i) => (
+                <tr
+                  key={vt}
+                  className="border-b border-border/50"
+                  data-ocid={`admin.rides.rate.row.${i + 1}`}
+                >
+                  <TD className="font-medium">
+                    {vt === "Bike"
+                      ? "🏍️"
+                      : vt === "Auto"
+                        ? "🛺"
+                        : vt === "Taxi"
+                          ? "🚗"
+                          : "🚘"}{" "}
+                    {vt}
+                  </TD>
+                  {(["baseFare", "perKm", "minFare"] as const).map((field) => (
+                    <TD key={field}>
+                      <Input
+                        type="number"
+                        className="h-7 w-20 text-xs"
+                        value={currentRates[vt]?.[field] ?? ""}
+                        onChange={(e) =>
+                          setRateCards((prev) => ({
+                            ...prev,
+                            [selectedCity]: {
+                              ...prev[selectedCity],
+                              [vt]: {
+                                ...prev[selectedCity]?.[vt],
+                                [field]: e.target.value,
+                              },
+                            },
+                          }))
+                        }
+                        data-ocid={`admin.rides.rate.input.${i + 1}`}
+                      />
+                    </TD>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => {
+            localStorage.setItem(
+              "indyacentral_ride_rates",
+              JSON.stringify(rateCards),
+            );
+            toast.success(`Rate card saved for ${selectedCity}`);
+          }}
+          data-ocid="admin.rides.rate.save_button"
+        >
+          Save Rate Card
+        </Button>
+        <LiveRideRequests />
+        <SurgePricingSchedule />
+      </TabsContent>
+
+      {/* Subscription Plans */}
+      <TabsContent value="subscriptions" className="mt-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {subPlans.map((plan) => (
+            <div
+              key={plan.id}
+              className="border border-border rounded-xl p-5 space-y-4 relative"
+              data-ocid={`admin.rides.subscription.row.${plan.id}`}
+            >
+              {"badge" in plan && plan.badge && (
+                <span className="absolute top-3 right-3 text-[10px] px-2 py-0.5 rounded-full font-bold bg-primary text-primary-foreground">
+                  {plan.badge}
+                </span>
+              )}
+              <div className="text-lg font-bold" style={{ color: plan.color }}>
+                {plan.name}
               </div>
+              <div className="flex items-end gap-0.5">
+                <span className="text-3xl font-bold">{plan.price}</span>
+                <span className="text-sm text-muted-foreground pb-1">
+                  {plan.period}
+                </span>
+              </div>
+              <div className="text-xs font-medium text-primary">
+                {plan.rides}
+              </div>
+              <ul className="space-y-1.5">
+                {plan.features.map((f) => (
+                  <li key={f} className="text-xs flex items-center gap-1.5">
+                    <span className="text-green-500">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-xs"
+                onClick={() => toast.success(`${plan.name} plan updated`)}
+                data-ocid={`admin.rides.subscription.edit_button.${plan.id}`}
+              >
+                Edit Plan
+              </Button>
             </div>
           ))}
+        </div>
+      </TabsContent>
+
+      {/* Commission & Blocking */}
+      <TabsContent value="commission" className="mt-0 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Commission Config
+            </h4>
+            <div>
+              <Label className="text-xs">Per-ride Commission (%)</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                value={commission}
+                onChange={(e) => setCommission(e.target.value)}
+                data-ocid="admin.rides.commission.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">
+                Outstanding Limit (₹) — Auto-block above this
+              </Label>
+              <Input
+                className="mt-1"
+                type="number"
+                value={threshold}
+                onChange={(e) => setThreshold(e.target.value)}
+                data-ocid="admin.rides.threshold.input"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Auto-block on limit breach</Label>
+              <Switch
+                checked={autoBlock}
+                onCheckedChange={setAutoBlock}
+                data-ocid="admin.rides.autoblock.switch"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Riders with unpaid commission above ₹{threshold} will be
+              automatically blocked from accepting rides.
+            </p>
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => toast.success("Commission config saved")}
+              data-ocid="admin.rides.commission.save_button"
+            >
+              Save Config
+            </Button>
+          </div>
+          <div className="md:col-span-2 bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h4 className="text-xs font-semibold">
+                Riders ({riders.length})
+              </h4>
+              <span className="text-[10px] text-muted-foreground">
+                {riders.filter((r) => r.status === "blocked").length} blocked ·{" "}
+                {riders.filter((r) => r.outstanding > 0).length} with
+                outstanding dues
+              </span>
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-secondary/30">
+                  {[
+                    "Name",
+                    "Zone",
+                    "Rides",
+                    "Earned",
+                    "Outstanding",
+                    "Status",
+                    "Action",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-3 py-2 text-left font-semibold text-muted-foreground"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {riders.map((r, i) => (
+                  <tr
+                    key={r.id}
+                    className="border-t border-border/50"
+                    data-ocid={`admin.rides.rider.row.${i + 1}`}
+                  >
+                    <td className="px-3 py-2 font-medium">{r.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {r.zone}
+                    </td>
+                    <td className="px-3 py-2">{r.rides}</td>
+                    <td className="px-3 py-2 text-green-600">
+                      ₹{r.earned.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={
+                          r.outstanding > 0
+                            ? "text-red-600 font-semibold"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {r.outstanding > 0 ? `₹${r.outstanding}` : "—"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${r.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
+                      >
+                        {r.status === "active" ? "Active" : "Blocked"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-6 px-2 text-[10px] ${r.status === "blocked" ? "text-green-600" : "text-red-600"}`}
+                          onClick={() => {
+                            setRiders((prev) =>
+                              prev.map((x) =>
+                                x.id === r.id
+                                  ? {
+                                      ...x,
+                                      status:
+                                        x.status === "active"
+                                          ? "blocked"
+                                          : "active",
+                                    }
+                                  : x,
+                              ),
+                            );
+                            toast.success(
+                              r.status === "active"
+                                ? `${r.name} blocked`
+                                : `${r.name} unblocked`,
+                            );
+                          }}
+                          data-ocid={
+                            r.status === "active"
+                              ? `admin.rides.rider.delete_button.${i + 1}`
+                              : `admin.rides.rider.edit_button.${i + 1}`
+                          }
+                        >
+                          {r.status === "active" ? "Block" : "Unblock"}
+                        </Button>
+                        {r.outstanding > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-[10px]"
+                            onClick={() =>
+                              toast.success(`Payment link sent to ${r.name}`)
+                            }
+                            data-ocid={`admin.rides.rider.save_button.${i + 1}`}
+                          >
+                            Pay Link
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </TabsContent>
+
+      {/* Rider Registration */}
+      <TabsContent value="registration" className="mt-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Pending Rider Applications</h3>
           <Button
             size="sm"
-            className="w-full"
-            onClick={() => {
-              localStorage.setItem(
-                "ride-rate-cards",
-                JSON.stringify({
-                  taxi: {
-                    baseFare: rates.taxi.baseFare,
-                    perKm: rates.taxi.perKm,
-                    surgeMult: rates.taxi.surge,
-                  },
-                  bike: {
-                    baseFare: rates.bike.baseFare,
-                    perKm: rates.bike.perKm,
-                    surgeMult: rates.bike.surge,
-                  },
-                  auto: {
-                    baseFare: rates.auto.baseFare,
-                    perKm: rates.auto.perKm,
-                    surgeMult: rates.auto.surge,
-                  },
-                }),
-              );
-              toast.success("Rate cards saved");
-            }}
-            data-ocid="admin.rides.rates.save.primary_button"
+            onClick={() => setShowRegForm(!showRegForm)}
+            data-ocid="admin.rides.registration.open_modal_button"
           >
-            Save Rates
+            + Register Rider
           </Button>
         </div>
-      </div>
 
-      {/* Driver List */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <h3 className="text-sm font-semibold">Registered Drivers</h3>
-        </div>
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <TH>Name</TH>
-              <TH>Vehicle</TH>
-              <TH>License</TH>
-              <TH>Phone</TH>
-              <TH>Status</TH>
-            </tr>
-          </thead>
-          <tbody>
-            {drivers.map((d, i) => (
-              <tr
-                key={d.id}
-                className="border-b border-border/50 hover:bg-secondary/20"
-                data-ocid={`admin.rides.driver.row.${i + 1}`}
-              >
-                <TD className="font-medium">{d.name}</TD>
-                <TD>{d.vehicle}</TD>
-                <TD className="font-mono">{d.license}</TD>
-                <TD className="text-muted-foreground">{d.phone}</TD>
-                <TD>
-                  <Switch
-                    checked={d.status}
-                    onCheckedChange={(v) =>
-                      setDrivers((prev) =>
-                        prev.map((dr) =>
-                          dr.id === d.id ? { ...dr, status: v } : dr,
-                        ),
-                      )
+        {showRegForm && (
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h4 className="text-sm font-semibold">New Rider Registration</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                {
+                  label: "Full Name",
+                  field: "name",
+                  placeholder: "Suresh Kumar",
+                },
+                {
+                  label: "Phone Number",
+                  field: "phone",
+                  placeholder: "+91 98765 43210",
+                },
+                {
+                  label: "Email",
+                  field: "email",
+                  placeholder: "rider@example.com",
+                },
+                {
+                  label: "Aadhaar Number",
+                  field: "aadhaar",
+                  placeholder: "1234 5678 9012",
+                },
+                {
+                  label: "PAN Number",
+                  field: "pan",
+                  placeholder: "ABCDE1234F",
+                },
+                {
+                  label: "Driving License No.",
+                  field: "dl",
+                  placeholder: "MH02-20210012345",
+                },
+                {
+                  label: "Vehicle Registration No.",
+                  field: "vehicleReg",
+                  placeholder: "MH02AB1234",
+                },
+                {
+                  label: "Vehicle Number Plate",
+                  field: "vehicleNo",
+                  placeholder: "MH 02 AB 1234",
+                },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <Label className="text-xs">{label}</Label>
+                  <Input
+                    className="mt-1 h-8 text-xs"
+                    placeholder={placeholder}
+                    value={regForm[field as keyof typeof regForm]}
+                    onChange={(e) =>
+                      setRegForm((p) => ({ ...p, [field]: e.target.value }))
                     }
-                    data-ocid={`admin.rides.driver.toggle.${i + 1}`}
+                    data-ocid={"admin.rides.reg.input"}
                   />
-                </TD>
+                </div>
+              ))}
+              <div>
+                <Label className="text-xs">Permit Type</Label>
+                <Select
+                  value={regForm.permitType}
+                  onValueChange={(v) =>
+                    setRegForm((p) => ({ ...p, permitType: v }))
+                  }
+                >
+                  <SelectTrigger
+                    className="mt-1 h-8"
+                    data-ocid="admin.rides.reg.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Commercial">Commercial</SelectItem>
+                    <SelectItem value="Tourist">Tourist</SelectItem>
+                    <SelectItem value="All India">All India</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: "Self Photo (Selfie)", id: "selfie" },
+                { label: "License Photo", id: "dl-photo" },
+                { label: "Vehicle RC Book", id: "rc" },
+              ].map(({ label, id }) => (
+                <div key={id}>
+                  <Label className="text-xs">{label}</Label>
+                  <div className="mt-1 border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-secondary/30 transition-colors">
+                    <p className="text-xs text-muted-foreground">
+                      📷 Click to upload
+                    </p>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+              <span>🤖</span>
+              <span>
+                AI will check document clarity, detect blur, and compare selfie
+                with license photo on submission.
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  if (!regForm.name || !regForm.phone) {
+                    toast.error("Name and phone required");
+                    return;
+                  }
+                  const newReg = {
+                    id: Date.now(),
+                    name: regForm.name,
+                    phone: regForm.phone,
+                    aadhaar: true,
+                    pan: !!regForm.pan,
+                    dl: !!regForm.dl,
+                    rc: !!regForm.vehicleReg,
+                    permit: true,
+                    selfie: true,
+                    aiBlur: "Pending",
+                    faceMatch: "Pending",
+                    status: "Pending" as const,
+                  };
+                  setPendingRegistrations((p) => [newReg, ...p]);
+                  setRegForm({
+                    name: "",
+                    aadhaar: "",
+                    pan: "",
+                    dl: "",
+                    vehicleReg: "",
+                    vehicleNo: "",
+                    phone: "",
+                    email: "",
+                    permitType: "Commercial",
+                  });
+                  setShowRegForm(false);
+                  toast.success(
+                    "Registration submitted — AI check in progress",
+                  );
+                }}
+                data-ocid="admin.rides.reg.submit_button"
+              >
+                Submit Registration
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowRegForm(false)}
+                data-ocid="admin.rides.reg.cancel_button"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <TH>Name</TH>
+                <TH>Phone</TH>
+                <TH>Documents</TH>
+                <TH>AI Check</TH>
+                <TH>Face Match</TH>
+                <TH>Status</TH>
+                <TH>Actions</TH>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pendingRegistrations.map((reg, i) => (
+                <React.Fragment key={reg.id}>
+                  <tr
+                    className="border-b border-border/50 hover:bg-secondary/20 cursor-pointer"
+                    onClick={() =>
+                      setSelectedReg(selectedReg === reg.id ? null : reg.id)
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter")
+                        setSelectedReg(selectedReg === reg.id ? null : reg.id);
+                    }}
+                    tabIndex={0}
+                    data-ocid={`admin.rides.reg.row.${i + 1}`}
+                  >
+                    <TD className="font-medium">{reg.name}</TD>
+                    <TD className="text-muted-foreground">{reg.phone}</TD>
+                    <TD>
+                      <div className="flex flex-wrap gap-0.5">
+                        <DocBadge ok={reg.aadhaar} label="Aadhaar" />
+                        <DocBadge ok={reg.pan} label="PAN" />
+                        <DocBadge ok={reg.dl} label="DL" />
+                        <DocBadge ok={reg.rc} label="RC" />
+                        <DocBadge ok={reg.permit} label="Permit" />
+                        <DocBadge ok={reg.selfie} label="Selfie" />
+                      </div>
+                    </TD>
+                    <TD>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${reg.aiBlur === "Pass" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : reg.aiBlur === "Fail" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}
+                      >
+                        🤖 Blur: {reg.aiBlur}
+                      </span>
+                    </TD>
+                    <TD>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${reg.faceMatch === "Match" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : reg.faceMatch === "No Match" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}
+                      >
+                        {reg.faceMatch}
+                      </span>
+                    </TD>
+                    <TD>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${reg.status === "Approved" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : reg.status === "Rejected" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}
+                      >
+                        {reg.status}
+                      </span>
+                    </TD>
+                    <TD>
+                      {reg.status === "Pending" && (
+                        <div
+                          className="flex gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            size="sm"
+                            className="h-6 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => {
+                              setPendingRegistrations((p) =>
+                                p.map((x) =>
+                                  x.id === reg.id
+                                    ? { ...x, status: "Approved" }
+                                    : x,
+                                ),
+                              );
+                              toast.success(`${reg.name} approved`);
+                            }}
+                            data-ocid={`admin.rides.reg.confirm_button.${i + 1}`}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-[10px] text-destructive"
+                            onClick={() => {
+                              setPendingRegistrations((p) =>
+                                p.map((x) =>
+                                  x.id === reg.id
+                                    ? { ...x, status: "Rejected" }
+                                    : x,
+                                ),
+                              );
+                              toast.error(`${reg.name} rejected`);
+                            }}
+                            data-ocid={`admin.rides.reg.delete_button.${i + 1}`}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </TD>
+                  </tr>
+                  {selectedReg === reg.id && (
+                    <tr className="border-b border-border/50">
+                      <td colSpan={7} className="px-4 py-3 bg-secondary/20">
+                        {reg.faceMatch === "No Match" && (
+                          <div className="flex items-center gap-2 text-red-600 bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-3">
+                            <span className="text-lg">⚠️</span>
+                            <span className="text-xs font-semibold">
+                              Selfie does not match license photo — identity
+                              verification failed. Admin review required before
+                              approval.
+                            </span>
+                          </div>
+                        )}
+                        {reg.aiBlur === "Fail" && (
+                          <div className="flex items-center gap-2 text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-3">
+                            <span className="text-lg">📷</span>
+                            <span className="text-xs font-semibold">
+                              AI detected blur or low visibility in uploaded
+                              documents. Rider should re-upload clear images.
+                            </span>
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          Click row to expand document details. Documents listed
+                          above. AI checks run automatically on submission.
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </TabsContent>
+
+      {/* Active Riders */}
+      <TabsContent value="active" className="mt-0 space-y-4">
+        <RiderCommissionConfig />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function RiderCommissionConfig() {
+  return null;
+}
+
+function LiveRideRequests() {
+  const [requests, setRequests] = useState([
+    {
+      id: "REQ001",
+      passenger: "Priya Sharma",
+      pickup: "Bandra West",
+      drop: "Andheri East",
+      distance: "8.2 km",
+      status: "waiting" as const,
+    },
+    {
+      id: "REQ002",
+      passenger: "Rahul Verma",
+      pickup: "Dadar Station",
+      drop: "Worli Sea Face",
+      distance: "4.5 km",
+      status: "accepted" as const,
+    },
+    {
+      id: "REQ003",
+      passenger: "Ananya Patel",
+      pickup: "Borivali West",
+      drop: "Malad East",
+      distance: "3.1 km",
+      status: "waiting" as const,
+    },
+  ]);
+  const counterRef = useRef(0);
+
+  useEffect(() => {
+    const PASSENGERS = [
+      "Suresh K.",
+      "Meera N.",
+      "Vikram R.",
+      "Sunita M.",
+      "Amit J.",
+    ];
+    const AREAS = [
+      "Colaba",
+      "Fort",
+      "Bandra",
+      "Juhu",
+      "Goregaon",
+      "Thane",
+      "Navi Mumbai",
+    ];
+    const interval = setInterval(() => {
+      counterRef.current += 1;
+      const newReq = {
+        id: `REQ${String(Date.now()).slice(-4)}`,
+        passenger: PASSENGERS[counterRef.current % PASSENGERS.length],
+        pickup: AREAS[counterRef.current % AREAS.length],
+        drop: AREAS[(counterRef.current + 2) % AREAS.length],
+        distance: `${(Math.random() * 12 + 1).toFixed(1)} km`,
+        status: "waiting" as const,
+      };
+      setRequests((prev) => [newReq, ...prev].slice(0, 8));
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Live Ride Requests</h3>
+        <span
+          className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+          style={{
+            background: "oklch(0.52 0.14 155 / 0.15)",
+            color: "oklch(0.52 0.14 155)",
+          }}
+        >
+          ● Live
+        </span>
       </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-muted/30">
+            <TH>ID</TH>
+            <TH>Passenger</TH>
+            <TH>Pickup</TH>
+            <TH>Drop</TH>
+            <TH>Distance</TH>
+            <TH>Status</TH>
+            <TH>Actions</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {requests.map((r, i) => (
+            <tr
+              key={r.id}
+              className="border-b border-border/50 hover:bg-secondary/20"
+              data-ocid={`admin.rides.request.row.${i + 1}`}
+            >
+              <TD className="font-mono text-[10px]">{r.id}</TD>
+              <TD className="font-medium">{r.passenger}</TD>
+              <TD className="text-muted-foreground">{r.pickup}</TD>
+              <TD className="text-muted-foreground">{r.drop}</TD>
+              <TD>{r.distance}</TD>
+              <TD>
+                <SBadge
+                  label={r.status}
+                  color={r.status === "accepted" ? "green" : "amber"}
+                />
+              </TD>
+              <TD>
+                {r.status === "waiting" ? (
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-green-600 border-green-200"
+                      onClick={() => {
+                        setRequests((p) =>
+                          p.map((x) =>
+                            x.id === r.id
+                              ? { ...x, status: "accepted" as const }
+                              : x,
+                          ),
+                        );
+                        toast.success("Ride accepted");
+                      }}
+                      data-ocid={`admin.rides.request.confirm_button.${i + 1}`}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-destructive border-destructive/20"
+                      onClick={() => {
+                        setRequests((p) => p.filter((x) => x.id !== r.id));
+                        toast.info("Ride rejected");
+                      }}
+                      data-ocid={`admin.rides.request.delete_button.${i + 1}`}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {r.status}
+                  </span>
+                )}
+              </TD>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SurgePricingSchedule() {
+  const [slots, setSlots] = useState([
+    {
+      id: 1,
+      label: "Morning Rush",
+      time: "7:00 AM – 10:00 AM",
+      multiplier: "1.5",
+    },
+    {
+      id: 2,
+      label: "Afternoon",
+      time: "10:00 AM – 5:00 PM",
+      multiplier: "1.0",
+    },
+    {
+      id: 3,
+      label: "Evening Rush",
+      time: "5:00 PM – 9:00 PM",
+      multiplier: "1.8",
+    },
+    { id: 4, label: "Night", time: "9:00 PM – 7:00 AM", multiplier: "1.2" },
+  ]);
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
+        <h3 className="text-sm font-semibold">Surge Pricing Schedule</h3>
+      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-muted/30">
+            <TH>Time Slot</TH>
+            <TH>Hours</TH>
+            <TH>Multiplier</TH>
+            <TH>Save</TH>
+          </tr>
+        </thead>
+        <tbody>
+          {slots.map((slot, i) => (
+            <tr
+              key={slot.id}
+              className="border-b border-border/50 hover:bg-secondary/20"
+              data-ocid={`admin.rides.surge.row.${i + 1}`}
+            >
+              <TD className="font-medium">{slot.label}</TD>
+              <TD className="text-muted-foreground">{slot.time}</TD>
+              <TD>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="5"
+                  className="h-7 w-20 text-xs"
+                  value={slot.multiplier}
+                  onChange={(e) =>
+                    setSlots((p) =>
+                      p.map((s) =>
+                        s.id === slot.id
+                          ? { ...s, multiplier: e.target.value }
+                          : s,
+                      ),
+                    )
+                  }
+                  data-ocid={`admin.rides.surge.input.${i + 1}`}
+                />
+              </TD>
+              <TD>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() =>
+                    toast.success(
+                      `${slot.label} surge updated to ${slot.multiplier}×`,
+                    )
+                  }
+                  data-ocid={`admin.rides.surge.save_button.${i + 1}`}
+                >
+                  Save
+                </Button>
+              </TD>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -9309,14 +11847,25 @@ function Agent19LiveFeed() {
       setFeed((prev) => [entry, ...prev].slice(0, 10));
       setProcessed((p) => p + 1);
       if (counterRef.current % 5 === 0) setAlerts((a) => a + 1);
-    }, 15000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="mt-4 bg-card border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold">Live Output</h3>
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          Live Output{" "}
+          <span
+            className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+            style={{
+              background: "oklch(0.52 0.14 155 / 0.15)",
+              color: "oklch(0.52 0.14 155)",
+            }}
+          >
+            ● Running
+          </span>
+        </h3>
         <div className="flex gap-2">
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
             Last Run: just now
@@ -9422,7 +11971,7 @@ function Agent20LiveFeed() {
       setFeed((prev) => [entry, ...prev].slice(0, 10));
       setProcessed((p) => p + 1);
       if (counterRef.current % 4 === 0) setAlerts((a) => a + 1);
-    }, 15000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -9483,5 +12032,620 @@ function Agent20LiveFeed() {
         ))}
       </div>
     </div>
+  );
+}
+
+function Agent19PreviewDialog() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-2"
+          data-ocid="admin.agent19.preview.open_modal_button"
+        >
+          Preview for Users
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="sm:max-w-lg"
+        data-ocid="admin.agent19.preview.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>🎮 Games — User View</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          {[
+            {
+              title: "Cricket Champions 2026",
+              genre: "Sports",
+              difficulty: "Medium",
+              age: "All Ages",
+            },
+            {
+              title: "Mystic Jungle Quest",
+              genre: "Adventure",
+              difficulty: "Hard",
+              age: "11-14",
+            },
+            {
+              title: "Chai Quiz Showdown",
+              genre: "Trivia",
+              difficulty: "Easy",
+              age: "All Ages",
+            },
+            {
+              title: "Bollywood Beats Rush",
+              genre: "Music",
+              difficulty: "Easy",
+              age: "16+",
+            },
+          ].map((g, _i) => (
+            <div
+              key={g.title}
+              className="border border-border rounded-xl p-3 space-y-2"
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-sm font-semibold">{g.title}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                  {g.difficulty}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {g.genre} · Age {g.age}
+              </p>
+              <div
+                className="w-full rounded-lg py-1.5 text-xs font-semibold text-center text-primary-foreground"
+                style={{ background: "oklch(0.55 0.22 280)" }}
+              >
+                Play Now
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={() => setOpen(false)}
+          data-ocid="admin.agent19.preview.close_button"
+        >
+          Close Preview
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OpenApiCard({
+  api,
+  index,
+}: {
+  api: {
+    name: string;
+    type: string;
+    lastSynced: string;
+    records: number;
+    icon: string;
+  };
+  index: number;
+}) {
+  const [syncing, setSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState(api.lastSynced);
+  const [records, setRecords] = useState(api.records);
+
+  const handleSync = () => {
+    setSyncing(true);
+    setTimeout(() => {
+      setSyncing(false);
+      setLastSynced("just now");
+      setRecords((r) => r + Math.floor(Math.random() * 50));
+      toast.success(`${api.name} synced successfully!`);
+    }, 2000);
+  };
+
+  return (
+    <div
+      className="bg-card border border-border rounded-xl p-3 space-y-2"
+      data-ocid={`admin.openapi.card.${index}`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{api.icon}</span>
+          <div>
+            <p className="text-xs font-semibold">{api.name}</p>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+              {api.type}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="text-[10px] text-muted-foreground space-y-0.5">
+        <p>Last synced: {lastSynced}</p>
+        <p>Records: {records.toLocaleString()}</p>
+      </div>
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          className="flex-1 h-7 text-xs gap-1"
+          disabled={syncing}
+          onClick={handleSync}
+          data-ocid={`admin.openapi.run.primary_button.${index}`}
+        >
+          {syncing ? <Loader2 className="h-3 w-3 animate-spin" /> : "▶"}{" "}
+          {syncing ? "Syncing..." : "Run Now"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs"
+          onClick={() => toast.info(`Edit ${api.name} settings`)}
+          data-ocid={`admin.openapi.edit.secondary_button.${index}`}
+        >
+          Edit
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs text-destructive border-destructive/20"
+          onClick={() => toast.info(`${api.name} removed`)}
+          data-ocid={`admin.openapi.delete_button.${index}`}
+        >
+          ✕
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AddNewApiDialog() {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    url: "",
+    key: "",
+    dataType: "products",
+    frequency: "daily",
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" data-ocid="admin.openapi.add.open_modal_button">
+          + Add New API
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="sm:max-w-md"
+        data-ocid="admin.openapi.add.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>Add New API</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <div>
+            <Label className="text-xs">API Name</Label>
+            <Input
+              className="mt-1"
+              placeholder="e.g. Open Brewery DB"
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              data-ocid="admin.openapi.add.input"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Base URL</Label>
+            <Input
+              className="mt-1"
+              placeholder="https://api.example.com/v1"
+              value={form.url}
+              onChange={(e) => setForm((p) => ({ ...p, url: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">API Key (optional)</Label>
+            <Input
+              className="mt-1"
+              placeholder="sk-..."
+              value={form.key}
+              onChange={(e) => setForm((p) => ({ ...p, key: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Data Type</Label>
+            <Select
+              value={form.dataType}
+              onValueChange={(v) => setForm((p) => ({ ...p, dataType: v }))}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin.openapi.add.type.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="products">Products</SelectItem>
+                <SelectItem value="services">Services</SelectItem>
+                <SelectItem value="events">Events</SelectItem>
+                <SelectItem value="jobs">Jobs</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Sync Frequency</Label>
+            <Select
+              value={form.frequency}
+              onValueChange={(v) => setForm((p) => ({ ...p, frequency: v }))}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin.openapi.add.freq.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hourly">Hourly</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-4">
+          <Button
+            className="flex-1"
+            onClick={() => {
+              if (!form.name.trim() || !form.url.trim()) {
+                toast.error("Name and URL required");
+                return;
+              }
+              toast.success(`${form.name} API added`);
+              setOpen(false);
+              setForm({
+                name: "",
+                url: "",
+                key: "",
+                dataType: "products",
+                frequency: "daily",
+              });
+            }}
+            data-ocid="admin.openapi.add.confirm_button"
+          >
+            Add API
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            data-ocid="admin.openapi.add.cancel_button"
+          >
+            Cancel
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Agent20PreviewDialog() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-2"
+          data-ocid="admin.agent20.preview.open_modal_button"
+        >
+          Preview Comics
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="sm:max-w-lg"
+        data-ocid="admin.agent20.preview.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>😄 Comics — User View</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          {[
+            {
+              title: "Monday Blues",
+              punchline:
+                "When your alarm goes off 5 min after you finally fell asleep 😅",
+              mood: "funny",
+            },
+            {
+              title: "The Chai Diaries",
+              punchline: "No meeting is complete without chai. Science. 🍵",
+              mood: "wholesome",
+            },
+            {
+              title: "Tech Troubles",
+              punchline: "Boss: This should take 5 min. Me: 3 days later... ⌛",
+              mood: "sarcastic",
+            },
+            {
+              title: "Traffic Woes",
+              punchline: "GPS says 10 min, Mumbai says otherwise 🚦",
+              mood: "funny",
+            },
+          ].map((c, _i) => (
+            <div
+              key={c.title}
+              className="border border-border rounded-xl p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">{c.title}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                  {c.mood}
+                </span>
+              </div>
+              <div className="bg-secondary/40 rounded-lg px-3 py-2 text-xs">
+                {c.punchline}
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={() => setOpen(false)}
+          data-ocid="admin.agent20.preview.close_button"
+        >
+          Close Preview
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Agent 21 Full Panel (Spiritual & Mythology Curator) ──────────────────────
+function Agent21FullPanel() {
+  const [regions, setRegions] = React.useState({
+    India: true,
+    Greece: true,
+    Egypt: true,
+    Norse: true,
+    Japan: true,
+    China: true,
+    Mesopotamia: false,
+    Celtic: false,
+    "Aztec/Maya": false,
+    African: false,
+  });
+  const [contentTypes, setContentTypes] = React.useState({
+    "Mythological Stories": true,
+    "Rituals & Beliefs": true,
+    "Cultural Similarities": true,
+    "Festival Origins": false,
+  });
+  const [storiesPerDay, setStoriesPerDay] = React.useState([5]);
+  const [crossCulture, setCrossCulture] = React.useState(true);
+  const [storiesGenerated, setStoriesGenerated] = React.useState(47);
+  const [culturesLinked, setCulturesLinked] = React.useState(23);
+  const [monitorLog, setMonitorLog] = React.useState<string[]>([
+    "Generated story: Diwali origins across Hindu, Jain, Sikh traditions",
+    "Linked similarity: Flood myths in Hindu (Manu) and Mesopotamian (Utnapishtim) traditions",
+    "Fetched ritual: Holi color symbolism — India, Iran connection found",
+  ]);
+  const logRef = React.useRef(0);
+
+  const SPIRIT_LOG_ENTRIES = [
+    "Generated: The Churning of the Ocean (Hindu) — linked to Greek Titan wars",
+    "Similarity found: Trickster gods — Loki (Norse) and Narada (Hindu)",
+    "Ritual documented: Pongal harvest festival — parallels with Japanese Niiname-sai",
+    "Story published: Ramayana — The Bridge to Lanka • Blog post live",
+    "Cross-culture link: Creation myths in 9 cultures mapped",
+    "Fetched: Aztec calendar system — connection to Hindu Kalachakra noted",
+    "Generated: Zeus & Indra — Thunder gods across cultures analysis",
+    "Published: Egyptian Book of the Dead vs. Garuda Purana — similarities blog",
+  ];
+
+  React.useEffect(() => {
+    const t = setInterval(() => {
+      logRef.current += 1;
+      const entry =
+        SPIRIT_LOG_ENTRIES[logRef.current % SPIRIT_LOG_ENTRIES.length];
+      setMonitorLog((p) =>
+        [`[${new Date().toLocaleTimeString()}] ${entry}`, ...p].slice(0, 20),
+      );
+      setStoriesGenerated((c) => c + 1);
+      if (logRef.current % 3 === 0) setCulturesLinked((c) => c + 1);
+    }, 9000);
+    return () => clearInterval(t);
+  }, []);
+
+  const PREVIEW_STORIES = [
+    {
+      title: "The Great Flood — A Story Told in 12 Cultures",
+      culture: "Cross-Cultural",
+      excerpt:
+        "From Manu in Hindu scriptures to Noah in Abrahamic faiths, and Utnapishtim in Mesopotamian legend — the tale of a great flood appears across every major civilization...",
+    },
+    {
+      title: "Diwali, Nouruz, and the Festival of Lights",
+      culture: "Hindu / Persian",
+      excerpt:
+        "The triumph of light over darkness is celebrated across South Asia and Iran. Diwali marks Rama's return; Nouruz marks the Persian New Year — both begin with lamps and fire...",
+    },
+    {
+      title: "Trickster Gods: Loki, Anansi, and Narada",
+      culture: "Norse / African / Hindu",
+      excerpt:
+        "Every mythology has a trickster — a god who disrupts, enlightens, and challenges the order of things. These three figures from three continents share uncanny similarities...",
+    },
+  ];
+
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+
+  return (
+    <Tabs defaultValue="config" className="w-full">
+      <TabsList className="grid grid-cols-3 w-full">
+        <TabsTrigger value="config" data-ocid="admin.agent21.config.tab">
+          Config
+        </TabsTrigger>
+        <TabsTrigger
+          value="monitoring"
+          data-ocid="admin.agent21.monitoring.tab"
+        >
+          Monitoring
+        </TabsTrigger>
+        <TabsTrigger value="preview" data-ocid="admin.agent21.preview.tab">
+          Preview
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="config" className="space-y-4 mt-4">
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold">Regions / Mythologies</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(regions).map(([r, checked]) => (
+              <div key={r} className="flex items-center gap-2">
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(v) =>
+                    setRegions((p) => ({ ...p, [r]: !!v }))
+                  }
+                  data-ocid={`admin.agent21.region.${r.toLowerCase().replace(/\//g, "_")}.checkbox`}
+                />
+                <span className="text-xs">{r}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold">Content Types</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(contentTypes).map(([ct, checked]) => (
+              <div key={ct} className="flex items-center gap-2">
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(v) =>
+                    setContentTypes((p) => ({ ...p, [ct]: !!v }))
+                  }
+                />
+                <span className="text-xs">{ct}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold">
+            Stories per Day: {storiesPerDay[0]}
+          </Label>
+          <Slider
+            min={1}
+            max={20}
+            step={1}
+            value={storiesPerDay}
+            onValueChange={setStoriesPerDay}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Cross-culture linking</Label>
+          <Switch
+            checked={crossCulture}
+            onCheckedChange={setCrossCulture}
+            data-ocid="admin.agent21.cross_culture.toggle"
+          />
+        </div>
+        <Button
+          size="sm"
+          onClick={() => toast.success("Agent 21 config saved")}
+          data-ocid="admin.agent21.save.primary_button"
+        >
+          Save Config
+        </Button>
+      </TabsContent>
+
+      <TabsContent value="monitoring" className="space-y-4 mt-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Stories Generated", value: storiesGenerated },
+            { label: "Cultures Linked", value: culturesLinked },
+            {
+              label: "Blogs Published",
+              value: Math.floor(storiesGenerated * 0.7),
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-xl border border-border p-3 text-center"
+            >
+              <p className="text-xl font-bold text-primary">{s.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl border border-border bg-muted/30 p-3 max-h-52 overflow-y-auto font-mono text-[11px] space-y-1">
+          {monitorLog.map((line) => (
+            <div key={line} className="text-muted-foreground">
+              {line}
+            </div>
+          ))}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => toast.success("Scan triggered")}
+          data-ocid="admin.agent21.generate.primary_button"
+        >
+          Generate Now
+        </Button>
+      </TabsContent>
+
+      <TabsContent value="preview" className="space-y-4 mt-4">
+        {PREVIEW_STORIES.map((s, i) => (
+          <div
+            key={s.title}
+            className="border border-border rounded-xl p-4 space-y-2"
+            data-ocid={`admin.agent21.preview.card.${i + 1}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="text-sm font-semibold leading-snug">{s.title}</h4>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap shrink-0">
+                {s.culture}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-3">
+              {s.excerpt}
+            </p>
+            <Button size="sm" variant="ghost" className="h-7 text-xs px-2">
+              Read in Blog →
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setPreviewOpen(true)}
+          data-ocid="admin.agent21.preview.open_modal_button"
+        >
+          Preview All Stories
+        </Button>
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Spiritual Stories Preview</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Showing latest stories generated by Agent 21. Users can read these
+              in the Spiritual Stories page.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => setPreviewOpen(false)}
+              data-ocid="admin.agent21.preview.close_button"
+            >
+              Close
+            </Button>
+          </DialogContent>
+        </Dialog>
+      </TabsContent>
+    </Tabs>
   );
 }
