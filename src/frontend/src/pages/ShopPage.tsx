@@ -59,7 +59,10 @@ import BoostPostDialog from "../components/BoostPostDialog";
 import { ShopAuctionTab } from "../components/BusinessDiscoveryFeatures";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
+import {
+  getFamilyTreeBusinesses,
+  saveFamilyTreeBusiness,
+} from "../utils/familyTreeState";
 import { getGlobalProducts } from "../utils/globalProductsState";
 import { SAMPLE_PRODUCTS, SAMPLE_SERVICES } from "./ProductsServicesPage";
 
@@ -1378,6 +1381,7 @@ function DeliveryProvidersTab({
   const [perOrder, setPerOrder] = useState("");
   const [perKm, setPerKm] = useState("");
   const [contact, setContact] = useState("");
+  const [vehicleType, setVehicleType] = useState("Bike");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1385,7 +1389,7 @@ function DeliveryProvidersTab({
       toast.error("Please fill in all required fields");
       return;
     }
-    onRegister({
+    const newDp = {
       id: `dp-${Date.now()}`,
       name: name.trim(),
       type,
@@ -1395,13 +1399,28 @@ function DeliveryProvidersTab({
       contact: contact.trim(),
       rating: 0,
       deliveries: 0,
+    };
+    onRegister(newDp);
+    // Save as business in Family Tree so it appears in Business Page
+    saveFamilyTreeBusiness({
+      id: newDp.id,
+      name: name.trim(),
+      category: "Delivery",
+      type: `Delivery Business (${vehicleType})`,
+      ownerName: name.trim(),
+      phone: contact.trim(),
+      location: coverage.trim(),
+      description: `Delivery provider — Vehicle: ${vehicleType}, ₹${perOrder}/order, ₹${perKm}/km`,
     });
-    toast.success("Registered as delivery provider!");
+    toast.success(
+      "Registered as delivery provider and added to Family Tree businesses!",
+    );
     setName("");
     setCoverage("");
     setPerOrder("");
     setPerKm("");
     setContact("");
+    setVehicleType("Bike");
   };
 
   return (
@@ -1488,6 +1507,33 @@ function DeliveryProvidersTab({
               className="text-sm"
               data-ocid="delivery.contact_input"
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Vehicle Type *</Label>
+            <Select value={vehicleType} onValueChange={setVehicleType}>
+              <SelectTrigger
+                className="text-sm"
+                data-ocid="delivery.vehicle_type_select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "Bike",
+                  "Scooter",
+                  "Cycle",
+                  "Auto",
+                  "Car",
+                  "Van",
+                  "Truck",
+                  "Mini Truck",
+                ].map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="sm:col-span-2">
             <Button
@@ -2024,7 +2070,30 @@ export default function ShopPage() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    toast.success("Delivery partner registration submitted!");
+                    const fd = new FormData(e.currentTarget as HTMLFormElement);
+                    const dpName =
+                      (fd.get("dp_name") as string) || "Delivery Partner";
+                    const dpArea = (fd.get("dp_area") as string) || "";
+                    const dpPhone = (fd.get("dp_phone") as string) || "";
+                    const dpRate = (fd.get("dp_rate") as string) || "0";
+                    const dpVehicle =
+                      (
+                        e.currentTarget as HTMLFormElement
+                      ).querySelector<HTMLInputElement>("[data-dp-vehicle]")
+                        ?.value || "Bike";
+                    saveFamilyTreeBusiness({
+                      id: `dp-cta-${Date.now()}`,
+                      name: dpName,
+                      category: "Delivery",
+                      type: `Delivery Business (${dpVehicle})`,
+                      ownerName: dpName,
+                      phone: dpPhone,
+                      location: dpArea,
+                      description: `Delivery partner — Vehicle: ${dpVehicle}, ₹${dpRate}/km`,
+                    });
+                    toast.success(
+                      "Registered as delivery partner and added to Family Tree businesses!",
+                    );
                     setDpRegOpen(false);
                   }}
                   className="space-y-3 mt-2"
@@ -2032,6 +2101,7 @@ export default function ShopPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Your Name *</Label>
                     <Input
+                      name="dp_name"
                       placeholder="Full name"
                       required
                       data-ocid="shop.dp_name.input"
@@ -2041,6 +2111,7 @@ export default function ShopPage() {
                     <div className="space-y-1.5">
                       <Label className="text-xs">Pincode(s)</Label>
                       <Input
+                        name="dp_pincode"
                         placeholder="110001, 110002"
                         data-ocid="shop.dp_pincode.input"
                       />
@@ -2049,6 +2120,7 @@ export default function ShopPage() {
                       <Label className="text-xs">Per-km Rate (₹)</Label>
                       <Input
                         type="number"
+                        name="dp_rate"
                         placeholder="12"
                         data-ocid="shop.dp_rate.input"
                       />
@@ -2057,6 +2129,7 @@ export default function ShopPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Area / Locality</Label>
                     <Input
+                      name="dp_area"
                       placeholder="e.g. South Delhi"
                       data-ocid="shop.dp_area.input"
                     />
@@ -2064,7 +2137,7 @@ export default function ShopPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Vehicle Type</Label>
                     <Select defaultValue="Bike">
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-9" data-dp-vehicle="">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2104,6 +2177,7 @@ export default function ShopPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Phone</Label>
                     <Input
+                      name="dp_phone"
                       placeholder="+91 98765 43210"
                       data-ocid="shop.dp_phone.input"
                     />
