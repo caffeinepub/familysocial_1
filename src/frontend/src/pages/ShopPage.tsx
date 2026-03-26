@@ -57,6 +57,8 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
 import { ShopAuctionTab } from "../components/BusinessDiscoveryFeatures";
+import { LikeVoteBar } from "../components/LikeVoteBar";
+import { ReviewModal } from "../components/ReviewModal";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -64,6 +66,7 @@ import {
   saveFamilyTreeBusiness,
 } from "../utils/familyTreeState";
 import { getGlobalProducts } from "../utils/globalProductsState";
+import { formatTimeAgo } from "../utils/timeUtils";
 import { SAMPLE_PRODUCTS, SAMPLE_SERVICES } from "./ProductsServicesPage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -389,146 +392,10 @@ const INITIAL_DELIVERY_PROVIDERS: DeliveryProvider[] = [
   },
 ];
 
-// ─── Rate & Review Modal ──────────────────────────────────────────────────────
-
-function RateReviewModal({
-  open,
-  onClose,
-  itemName,
-  itemId,
-  onSubmit,
-}: {
-  open: boolean;
-  onClose: () => void;
-  itemName: string;
-  itemId: string;
-  onSubmit: (vote: SurveyVote) => void;
-}) {
-  const [stars, setStars] = useState(0);
-  const [hoverStar, setHoverStar] = useState(0);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [comment, setComment] = useState("");
-
-  const SURVEY_CATS = ["Value for Money", "Quality", "Delivery", "Packaging"];
-
-  const toggle = (cat: string) =>
-    setSelected((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-    );
-
-  const handleSubmit = () => {
-    if (stars === 0) {
-      toast.error("Please select a star rating");
-      return;
-    }
-    onSubmit({ itemId, stars, categories: selected, comment });
-    toast.success("Thank you for your review!");
-    setStars(0);
-    setHoverStar(0);
-    setSelected([]);
-    setComment("");
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md" data-ocid="shop.review.dialog">
-        <DialogHeader>
-          <DialogTitle className="font-display text-base">
-            Rate &amp; Review
-          </DialogTitle>
-          <p className="text-xs text-muted-foreground line-clamp-1">
-            {itemName}
-          </p>
-        </DialogHeader>
-
-        <div className="space-y-4 py-1">
-          {/* Star rating */}
-          <div>
-            <Label className="text-xs mb-2 block">Your Rating *</Label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setStars(s)}
-                  onMouseEnter={() => setHoverStar(s)}
-                  onMouseLeave={() => setHoverStar(0)}
-                  className="p-0.5 transition-transform hover:scale-110"
-                >
-                  <Star
-                    size={28}
-                    className={`transition-colors ${
-                      s <= (hoverStar || stars)
-                        ? "fill-amber-400 text-amber-400"
-                        : "fill-transparent text-muted-foreground/40"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Survey categories */}
-          <div>
-            <Label className="text-xs mb-2 block">What did you like?</Label>
-            <div className="flex flex-wrap gap-2">
-              {SURVEY_CATS.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => toggle(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-label border transition-all ${
-                    selected.includes(cat)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card border-border text-muted-foreground hover:border-primary/40"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Comment */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Comment (optional)</Label>
-            <Textarea
-              placeholder="Share your experience..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="text-sm resize-none"
-              rows={3}
-              data-ocid="shop.review.textarea"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2 pt-1">
-          <Button
-            variant="outline"
-            className="flex-1 font-label"
-            onClick={onClose}
-            data-ocid="shop.review.cancel_button"
-          >
-            Cancel
-          </Button>
-          <Button
-            className="flex-1 font-label"
-            onClick={handleSubmit}
-            data-ocid="shop.review.submit_button"
-          >
-            Submit Review
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Shop Product Card ────────────────────────────────────────────────────────
 
 function ShopProductCard({
+  id,
   name,
   description,
   price,
@@ -541,10 +408,11 @@ function ShopProductCard({
   votes,
   isBestBuy,
   onAddToCart,
-  onReview,
   distanceKm,
   isLoggedIn,
+  createdAt,
 }: {
+  id: string;
   name: string;
   description: string;
   price: number;
@@ -557,9 +425,9 @@ function ShopProductCard({
   votes?: number;
   isBestBuy?: boolean;
   onAddToCart: () => void;
-  onReview: () => void;
   distanceKm?: number;
   isLoggedIn?: boolean;
+  createdAt?: string;
 }) {
   const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[category] || "oklch(0.55 0.10 200)";
@@ -654,16 +522,13 @@ function ShopProductCard({
             )}
           </div>
           <div className="flex gap-1.5">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs font-label px-2.5"
-              onClick={onReview}
-              data-ocid="shop.review.open_modal_button"
-            >
-              <Star size={11} className="mr-1" />
-              Rate
-            </Button>
+            <ReviewModal
+              targetId={id}
+              targetType={isService ? "service" : "product"}
+              targetName={name}
+              currentRating={rating}
+              reviewCount={0}
+            />
             <Button
               size="sm"
               className="h-8 text-xs font-label gap-1.5"
@@ -688,6 +553,14 @@ function ShopProductCard({
             )}
           </div>
         </div>
+      </div>
+      <div className="px-4 pb-3 flex items-center justify-between border-t border-border/40 pt-2">
+        <LikeVoteBar id={id} />
+        {createdAt && (
+          <span className="text-[10px] text-muted-foreground">
+            {formatTimeAgo(createdAt)}
+          </span>
+        )}
       </div>
       <BoostPostDialog
         open={boostOpen}
@@ -1670,11 +1543,7 @@ export default function ShopPage() {
   const [deliveryProviders, setDeliveryProviders] = useState<
     DeliveryProvider[]
   >(INITIAL_DELIVERY_PROVIDERS);
-  const [_surveyVotes, setSurveyVotes] = useState<SurveyVote[]>([]);
-  const [reviewTarget, setReviewTarget] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const [_surveyVotes, _setSurveyVotes] = useState<SurveyVote[]>([]);
 
   // Build shop catalog from products + services + extra module items
   // Include user-added products from QuickAddBar (shared via localStorage)
@@ -2324,6 +2193,7 @@ export default function ShopPage() {
               {sortedItems.map((item) => (
                 <ShopProductCard
                   key={item.id}
+                  id={item.id}
                   name={item.name}
                   description={item.description}
                   price={item.price}
@@ -2336,10 +2206,8 @@ export default function ShopPage() {
                   votes={item.votes}
                   isBestBuy={(item as { isBestBuy?: boolean }).isBestBuy}
                   isLoggedIn={isLoggedIn}
+                  createdAt={(item as { createdAt?: string }).createdAt}
                   onAddToCart={() => addToCart(item)}
-                  onReview={() =>
-                    setReviewTarget({ id: item.id, name: item.name })
-                  }
                   distanceKm={
                     userLocation && (item as { lat?: number; lng?: number }).lat
                       ? haversineKm(
@@ -2396,17 +2264,6 @@ export default function ShopPage() {
         grandTotal={grandTotal}
         deliveryProviders={deliveryProviders}
       />
-
-      {/* Rate & Review Modal */}
-      {reviewTarget && (
-        <RateReviewModal
-          open={true}
-          onClose={() => setReviewTarget(null)}
-          itemName={reviewTarget.name}
-          itemId={reviewTarget.id}
-          onSubmit={(vote) => setSurveyVotes((prev) => [...prev, vote])}
-        />
-      )}
     </div>
   );
 }

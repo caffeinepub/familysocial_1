@@ -49,11 +49,14 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
 import { DiscoverClaimTab } from "../components/BusinessDiscoveryFeatures";
+import { LikeVoteBar } from "../components/LikeVoteBar";
+import { ReviewModal } from "../components/ReviewModal";
 import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
 import {
   addGlobalProduct,
   getGlobalProducts,
 } from "../utils/globalProductsState";
+import { formatTimeAgo } from "../utils/timeUtils";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -807,6 +810,21 @@ function StorefrontTab() {
               </div>
             </div>
           </CardContent>
+          <div className="px-6 pb-4 flex items-center justify-between border-t border-border/30 pt-3">
+            <LikeVoteBar id={biz.id} />
+            <div className="flex items-center gap-2">
+              <ReviewModal
+                targetId={biz.id}
+                targetType="business"
+                targetName={biz.name}
+              />
+              {biz.createdAt && (
+                <span className="text-[10px] text-muted-foreground">
+                  {formatTimeAgo(biz.createdAt)}
+                </span>
+              )}
+            </div>
+          </div>
           <BoostPostDialog
             open={boostTarget === biz.id}
             onClose={() => setBoostTarget(null)}

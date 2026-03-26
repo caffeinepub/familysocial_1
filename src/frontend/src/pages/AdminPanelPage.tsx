@@ -78,6 +78,7 @@ import {
   Agent11BusinessDiscovery,
   BusinessClaimsAdmin,
 } from "../components/BusinessDiscoveryFeatures";
+import { type Review, getReviews } from "../components/ReviewModal";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -1669,6 +1670,137 @@ function ThemeTemplateManager() {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const REVIEW_CATEGORIES = [
+  "All",
+  "Products",
+  "Services",
+  "Businesses",
+  "Promotions",
+] as const;
+
+function ReviewsAdminPanel() {
+  const [category, setCategory] = useState<string>("All");
+  const [reviews, setReviews] = useState<Review[]>(() => getReviews());
+
+  function refresh() {
+    setReviews(getReviews());
+  }
+
+  const filtered = reviews.filter((r) => {
+    if (category === "All") return true;
+    if (category === "Products") return r.targetType === "product";
+    if (category === "Services") return r.targetType === "service";
+    if (category === "Businesses") return r.targetType === "business";
+    if (category === "Promotions") return r.targetType === "promotion";
+    return true;
+  });
+
+  function handleApprove(_id: string) {
+    toast.success("Review approved");
+  }
+  function handleReject(id: string) {
+    const updated = reviews.filter((r) => r.id !== id);
+    localStorage.setItem("ic_reviews", JSON.stringify(updated));
+    setReviews(updated);
+    toast.success("Review removed");
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 flex-wrap">
+        {REVIEW_CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setCategory(cat)}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${category === cat ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}
+          >
+            {cat}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={refresh}
+          className="ml-auto px-3 py-1 rounded-lg text-xs border border-border text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
+      {filtered.length === 0 ? (
+        <div
+          className="text-center py-8 text-muted-foreground text-sm"
+          data-ocid="reviews.empty_state"
+        >
+          No reviews yet in this category.
+        </div>
+      ) : (
+        <div className="space-y-2" data-ocid="reviews.list">
+          {filtered.map((r, i) => (
+            <div
+              key={r.id}
+              className="bg-card border border-border rounded-xl p-4 flex items-start gap-3"
+              data-ocid={`reviews.item.${i + 1}`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-foreground">
+                    {r.author}
+                  </span>
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <span className="text-xs text-foreground">{r.targetId}</span>
+                  <Badge className="text-[10px] border-0 bg-primary/10 text-primary">
+                    {r.targetType}
+                  </Badge>
+                </div>
+                <div className="flex gap-0.5 my-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span
+                      key={s}
+                      className={
+                        r.stars >= s
+                          ? "text-amber-400"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+                {r.comment && (
+                  <p className="text-xs text-muted-foreground">{r.comment}</p>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {new Date(r.createdAt).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="flex flex-col gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs text-emerald-600 border-emerald-600/40 hover:bg-emerald-50"
+                  onClick={() => handleApprove(r.id)}
+                  data-ocid="reviews.confirm_button"
+                >
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs text-red-500 border-red-500/40 hover:bg-red-50"
+                  onClick={() => handleReject(r.id)}
+                  data-ocid="reviews.delete_button"
+                >
+                  Reject
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPanelPage() {
   const [complaintStatuses, setComplaintStatuses] = useState<
     Record<string, string>
@@ -1782,6 +1914,7 @@ export default function AdminPanelPage() {
               { value: "agent11-discovery", label: "🔍 A11: Biz Discovery" },
               { value: "business-claims", label: "🏢 Business Claims" },
               { value: "commission-fees", label: "💸 Commission & Fees" },
+              { value: "reviews", label: "⭐ Reviews" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -10732,6 +10865,16 @@ function PromotionsQueue() {
               Save Targeting
             </button>
           </div>
+        </TabsContent>
+
+        {/* ── REVIEWS ── */}
+        <TabsContent value="reviews" className="mt-0 space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-display font-bold text-foreground">
+              Review Management
+            </h3>
+          </div>
+          <ReviewsAdminPanel />
         </TabsContent>
       </Tabs>
     </div>

@@ -11,69 +11,39 @@ export interface FamilyTreeBusiness {
   location: string;
   description?: string;
   email?: string;
+  createdAt?: string;
 }
 
 const KEY = "ic_family_businesses";
-
-const SEED_BUSINESSES: FamilyTreeBusiness[] = [
-  {
-    id: "seed_b1",
-    name: "Sharma General Store",
-    category: "Retail",
-    type: "Retail Business",
-    ownerName: "Raj Sharma",
-    phone: "9876543210",
-    location: "MG Road, Mumbai",
-    description: "General grocery and household items",
-  },
-  {
-    id: "seed_b2",
-    name: "Sharma Healthcare Clinic",
-    category: "Healthcare",
-    type: "Service Business",
-    ownerName: "Priya Sharma",
-    phone: "9876543211",
-    location: "Andheri West, Mumbai",
-    description: "Family healthcare clinic with experienced doctors",
-  },
-  {
-    id: "seed_b3",
-    name: "Sharma Tech Solutions",
-    category: "IT Services",
-    type: "Service Business",
-    ownerName: "Vikram Sharma",
-    phone: "9876543212",
-    location: "Powai, Mumbai",
-    description: "Software development and IT consulting",
-  },
-];
 
 export function getFamilyTreeBusinesses(): FamilyTreeBusiness[] {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const userBusinesses = JSON.parse(raw) as FamilyTreeBusiness[];
-      // Always merge seed + user businesses, deduped by id
-      const seedFiltered = SEED_BUSINESSES.filter(
-        (s) => !userBusinesses.some((u) => u.id === s.id),
-      );
-      return [...seedFiltered, ...userBusinesses];
+      if (userBusinesses.length > 0) {
+        return userBusinesses;
+      }
     }
   } catch {
     // ignore parse errors
   }
-  return SEED_BUSINESSES;
+  return [];
 }
 
 export function saveFamilyTreeBusiness(biz: FamilyTreeBusiness): void {
-  const current = getFamilyTreeBusinesses().filter(
-    (b) => !b.id.startsWith("seed_"),
-  );
+  const current = getFamilyTreeBusinesses();
   const idx = current.findIndex((b) => b.id === biz.id);
   if (idx >= 0) {
-    current[idx] = biz;
+    current[idx] = {
+      ...biz,
+      createdAt: biz.createdAt || current[idx].createdAt,
+    };
   } else {
-    current.push(biz);
+    current.push({
+      ...biz,
+      createdAt: biz.createdAt || new Date().toISOString(),
+    });
   }
   localStorage.setItem(KEY, JSON.stringify(current));
   // Notify other components

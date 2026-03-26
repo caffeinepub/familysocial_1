@@ -55,6 +55,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
+import { LikeVoteBar } from "../components/LikeVoteBar";
 import POSModulesPanel from "../components/POSModulesPanel";
 import { useCurrency } from "../contexts/CurrencyContext";
 import {
@@ -63,6 +64,7 @@ import {
   getGlobalProducts,
   saveGlobalProduct,
 } from "../utils/globalProductsState";
+import { formatTimeAgo } from "../utils/timeUtils";
 import {
   type Product,
   SAMPLE_PRODUCTS,
@@ -533,6 +535,15 @@ function CatalogCard({
             "Add to Cart"
           )}
         </Button>
+        <div className="flex items-center justify-between mt-2">
+          <LikeVoteBar id={String(item.id)} className="scale-90 -ml-1" />
+          {"createdAt" in item &&
+            (item as { createdAt?: string }).createdAt && (
+              <span className="text-[9px] text-muted-foreground">
+                {formatTimeAgo((item as { createdAt: string }).createdAt)}
+              </span>
+            )}
+        </div>
       </div>
     </div>
   );

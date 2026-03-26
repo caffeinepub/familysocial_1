@@ -58,6 +58,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
+import { LikeVoteBar } from "../components/LikeVoteBar";
 import QuickAddBar from "../components/QuickAddBar";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -870,6 +871,9 @@ function BrowseTab({
                   {isLoggedIn && (
                     <JobBoostButton jobId={job.id} jobTitle={job.title} />
                   )}
+                  <div className="mt-2 border-t border-border/40 pt-2">
+                    <LikeVoteBar id={String(job.id)} />
+                  </div>
                 </div>
               </div>
             );

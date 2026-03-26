@@ -39,6 +39,7 @@ import type { UserProfile } from "../backend.d";
 import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { formatTimeAgo } from "../utils/timeUtils";
 
 type Module =
   | "Family"
@@ -320,7 +321,10 @@ function PostCard({ post }: { post: Post }) {
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            {post.relationship} · {post.timestamp}
+            {post.relationship} ·{" "}
+            {post.timestamp.includes("T")
+              ? formatTimeAgo(post.timestamp)
+              : post.timestamp}
           </p>
         </div>
         <button
