@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
 import QuickAddBar from "../components/QuickAddBar";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -668,9 +669,11 @@ function ATSStagePill({ stage }: { stage: ATSStage }) {
 function BrowseTab({
   jobs,
   onApply,
+  isLoggedIn,
 }: {
   jobs: JobEnhanced[];
   onApply: (id: number) => void;
+  isLoggedIn?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"All" | JobType>("All");
@@ -864,6 +867,9 @@ function BrowseTab({
                       "Apply Now"
                     )}
                   </Button>
+                  {isLoggedIn && (
+                    <JobBoostButton jobId={job.id} jobTitle={job.title} />
+                  )}
                 </div>
               </div>
             );
@@ -3360,6 +3366,44 @@ function NetworkTab() {
 
 // ─── Main JobsPage ────────────────────────────────────────────────────────────
 
+function JobBoostButton({
+  jobId,
+  jobTitle,
+}: { jobId: number; jobTitle: string }) {
+  const [boostOpen, setBoostOpen] = useState(false);
+  const [boosted, setBoosted] = useState(() => {
+    const b: string[] = JSON.parse(
+      localStorage.getItem("ic_boosted_posts") || "[]",
+    );
+    return b.includes(String(jobId));
+  });
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full h-8 text-xs font-label gap-1.5"
+        onClick={() => setBoostOpen(true)}
+        style={{
+          color: boosted ? "oklch(0.65 0.20 85)" : undefined,
+          borderColor: boosted ? "oklch(0.65 0.20 85)" : undefined,
+        }}
+        data-ocid="jobs.post.primary_button"
+      >
+        <Zap size={11} fill={boosted ? "currentColor" : "none"} />
+        {boosted ? "Promoted" : "Boost Job"}
+      </Button>
+      <BoostPostDialog
+        open={boostOpen}
+        onClose={() => setBoostOpen(false)}
+        postTitle={jobTitle}
+        postType="job"
+        onBoostSuccess={() => setBoosted(true)}
+      />
+    </>
+  );
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobEnhanced[]>(JOBS);
   const [dismissedBanner, setDismissedBanner] = useState(false);
@@ -3486,7 +3530,11 @@ export default function JobsPage() {
         </TabsList>
 
         <TabsContent value="browse">
-          <BrowseTab jobs={jobs} onApply={handleApply} />
+          <BrowseTab
+            jobs={jobs}
+            onApply={handleApply}
+            isLoggedIn={isLoggedIn}
+          />
         </TabsContent>
 
         <TabsContent value="companies">

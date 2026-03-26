@@ -60,6 +60,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
 import QuickAddBar from "../components/QuickAddBar";
+import { addNotification } from "../stores/notificationStore";
 
 // ─────────────────────────────────────────────
 // Types
@@ -141,6 +142,17 @@ interface CommunityProperty {
   listingType: "For Sale" | "For Rent";
   price: string;
   floor: number;
+}
+
+interface BidEntry {
+  id: number;
+  itemId: string;
+  itemName: string;
+  itemType: "property" | "parking";
+  bidder: string;
+  amount: number;
+  timestamp: string;
+  status: "Pending" | "Accepted" | "Rejected";
 }
 
 interface MarketplaceItem {
@@ -2177,6 +2189,43 @@ function ParkingPropertyTab() {
   const [bidOpen, setBidOpen] = useState(false);
   const [bidItem, setBidItem] = useState<string>("");
   const [bidAmount, setBidAmount] = useState("");
+  const [bidderName, setBidderName] = useState("");
+  const [bids, setBids] = useState<BidEntry[]>([
+    {
+      id: 1,
+      itemId: "A-101",
+      itemName: "A-101 (Apartment)",
+      itemType: "property",
+      bidder: "Rahul Sharma",
+      amount: 4800000,
+      timestamp: "2 hrs ago",
+      status: "Pending",
+    },
+    {
+      id: 2,
+      itemId: "A-101",
+      itemName: "A-101 (Apartment)",
+      itemType: "property",
+      bidder: "Priya Patel",
+      amount: 5200000,
+      timestamp: "1 hr ago",
+      status: "Pending",
+    },
+    {
+      id: 3,
+      itemId: "P-001",
+      itemName: "Parking P-001",
+      itemType: "parking",
+      bidder: "Mohan Kumar",
+      amount: 8000,
+      timestamp: "30 min ago",
+      status: "Pending",
+    },
+  ]);
+  const [viewBidsItem, setViewBidsItem] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   // Add slot dialog
   const [addSlotOpen, setAddSlotOpen] = useState(false);
   const [newSlotNo, setNewSlotNo] = useState("");
@@ -2205,6 +2254,44 @@ function ParkingPropertyTab() {
   })();
 
   const totalCost = bookingSlot ? totalDays * bookingSlot.dailyRate : 0;
+
+  const handleAcceptBid = (bid: BidEntry) => {
+    setBids((prev) =>
+      prev.map((b) => {
+        if (b.itemId === bid.itemId) {
+          return {
+            ...b,
+            status:
+              b.id === bid.id ? ("Accepted" as const) : ("Rejected" as const),
+          };
+        }
+        return b;
+      }),
+    );
+    addNotification({
+      module: "GatedCommunity",
+      text: `uD83CuDF89 Congratulations ${bid.bidder}! Your bid of u20b9${bid.amount.toLocaleString("en-IN")} for ${bid.itemName} has been accepted.`,
+      timestamp: "Just now",
+      unread: true,
+      initials: bid.bidder
+        .split(" ")
+        .map((w: string) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+    });
+    toast.success(`Bid accepted! ${bid.bidder} has been notified.`);
+    setViewBidsItem(null);
+  };
+
+  const handleRejectBid = (bidId: number) => {
+    setBids((prev) =>
+      prev.map((b) =>
+        b.id === bidId ? { ...b, status: "Rejected" as const } : b,
+      ),
+    );
+    toast.info("Bid rejected");
+  };
 
   const handleAddSlot = () => {
     if (!newSlotNo || !newBlock) {
@@ -2522,7 +2609,10 @@ function ParkingPropertyTab() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {COMMUNITY_PROPERTIES.map((prop) => (
-            <Card key={prop.id} className="rounded-xl border-border shadow-sm">
+            <Card
+              key={prop.id}
+              className="rounded-xl border-border shadow-sm hover:shadow-md transition-shadow duration-200"
+            >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
@@ -2581,6 +2671,17 @@ function ParkingPropertyTab() {
                     data-ocid="gated.property.secondary_button"
                   >
                     Bid
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs font-label text-primary"
+                    onClick={() =>
+                      setViewBidsItem({ id: prop.flatNo, name: prop.flatNo })
+                    }
+                  >
+                    View Bids (
+                    {bids.filter((b) => b.itemId === prop.flatNo).length})
                   </Button>
                 </div>
                 <Button
@@ -2669,6 +2770,77 @@ function ParkingPropertyTab() {
         </Dialog>
       )}
 
+      {/* View Bids Dialog */}
+      <Dialog
+        open={!!viewBidsItem}
+        onOpenChange={(o) => !o && setViewBidsItem(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bids — {viewBidsItem?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-80 overflow-y-auto">
+            {bids.filter((b) => b.itemId === viewBidsItem?.id).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No bids yet
+              </p>
+            ) : (
+              bids
+                .filter((b) => b.itemId === viewBidsItem?.id)
+                .map((bid) => (
+                  <div
+                    key={bid.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {bid.bidder}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {bid.timestamp}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-primary">
+                        ₹{bid.amount.toLocaleString("en-IN")}
+                      </span>
+                      {bid.status === "Pending" ? (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleAcceptBid(bid)}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => handleRejectBid(bid.id)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <span
+                          className={
+                            bid.status === "Accepted"
+                              ? "text-xs font-label font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+                              : "text-xs font-label font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700"
+                          }
+                        >
+                          {bid.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Bid Dialog */}
       <Dialog open={bidOpen} onOpenChange={setBidOpen}>
         <DialogContent data-ocid="gated.bid.dialog">
@@ -2676,6 +2848,15 @@ function ParkingPropertyTab() {
             <DialogTitle>Place Bid — {bidItem}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Your Name</Label>
+              <Input
+                className="mt-1"
+                placeholder="e.g. Rahul Sharma"
+                value={bidderName}
+                onChange={(e) => setBidderName(e.target.value)}
+              />
+            </div>
             <div>
               <Label className="text-xs">Your Bid Amount (INR)</Label>
               <Input
@@ -2699,11 +2880,23 @@ function ParkingPropertyTab() {
                     toast.error("Enter bid amount");
                     return;
                   }
+                  const newBid: BidEntry = {
+                    id: Date.now(),
+                    itemId: bidItem,
+                    itemName: bidItem,
+                    itemType: "property",
+                    bidder: bidderName || "You",
+                    amount: Number(bidAmount),
+                    timestamp: "Just now",
+                    status: "Pending",
+                  };
+                  setBids((prev) => [...prev, newBid]);
                   toast.success(
                     `Bid of ₹${Number(bidAmount).toLocaleString("en-IN")} placed successfully!`,
                   );
                   setBidOpen(false);
                   setBidAmount("");
+                  setBidderName("");
                 }}
                 data-ocid="gated.bid.confirm_button"
               >

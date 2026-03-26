@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -73,6 +74,10 @@ import {
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  Agent11BusinessDiscovery,
+  BusinessClaimsAdmin,
+} from "../components/BusinessDiscoveryFeatures";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -1771,6 +1776,12 @@ export default function AdminPanelPage() {
               { value: "promotions-queue", label: "📣 Promotions" },
               { value: "whatsapp-api", label: "📲 WhatsApp API" },
               { value: "rides-admin", label: "🚗 Rides Mgmt" },
+              { value: "agent22", label: "🧪 A22: Tester" },
+              { value: "agent23", label: "📰 A23: News" },
+              { value: "agent24", label: "🥦 A24: Food Stock" },
+              { value: "agent11-discovery", label: "🔍 A11: Biz Discovery" },
+              { value: "business-claims", label: "🏢 Business Claims" },
+              { value: "commission-fees", label: "💸 Commission & Fees" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -1832,7 +1843,7 @@ export default function AdminPanelPage() {
               },
               {
                 label: "Active Agents",
-                value: "16",
+                value: "22",
                 icon: Zap,
                 color: "oklch(0.55 0.22 280)",
               },
@@ -1946,6 +1957,36 @@ export default function AdminPanelPage() {
                   name: "Agent 16 — Tips Manager",
                   lastRun: "Active",
                   freq: "Real-time",
+                },
+                {
+                  name: "Agent 17 — Travel Curator",
+                  lastRun: "2 hours ago",
+                  freq: "Daily",
+                },
+                {
+                  name: "Agent 18 — Pricing Monitor",
+                  lastRun: "30 min ago",
+                  freq: "Hourly",
+                },
+                {
+                  name: "Agent 19 — Game Creator",
+                  lastRun: "8 min ago",
+                  freq: "Real-time",
+                },
+                {
+                  name: "Agent 20 — Comic Agent",
+                  lastRun: "12 min ago",
+                  freq: "Real-time",
+                },
+                {
+                  name: "Agent 21 — Spiritual Agent",
+                  lastRun: "4 hours ago",
+                  freq: "Daily",
+                },
+                {
+                  name: "Agent 22 — Module Tester",
+                  lastRun: "On demand",
+                  freq: "Manual",
                 },
               ].map((agent) => (
                 <div
@@ -5126,109 +5167,131 @@ export default function AdminPanelPage() {
               </table>
             </div>
           </div>
+        </TabsContent>
 
-          {/* ── AGENT 19: GAME CREATOR ── */}
-          <TabsContent value="agent19" className="mt-0 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-display font-bold">
-                  Agent 19 — Game Creator
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Auto-generates unique games based on user interests and
-                  activity patterns.
-                </p>
-              </div>
-              <Switch defaultChecked data-ocid="admin.agent19.toggle" />
-            </div>
-            <Agent19FullPanel />
-          </TabsContent>
-
-          {/* ── AGENT 20: COMIC AGENT ── */}
-          <TabsContent value="agent20" className="mt-0 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-display font-bold">
-                  Agent 20 — Comic Agent
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Creates funny daily comics from users' daily life feeds.
-                </p>
-              </div>
-              <Switch defaultChecked data-ocid="admin.agent20.toggle" />
-            </div>
-            <Agent20FullPanel />
-          </TabsContent>
-
-          {/* ── AGENT 21: SPIRITUAL & MYTHOLOGY CURATOR ── */}
-          <TabsContent value="agent21" className="mt-0 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-display font-bold">
-                  Agent 21 — Spiritual & Mythology Curator
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Auto-curates mythological stories, rituals, and cross-culture
-                  connections for the Spiritual Stories page.
-                </p>
-              </div>
-              <Switch defaultChecked data-ocid="admin.agent21.toggle" />
-            </div>
-            <Agent21FullPanel />
-          </TabsContent>
-
-          {/* ── SOCIAL MEDIA QUEUE ── */}
-          <TabsContent value="social-queue" className="mt-0 space-y-4">
+        {/* ── AGENT 19: GAME CREATOR ── */}
+        <TabsContent value="agent19" className="mt-0 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-display font-bold">
-                Social Media Queue
+                Agent 19 — Game Creator
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Review and approve posts before they are shared to social
-                platforms.
+                Auto-generates unique games based on user interests and activity
+                patterns.
               </p>
             </div>
-            <SocialMediaQueue />
-          </TabsContent>
+            <Switch defaultChecked data-ocid="admin.agent19.toggle" />
+          </div>
+          <Agent19FullPanel />
+        </TabsContent>
 
-          {/* ── PROMOTIONS QUEUE ── */}
-          <TabsContent value="promotions-queue" className="mt-0 space-y-4">
+        {/* ── AGENT 20: COMIC AGENT ── */}
+        <TabsContent value="agent20" className="mt-0 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-display font-bold">
-                Promotions Queue
+                Agent 20 — Comic Agent
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Review ad and promotion submissions from module QuickAdd bars.
+                Creates funny daily comics from users' daily life feeds.
               </p>
             </div>
-            <PromotionsQueue />
-          </TabsContent>
+            <Switch defaultChecked data-ocid="admin.agent20.toggle" />
+          </div>
+          <Agent20FullPanel />
+        </TabsContent>
 
-          {/* ── WHATSAPP API ── */}
-          <TabsContent value="whatsapp-api" className="mt-0 space-y-4">
+        {/* ── AGENT 21: SPIRITUAL & MYTHOLOGY CURATOR ── */}
+        <TabsContent value="agent21" className="mt-0 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-display font-bold">
-                WhatsApp Business API
+                Agent 21 — Spiritual & Mythology Curator
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Configure WhatsApp Cloud API credentials for direct messaging.
+                Auto-curates mythological stories, rituals, and cross-culture
+                connections for the Spiritual Stories page.
               </p>
             </div>
-            <WhatsAppAPISettings />
-          </TabsContent>
+            <Switch defaultChecked data-ocid="admin.agent21.toggle" />
+          </div>
+          <Agent21FullPanel />
+        </TabsContent>
 
-          {/* ── RIDES MANAGEMENT ── */}
-          <TabsContent value="rides-admin" className="mt-0 space-y-4">
-            <div>
-              <h2 className="text-lg font-display font-bold">
-                Ride Management
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Manage drivers, vehicles, and fare rate cards.
-              </p>
-            </div>
-            <RideManagementWithZones />
-          </TabsContent>
+        {/* ── SOCIAL MEDIA QUEUE ── */}
+        <TabsContent value="social-queue" className="mt-0 space-y-4">
+          <div>
+            <h2 className="text-lg font-display font-bold">
+              Social Media Queue
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Review and approve posts before they are shared to social
+              platforms.
+            </p>
+          </div>
+          <SocialMediaQueue />
+        </TabsContent>
+
+        {/* ── PROMOTIONS QUEUE ── */}
+        <TabsContent value="promotions-queue" className="mt-0 space-y-4">
+          <div>
+            <h2 className="text-lg font-display font-bold">Promotions Queue</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Review ad and promotion submissions from module QuickAdd bars.
+            </p>
+          </div>
+          <PromotionsQueue />
+        </TabsContent>
+
+        {/* ── WHATSAPP API ── */}
+        <TabsContent value="whatsapp-api" className="mt-0 space-y-4">
+          <div>
+            <h2 className="text-lg font-display font-bold">
+              WhatsApp Business API
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Configure WhatsApp Cloud API credentials for direct messaging.
+            </p>
+          </div>
+          <WhatsAppAPISettings />
+        </TabsContent>
+
+        {/* ── RIDES MANAGEMENT ── */}
+        <TabsContent value="rides-admin" className="mt-0 space-y-4">
+          <div>
+            <h2 className="text-lg font-display font-bold">Ride Management</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Manage drivers, vehicles, and fare rate cards.
+            </p>
+          </div>
+          <RideManagementWithZones />
+        </TabsContent>
+        {/* ── Agent 22: Module Tester ── */}
+        <TabsContent value="agent22" className="mt-0 space-y-4">
+          <Agent22ModuleTester />
+        </TabsContent>
+        {/* ── Agent 23: News Agent ── */}
+        <TabsContent value="agent23" className="mt-0 space-y-4">
+          <Agent23NewsAgent />
+        </TabsContent>
+        {/* ── Agent 24: Food Stock Agent ── */}
+        <TabsContent value="agent24" className="mt-0 space-y-4">
+          <Agent24FoodStockAgent />
+        </TabsContent>
+        {/* ── Commission & Fees ── */}
+        <TabsContent value="commission-fees" className="mt-0 space-y-4">
+          <CommissionFeesPanel />
+        </TabsContent>
+
+        {/* ── AGENT 11: BUSINESS DISCOVERY ── */}
+        <TabsContent value="agent11-discovery" className="mt-0 space-y-4">
+          <Agent11BusinessDiscovery />
+        </TabsContent>
+
+        {/* ── BUSINESS CLAIMS ── */}
+        <TabsContent value="business-claims" className="mt-0 space-y-4">
+          <BusinessClaimsAdmin />
         </TabsContent>
       </Tabs>
 
@@ -6411,6 +6474,13 @@ function Agent11FakeUsers() {
           <TabsTrigger value="users" className="flex-1 text-xs">
             Generated Users
           </TabsTrigger>
+          <TabsTrigger
+            value="bizsearch"
+            className="flex-1 text-xs"
+            data-ocid="admin.agent11.tab"
+          >
+            Business Search
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="config" className="mt-4 space-y-4">
@@ -6693,7 +6763,224 @@ function Agent11FakeUsers() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="bizsearch" className="mt-4 space-y-4">
+          <Agent11BusinessSearch />
+        </TabsContent>
       </Tabs>
+    </>
+  );
+}
+
+function Agent11BusinessSearch() {
+  const [industry, setIndustry] = useState("Retail");
+  const [region, setRegion] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, _setResults] = useState([
+    {
+      name: "Sharma Supermart",
+      industry: "Retail",
+      region: "Delhi, India",
+      desc: "Family-owned supermarket chain with 5 locations in North Delhi.",
+      website: "sharmasupermart.in",
+      employees: "50-200",
+    },
+    {
+      name: "Biryani Brothers",
+      industry: "Food",
+      region: "Mumbai, India",
+      desc: "Popular restaurant group serving authentic Hyderabadi biryani across Mumbai.",
+      website: "biryanibrothers.com",
+      employees: "20-80",
+    },
+    {
+      name: "CarePlus Hospital",
+      industry: "Healthcare",
+      region: "Bangalore, India",
+      desc: "Multi-specialty hospital with 200+ beds and advanced diagnostics.",
+      website: "careplus.hospital",
+      employees: "500+",
+    },
+  ]);
+  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+  const [aiConnectedIds, setAiConnectedIds] = useState<Set<number>>(new Set());
+  const [connectedBiz, _setConnectedBiz] = useState([
+    {
+      name: "TechNova Solutions",
+      industry: "Technology",
+      addedOn: "Mar 20, 2026",
+      aiConnected: true,
+    },
+    {
+      name: "Sunrise Academy",
+      industry: "Education",
+      addedOn: "Mar 19, 2026",
+      aiConnected: false,
+    },
+  ]);
+
+  const handleSearch = () => {
+    setSearching(true);
+    setTimeout(() => {
+      setSearching(false);
+      toast.success(
+        `Found ${results.length} businesses in ${industry} — ${region || "all regions"}`,
+      );
+    }, 2000);
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <p className="text-lg font-bold text-primary">{results.length}</p>
+          <p className="text-[11px] text-muted-foreground">Total Found</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <p
+            className="text-lg font-bold"
+            style={{ color: "oklch(0.52 0.14 155)" }}
+          >
+            {addedIds.size + connectedBiz.length}
+          </p>
+          <p className="text-[11px] text-muted-foreground">Added to Platform</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <p className="text-lg font-bold text-amber-600">
+            {aiConnectedIds.size}
+          </p>
+          <p className="text-[11px] text-muted-foreground">AI Connected</p>
+        </div>
+      </div>
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Search Parameters</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs font-medium">Industry</Label>
+            <select
+              className="w-full mt-1 h-8 text-xs border border-input rounded-md px-2 bg-background text-foreground"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              data-ocid="admin.agent11.select"
+            >
+              <option>Retail</option>
+              <option>Food</option>
+              <option>Healthcare</option>
+              <option>Education</option>
+              <option>Technology</option>
+              <option>Travel</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs font-medium">Region</Label>
+            <Input
+              className="mt-1 h-8 text-xs"
+              placeholder="e.g. Mumbai, India"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              data-ocid="admin.agent11.input"
+            />
+          </div>
+        </div>
+        <Button
+          size="sm"
+          className="w-full gap-2"
+          onClick={handleSearch}
+          disabled={searching}
+          data-ocid="admin.agent11.primary_button"
+        >
+          {searching ? "🔍 Searching Internet..." : "🔍 Search Internet"}
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {results.map((b, i) => (
+          <div
+            key={b.name}
+            className="bg-card border border-border rounded-xl p-3"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{b.name}</p>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                  <Badge variant="outline" className="text-[10px] px-1">
+                    {b.industry}
+                  </Badge>
+                  <span>{b.region}</span>
+                  <span>·</span>
+                  <span>{b.employees} emp.</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {b.desc}
+                </p>
+              </div>
+              <div className="flex flex-col gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  className="text-[10px] h-6 px-2"
+                  onClick={() => {
+                    setAddedIds((p) => new Set([...p, i]));
+                    toast.success(`${b.name} added to platform`);
+                  }}
+                  disabled={addedIds.has(i)}
+                  data-ocid="admin.agent11.primary_button"
+                >
+                  {addedIds.has(i) ? "Added ✓" : "Add to Platform"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-[10px] h-6 px-2"
+                  onClick={() => {
+                    setAiConnectedIds((p) => new Set([...p, i]));
+                    toast.success(`AI connection established with ${b.name}`);
+                  }}
+                  disabled={aiConnectedIds.has(i)}
+                  data-ocid="admin.agent11.secondary_button"
+                >
+                  {aiConnectedIds.has(i) ? "AI Connected ✓" : "Connect AI"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-2 border-b border-border bg-muted/50">
+          <p className="text-xs font-semibold">Connected Businesses</p>
+        </div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="px-3 py-2 text-left font-medium">Business</th>
+              <th className="px-3 py-2 text-left font-medium">Industry</th>
+              <th className="px-3 py-2 text-left font-medium">Added On</th>
+              <th className="px-3 py-2 text-left font-medium">AI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {connectedBiz.map((c, i) => (
+              <tr
+                key={c.name}
+                className="border-t border-border"
+                data-ocid={`admin.agent11.row.${i + 1}`}
+              >
+                <td className="px-3 py-2 font-medium">{c.name}</td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  {c.industry}
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">{c.addedOn}</td>
+                <td className="px-3 py-2">
+                  <Badge
+                    className={`border-0 text-[10px] ${c.aiConnected ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                  >
+                    {c.aiConnected ? "Connected" : "Not Connected"}
+                  </Badge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
@@ -6975,10 +7262,12 @@ function Agent12WhatsApp() {
 
 // ─── Agent 13: Monetization ───────────────────────────────────────────────────
 function Agent13Monetize() {
+  const [activeTab, setActiveTab] = useState("revenue");
   const [suggestionStatus, setSuggestionStatus] = useState<
     Record<number, string>
   >({});
 
+  // Revenue Monitor data
   const moduleUsage = [
     { module: "Social Feed", pct: 94 },
     { module: "Jobs", pct: 82 },
@@ -6996,180 +7285,917 @@ function Agent13Monetize() {
     {
       title: "Premium Job Listings",
       desc: "340 job searches this week. Offer featured placement.",
-      est: "PKR 15,000/mo",
+      est: "₹15,000/mo",
       cat: "Jobs",
-      detail: "Charge PKR 500/week for highlighted job cards.",
+      detail: "Charge ₹500/week for highlighted job cards.",
     },
     {
       title: "Promoted Real Estate",
       desc: "89 properties viewed daily. Top placement available.",
-      est: "PKR 40,000/mo",
+      est: "₹40,000/mo",
       cat: "Real Estate",
-      detail: "PKR 2,000/week for top-of-page property placement.",
-    },
-    {
-      title: "Matrimony Boost",
-      desc: "156 matrimony profile views daily.",
-      est: "PKR 8,000/mo",
-      cat: "Matrimony",
-      detail: "PKR 300/month for highlighted profile with badge.",
-    },
-    {
-      title: "Community Subscription",
-      desc: "45 gated communities on platform.",
-      est: "PKR 22,500/mo",
-      cat: "Community",
-      detail: "PKR 500/month per community for premium features.",
-    },
-    {
-      title: "Affiliate Commission Fee",
-      desc: "Top 20 affiliates generating PKR 200K/mo traffic.",
-      est: "PKR 10,000/mo",
-      cat: "Affiliate",
-      detail: "5% platform fee on affiliate-driven sales.",
-    },
-    {
-      title: "Sponsored Blog Posts",
-      desc: "78 blogs published this month.",
-      est: "PKR 8,500/mo",
-      cat: "Blog",
-      detail: "PKR 1,500 per sponsored blog placement.",
+      detail: "₹2,000/week for top-of-page property placement.",
     },
     {
       title: "POS Transaction Fee",
       desc: "234 POS transactions per day.",
-      est: "PKR 35,000/mo",
+      est: "₹35,000/mo",
       cat: "POS",
       detail: "0.5% platform fee on each completed POS sale.",
     },
     {
-      title: "Healthcare Booking Fee",
-      desc: "45 advisor bookings this week.",
-      est: "PKR 2,250/mo",
-      cat: "Healthcare",
-      detail: "PKR 50 per consultation booking platform fee.",
+      title: "Community Subscription",
+      desc: "45 gated communities on platform.",
+      est: "₹22,500/mo",
+      cat: "Community",
+      detail: "₹500/month per community for premium features.",
     },
   ];
 
-  const totalEst = "PKR 1,41,250";
+  // Course Creator state
+  const [courseTopic, setCourseTopic] = useState("");
+  const [courseAudience, setCourseAudience] = useState("Beginners");
+  const [coursePrice, setCoursePrice] = useState("499");
+  const [coursePaid, setCoursePaid] = useState(true);
+  const [generatingCourse, setGeneratingCourse] = useState(false);
+  const [courses, setCourses] = useState([
+    {
+      id: 1,
+      title: "Digital Marketing for Small Businesses",
+      desc: "Learn to promote your business online using social media, SEO and paid ads.",
+      audience: "Beginners",
+      price: 999,
+      paid: true,
+      modules: [
+        "Introduction to Digital Marketing",
+        "Social Media Strategy",
+        "SEO Basics",
+        "Paid Advertising",
+      ],
+      status: "published",
+    },
+    {
+      id: 2,
+      title: "E-commerce & POS Mastery",
+      desc: "Comprehensive guide to managing inventory, sales and customers using IndyaCentral POS.",
+      audience: "Intermediate",
+      price: 0,
+      paid: false,
+      modules: [
+        "POS Setup",
+        "Inventory Management",
+        "Customer Relations",
+        "Reports & Analytics",
+      ],
+      status: "published",
+    },
+  ]);
+
+  // Quiz Builder state
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(1);
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [quizQuestions, _setQuizQuestions] = useState<
+    Array<{
+      question: string;
+      type: "MCQ" | "Subjective";
+      options?: string[];
+      correct?: number;
+    }>
+  >([
+    {
+      question: "What is the primary goal of digital marketing?",
+      type: "MCQ",
+      options: [
+        "Increase offline sales",
+        "Reach target audience online",
+        "Reduce product cost",
+        "Manage inventory",
+      ],
+      correct: 1,
+    },
+    {
+      question: "Which metric measures organic search traffic?",
+      type: "MCQ",
+      options: ["CTR", "Bounce Rate", "Organic Sessions", "ROAS"],
+      correct: 2,
+    },
+    {
+      question: "What does SEO stand for?",
+      type: "MCQ",
+      options: [
+        "Social Engagement Optimization",
+        "Search Engine Optimization",
+        "Sales Engagement Output",
+        "Site Efficiency Online",
+      ],
+      correct: 1,
+    },
+    {
+      question: "Which platform is best for B2B marketing?",
+      type: "MCQ",
+      options: ["TikTok", "Snapchat", "LinkedIn", "Pinterest"],
+      correct: 2,
+    },
+    {
+      question: "What is a conversion rate?",
+      type: "MCQ",
+      options: [
+        "Ratio of visitors who complete an action",
+        "Total website traffic",
+        "Cost per click",
+        "Bounce percentage",
+      ],
+      correct: 0,
+    },
+    {
+      question:
+        "Explain the importance of content marketing for a small business.",
+      type: "Subjective",
+    },
+    {
+      question: "Describe three strategies to improve customer retention.",
+      type: "Subjective",
+    },
+  ]);
+  const [passScore, setPassScore] = useState("70");
+  const quizResults = [
+    {
+      learner: "Priya Sharma",
+      score: 85,
+      status: "Pass",
+      date: "Mar 20, 2026",
+    },
+    { learner: "Amit Verma", score: 62, status: "Fail", date: "Mar 19, 2026" },
+    { learner: "Neha Gupta", score: 91, status: "Pass", date: "Mar 18, 2026" },
+    { learner: "Rahul Singh", score: 74, status: "Pass", date: "Mar 17, 2026" },
+  ];
+
+  // Certificate state
+  const [certName, setCertName] = useState("Certificate of Completion");
+  const [certPaid, setCertPaid] = useState(true);
+  const [certPrice, setCertPrice] = useState("199");
+  const issuedCerts = [
+    {
+      recipient: "Priya Sharma",
+      course: "Digital Marketing for Small Businesses",
+      date: "Mar 20, 2026",
+      status: "Paid",
+    },
+    {
+      recipient: "Neha Gupta",
+      course: "Digital Marketing for Small Businesses",
+      date: "Mar 18, 2026",
+      status: "Paid",
+    },
+    {
+      recipient: "Rahul Singh",
+      course: "E-commerce & POS Mastery",
+      date: "Mar 17, 2026",
+      status: "Free",
+    },
+  ];
+
+  // Business Outreach state
+  const [scanning, setScanning] = useState(false);
+  const [bizConnected, setBizConnected] = useState<Record<number, boolean>>({});
+  const [aiSyncStatus, setAiSyncStatus] = useState<Record<string, boolean>>({
+    "ChatGPT Plugins": false,
+    "Google Gemini": false,
+    "Perplexity AI": false,
+    "Meta AI": false,
+    "Microsoft Copilot": false,
+  });
+  const foundBusinesses = [
+    {
+      id: 1,
+      name: "Riya Fashion House",
+      industry: "Retail",
+      location: "Mumbai, India",
+      website: "riyafashion.in",
+      employees: "12-50",
+    },
+    {
+      id: 2,
+      name: "SpiceRoute Restaurants",
+      industry: "Food",
+      location: "Delhi, India",
+      website: "spiceroute.co.in",
+      employees: "50-200",
+    },
+    {
+      id: 3,
+      name: "HealthPlus Clinic",
+      industry: "Healthcare",
+      location: "Bangalore, India",
+      website: "healthplus.care",
+      employees: "5-20",
+    },
+    {
+      id: 4,
+      name: "BrightMinds Academy",
+      industry: "Education",
+      location: "Pune, India",
+      website: "brightminds.edu.in",
+      employees: "20-100",
+    },
+    {
+      id: 5,
+      name: "TechWave Solutions",
+      industry: "Technology",
+      location: "Hyderabad, India",
+      website: "techwave.io",
+      employees: "100-500",
+    },
+    {
+      id: 6,
+      name: "WanderNorth Travel",
+      industry: "Travel",
+      location: "Jaipur, India",
+      website: "wandernorth.travel",
+      employees: "10-40",
+    },
+  ];
+
+  const handleGenerateCourse = () => {
+    if (!courseTopic.trim()) {
+      toast.error("Please enter a course topic");
+      return;
+    }
+    setGeneratingCourse(true);
+    setTimeout(() => {
+      setGeneratingCourse(false);
+      const newCourse = {
+        id: Date.now(),
+        title: courseTopic,
+        desc: `AI-generated comprehensive course on ${courseTopic} designed for ${courseAudience}. Covers core concepts, practical applications and real-world case studies.`,
+        audience: courseAudience,
+        price: coursePaid ? Number(coursePrice) : 0,
+        paid: coursePaid,
+        modules: [
+          `Introduction to ${courseTopic}`,
+          "Core Concepts & Frameworks",
+          "Practical Implementation",
+          "Advanced Techniques & Assessment",
+        ],
+        status: "draft",
+      };
+      setCourses((prev) => [newCourse, ...prev]);
+      setCourseTopic("");
+      toast.success("Course generated successfully!");
+    }, 1500);
+  };
+
+  const handleGenerateQuiz = () => {
+    setGeneratingQuiz(true);
+    setTimeout(() => {
+      setGeneratingQuiz(false);
+      toast.success("5 MCQ + 2 subjective questions generated");
+    }, 1000);
+  };
 
   return (
-    <>
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h3 className="text-sm font-label font-semibold text-foreground mb-3">
-          Module Usage (Traffic Patterns)
-        </h3>
-        <div className="space-y-2">
-          {moduleUsage.map((m) => (
-            <div key={m.module} className="flex items-center gap-3">
-              <span className="text-xs font-label text-foreground w-28 shrink-0">
-                {m.module}
-              </span>
-              <div className="flex-1 h-4 bg-secondary rounded overflow-hidden">
-                <div
-                  className="h-full rounded transition-all"
-                  style={{
-                    width: `${m.pct}%`,
-                    background: "oklch(0.55 0.22 280 / 0.6)",
-                    minWidth: "1rem",
-                  }}
-                >
-                  <span className="text-[9px] font-bold text-white px-1.5 leading-4 block">
-                    {m.pct}%
-                  </span>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="w-full flex-wrap h-auto gap-1 mb-4">
+        <TabsTrigger
+          value="revenue"
+          className="flex-1 text-xs"
+          data-ocid="admin.agent13.tab"
+        >
+          Revenue Monitor
+        </TabsTrigger>
+        <TabsTrigger
+          value="courses"
+          className="flex-1 text-xs"
+          data-ocid="admin.agent13.tab"
+        >
+          Course Creator
+        </TabsTrigger>
+        <TabsTrigger
+          value="quiz"
+          className="flex-1 text-xs"
+          data-ocid="admin.agent13.tab"
+        >
+          Quiz Builder
+        </TabsTrigger>
+        <TabsTrigger
+          value="certs"
+          className="flex-1 text-xs"
+          data-ocid="admin.agent13.tab"
+        >
+          Certificates
+        </TabsTrigger>
+        <TabsTrigger
+          value="outreach"
+          className="flex-1 text-xs"
+          data-ocid="admin.agent13.tab"
+        >
+          Business Outreach
+        </TabsTrigger>
+      </TabsList>
+
+      {/* Tab 1: Revenue Monitor */}
+      <TabsContent value="revenue" className="space-y-4">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">
+            Module Usage (Traffic Patterns)
+          </h3>
+          <div className="space-y-2">
+            {moduleUsage.map((m) => (
+              <div key={m.module} className="flex items-center gap-3">
+                <span className="text-xs text-foreground w-28 shrink-0">
+                  {m.module}
+                </span>
+                <div className="flex-1 h-4 bg-secondary rounded overflow-hidden">
+                  <div
+                    className="h-full rounded transition-all"
+                    style={{
+                      width: `${m.pct}%`,
+                      background: "oklch(0.55 0.22 280 / 0.6)",
+                      minWidth: "1rem",
+                    }}
+                  >
+                    <span className="text-[9px] font-bold text-white px-1.5 leading-4 block">
+                      {m.pct}%
+                    </span>
+                  </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground">
+              Total Estimated Monthly Revenue (if all implemented)
+            </p>
+            <p
+              className="text-2xl font-bold"
+              style={{ color: "oklch(0.52 0.14 155)" }}
+            >
+              ₹1,41,250
+            </p>
+          </div>
+          <DollarSign
+            size={32}
+            style={{ color: "oklch(0.52 0.14 155 / 0.4)" }}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {suggestions.map((s, i) => (
+            <div
+              key={s.title}
+              className="bg-card border border-border rounded-xl p-4 space-y-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {s.title}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {s.desc}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] shrink-0">
+                  {s.cat}
+                </Badge>
+              </div>
+              <p
+                className="text-xs font-bold"
+                style={{ color: "oklch(0.52 0.14 155)" }}
+              >
+                {s.est}
+              </p>
+              <Button
+                size="sm"
+                className="w-full text-xs h-7"
+                onClick={() => {
+                  setSuggestionStatus((p) => ({ ...p, [i]: "Approved" }));
+                  toast.success(`${s.title} approved`);
+                }}
+                disabled={suggestionStatus[i] === "Approved"}
+                data-ocid="admin.agent13.primary_button"
+              >
+                {suggestionStatus[i] === "Approved" ? "✓ Approved" : "Approve"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      {/* Tab 2: Course Creator */}
+      <TabsContent value="courses" className="space-y-4">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">AI Course Generator</h3>
+            <Button
+              size="sm"
+              className="text-xs gap-1"
+              onClick={handleGenerateCourse}
+              disabled={generatingCourse}
+              data-ocid="admin.agent13.submit_button"
+            >
+              {generatingCourse ? "Generating..." : "Generate Course"}
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-medium">Course Topic</Label>
+              <Input
+                className="mt-1 h-8 text-xs"
+                placeholder="e.g. Social Media Marketing"
+                value={courseTopic}
+                onChange={(e) => setCourseTopic(e.target.value)}
+                data-ocid="admin.agent13.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Target Audience</Label>
+              <select
+                className="w-full mt-1 h-8 text-xs border border-input rounded-md px-2 bg-background text-foreground"
+                value={courseAudience}
+                onChange={(e) => setCourseAudience(e.target.value)}
+                data-ocid="admin.agent13.select"
+              >
+                <option>Beginners</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Price (₹)</Label>
+              <Input
+                className="mt-1 h-8 text-xs"
+                type="number"
+                value={coursePrice}
+                onChange={(e) => setCoursePrice(e.target.value)}
+                disabled={!coursePaid}
+                data-ocid="admin.agent13.input"
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-5">
+              <Switch
+                checked={coursePaid}
+                onCheckedChange={(setCoursesPaid) =>
+                  setCoursePaid(setCoursesPaid)
+                }
+                data-ocid="admin.agent13.switch"
+              />
+              <Label className="text-xs">
+                {coursePaid ? "Paid Course" : "Free Course"}
+              </Label>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full text-xs gap-1"
+            onClick={handleGenerateCourse}
+            disabled={generatingCourse}
+            data-ocid="admin.agent13.secondary_button"
+          >
+            {generatingCourse
+              ? "⏳ Generating from monitoring data..."
+              : "Generate from Monitoring Data"}
+          </Button>
+        </div>
+        <div className="space-y-3">
+          {courses.map((c) => (
+            <div
+              key={c.id}
+              className="bg-card border border-border rounded-xl p-4 space-y-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{c.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {c.desc}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1 items-end shrink-0">
+                  <Badge
+                    className={
+                      c.status === "published"
+                        ? "bg-green-100 text-green-700 border-0 text-[10px]"
+                        : "bg-amber-100 text-amber-700 border-0 text-[10px]"
+                    }
+                  >
+                    {c.status}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {c.audience}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{c.modules.length} modules</span>
+                <span>·</span>
+                <span className="font-semibold text-foreground">
+                  {c.paid ? `₹${c.price}` : "Free"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="text-xs h-7 flex-1"
+                  onClick={() => toast.success(`${c.title} published`)}
+                  data-ocid="admin.agent13.primary_button"
+                >
+                  Publish
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7 flex-1"
+                  onClick={() => {
+                    setSelectedCourseId(c.id);
+                    setActiveTab("quiz");
+                  }}
+                  data-ocid="admin.agent13.secondary_button"
+                >
+                  Create Quiz
+                </Button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </TabsContent>
 
-      <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground font-label">
-            Total Estimated Monthly Revenue (if all implemented)
+      {/* Tab 3: Quiz Builder */}
+      <TabsContent value="quiz" className="space-y-4">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <Label className="text-xs font-medium">Select Course</Label>
+              <select
+                className="w-full mt-1 h-8 text-xs border border-input rounded-md px-2 bg-background text-foreground"
+                value={selectedCourseId ?? ""}
+                onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+                data-ocid="admin.agent13.select"
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button
+              size="sm"
+              className="text-xs mt-5 gap-1"
+              onClick={handleGenerateQuiz}
+              disabled={generatingQuiz}
+              data-ocid="admin.agent13.primary_button"
+            >
+              {generatingQuiz ? "Generating..." : "Generate Questions"}
+            </Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Label className="text-xs font-medium w-24 shrink-0">
+              Pass Score (%)
+            </Label>
+            <Input
+              className="h-8 text-xs w-24"
+              type="number"
+              value={passScore}
+              onChange={(e) => setPassScore(e.target.value)}
+              data-ocid="admin.agent13.input"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {quizQuestions.map((q) => (
+            <div
+              key={q.question}
+              className="bg-card border border-border rounded-xl p-3 space-y-2"
+            >
+              <div className="flex items-start gap-2">
+                <Badge
+                  className={
+                    q.type === "MCQ"
+                      ? "bg-violet-100 text-violet-700 border-0 text-[10px] shrink-0"
+                      : "bg-blue-100 text-blue-700 border-0 text-[10px] shrink-0"
+                  }
+                >
+                  {q.type}
+                </Badge>
+                <p className="text-xs text-foreground">{q.question}</p>
+              </div>
+              {q.type === "MCQ" && q.options && (
+                <div className="grid grid-cols-2 gap-1 ml-1">
+                  {q.options.map((opt, j) => (
+                    <div
+                      key={opt}
+                      className={`text-[11px] px-2 py-1 rounded ${j === q.correct ? "bg-green-100 text-green-700 font-semibold" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {String.fromCharCode(65 + j)}. {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <Button
+          size="sm"
+          className="w-full gap-1"
+          onClick={() => toast.success("Quiz published successfully!")}
+          data-ocid="admin.agent13.submit_button"
+        >
+          Publish Quiz
+        </Button>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-border bg-muted/50">
+            <p className="text-xs font-semibold">Quiz Results</p>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-3 py-2 text-left font-medium">Learner</th>
+                <th className="px-3 py-2 text-right font-medium">Score</th>
+                <th className="px-3 py-2 text-left font-medium">Status</th>
+                <th className="px-3 py-2 text-left font-medium">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quizResults.map((r, i) => (
+                <tr
+                  key={r.learner}
+                  className="border-t border-border"
+                  data-ocid={`admin.agent13.row.${i + 1}`}
+                >
+                  <td className="px-3 py-2 font-medium">{r.learner}</td>
+                  <td className="px-3 py-2 text-right">{r.score}%</td>
+                  <td className="px-3 py-2">
+                    <Badge
+                      className={`border-0 text-[10px] ${r.status === "Pass" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                    >
+                      {r.status}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </TabsContent>
+
+      {/* Tab 4: Certificates */}
+      <TabsContent value="certs" className="space-y-4">
+        <div className="bg-gradient-to-br from-violet-50 to-amber-50 dark:from-violet-950/30 dark:to-amber-950/30 border-2 border-dashed border-violet-300 dark:border-violet-700 rounded-xl p-6 text-center space-y-2">
+          <div className="text-2xl">🏆</div>
+          <p className="text-xs font-semibold text-muted-foreground tracking-widest uppercase">
+            IndyaCentral Platform
           </p>
-          <p
-            className="text-2xl font-display font-bold"
-            style={{ color: "oklch(0.52 0.14 155)" }}
-          >
-            {totalEst}
+          <p className="text-xl font-bold text-foreground">
+            CERTIFICATE OF COMPLETION
+          </p>
+          <p className="text-sm text-muted-foreground italic">
+            This is to certify that
+          </p>
+          <p className="text-lg font-semibold text-primary border-b border-primary inline-block px-4">
+            [Recipient Name]
+          </p>
+          <p className="text-sm text-muted-foreground">
+            has successfully completed
+          </p>
+          <p className="text-base font-semibold text-foreground">
+            [Course Name]
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {new Date().toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}{" "}
+            · Certified by IndyaCentral
           </p>
         </div>
-        <DollarSign size={32} style={{ color: "oklch(0.52 0.14 155 / 0.4)" }} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {suggestions.map((s, i) => {
-          const status = suggestionStatus[i] ?? "pending";
-          return (
-            <div
-              key={s.title}
-              className="bg-card border border-border rounded-xl p-4"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <SBadge label={s.cat} color="violet" />
-                <SBadge label={status} color={statusColorHelper(status)} />
-              </div>
-              <p className="text-sm font-label font-semibold text-foreground mb-0.5">
-                {s.title}
-              </p>
-              <p className="text-[11px] text-muted-foreground mb-1">{s.desc}</p>
-              <p className="text-[11px] text-muted-foreground">{s.detail}</p>
-              <div className="flex items-center justify-between mt-3">
-                <span
-                  className="text-sm font-display font-bold"
-                  style={{ color: "oklch(0.52 0.14 155)" }}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-medium">Certificate Name</Label>
+              <Input
+                className="mt-1 h-8 text-xs"
+                value={certName}
+                onChange={(e) => setCertName(e.target.value)}
+                data-ocid="admin.agent13.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Price (₹)</Label>
+              <Input
+                className="mt-1 h-8 text-xs"
+                type="number"
+                value={certPrice}
+                onChange={(e) => setCertPrice(e.target.value)}
+                disabled={!certPaid}
+                data-ocid="admin.agent13.input"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={certPaid}
+              onCheckedChange={setCertPaid}
+              data-ocid="admin.agent13.switch"
+            />
+            <Label className="text-xs">
+              {certPaid
+                ? `Paid Certificate — ₹${certPrice}`
+                : "Free Certificate"}
+            </Label>
+          </div>
+          <Button
+            size="sm"
+            className="w-full gap-1"
+            onClick={() => toast.success("Certificate issued successfully!")}
+            data-ocid="admin.agent13.submit_button"
+          >
+            Issue Certificate
+          </Button>
+        </div>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-border bg-muted/50">
+            <p className="text-xs font-semibold">Issued Certificates</p>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-3 py-2 text-left font-medium">Recipient</th>
+                <th className="px-3 py-2 text-left font-medium">Course</th>
+                <th className="px-3 py-2 text-left font-medium">Date</th>
+                <th className="px-3 py-2 text-left font-medium">Status</th>
+                <th className="px-3 py-2 text-left font-medium" />
+              </tr>
+            </thead>
+            <tbody>
+              {issuedCerts.map((c, i) => (
+                <tr
+                  key={`${c.recipient}-${c.course}`}
+                  className="border-t border-border"
+                  data-ocid={`admin.agent13.item.${i + 1}`}
                 >
-                  {s.est}
-                </span>
-                {status === "pending" && (
-                  <div className="flex gap-1.5">
-                    <ActionBtn
-                      label="Approve"
-                      color="green"
-                      onClick={() =>
-                        setSuggestionStatus((p) => ({ ...p, [i]: "approved" }))
-                      }
-                    />
-                    <ActionBtn
-                      label="Defer"
-                      color="amber"
-                      onClick={() =>
-                        setSuggestionStatus((p) => ({ ...p, [i]: "deferred" }))
-                      }
-                    />
-                    <ActionBtn
-                      label="Reject"
-                      color="red"
-                      onClick={() =>
-                        setSuggestionStatus((p) => ({ ...p, [i]: "rejected" }))
-                      }
-                    />
-                  </div>
-                )}
+                  <td className="px-3 py-2 font-medium">{c.recipient}</td>
+                  <td className="px-3 py-2 text-muted-foreground text-[11px]">
+                    {c.course}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">{c.date}</td>
+                  <td className="px-3 py-2">
+                    <Badge
+                      className={`border-0 text-[10px] ${c.status === "Paid" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
+                    >
+                      {c.status}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-[10px] h-6 px-2"
+                      onClick={() => toast.success("Certificate downloaded")}
+                      data-ocid="admin.agent13.secondary_button"
+                    >
+                      Download
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </TabsContent>
+
+      {/* Tab 5: Business Outreach */}
+      <TabsContent value="outreach" className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-card border border-border rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-primary">
+              {foundBusinesses.length}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Businesses Found
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3 text-center">
+            <p
+              className="text-lg font-bold"
+              style={{ color: "oklch(0.52 0.14 155)" }}
+            >
+              {Object.values(bizConnected).filter(Boolean).length}
+            </p>
+            <p className="text-[11px] text-muted-foreground">Connected</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-amber-600">24</p>
+            <p className="text-[11px] text-muted-foreground">Users Referred</p>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          className="w-full gap-2"
+          onClick={() => {
+            setScanning(true);
+            setTimeout(() => {
+              setScanning(false);
+              toast.success("Found 6 new businesses across the internet!");
+            }, 2000);
+          }}
+          disabled={scanning}
+          data-ocid="admin.agent13.primary_button"
+        >
+          {scanning
+            ? "🔍 Scanning Internet..."
+            : "🔍 Scan Internet for Businesses"}
+        </Button>
+        <div className="space-y-2">
+          {foundBusinesses.map((b) => (
+            <div
+              key={b.id}
+              className="bg-card border border-border rounded-xl p-3 flex items-start justify-between gap-3"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{b.name}</p>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                  <Badge variant="outline" className="text-[10px] px-1">
+                    {b.industry}
+                  </Badge>
+                  <span>{b.location}</span>
+                  <span>·</span>
+                  <span>{b.employees} emp.</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {b.website}
+                </p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  className="text-[10px] h-7 px-2"
+                  onClick={() => {
+                    setBizConnected((p) => ({ ...p, [b.id]: true }));
+                    toast.success(`Connected with ${b.name}`);
+                  }}
+                  disabled={bizConnected[b.id]}
+                  data-ocid="admin.agent13.primary_button"
+                >
+                  {bizConnected[b.id] ? "Connected" : "Connect"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-[10px] h-7 px-2"
+                  onClick={() => toast.success(`Invitation sent to ${b.name}`)}
+                  data-ocid="admin.agent13.secondary_button"
+                >
+                  Invite
+                </Button>
               </div>
             </div>
-          );
-        })}
-      </div>
-      <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg px-3 py-2">
-        🔗 <strong>Agent Network:</strong> Monitors all module activity
-        patterns. Approved suggestions are sent to Agent 4 (Evolution) for
-        inclusion in the next quarterly update. Uses Agent 15 (Analytics) data
-        for traffic analysis.
-      </div>
-    </>
+          ))}
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold">AI Partner Sites</h3>
+          <div className="space-y-2">
+            {Object.entries(aiSyncStatus).map(([site, connected]) => (
+              <div key={site} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-gray-300"}`}
+                  />
+                  <span className="text-xs text-foreground">{site}</span>
+                  {connected && (
+                    <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">
+                      Connected
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <Switch
+                    checked={connected}
+                    onCheckedChange={(v) =>
+                      setAiSyncStatus((p) => ({ ...p, [site]: v }))
+                    }
+                    data-ocid="admin.agent13.switch"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-[10px] h-6 px-2"
+                    onClick={() => toast.success(`Syncing users from ${site}`)}
+                    disabled={!connected}
+                    data-ocid="admin.agent13.secondary_button"
+                  >
+                    Sync Users
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
-}
-
-function statusColorHelper(
-  s: string,
-): "green" | "amber" | "red" | "blue" | "violet" | "rose" | "gray" {
-  if (["resolved", "approved", "active"].includes(s)) return "green";
-  if (["reviewing", "pending", "deferred"].includes(s)) return "amber";
-  if (["rejected", "critical", "escalated"].includes(s)) return "red";
-  return "gray";
 }
 
 // ─── Agent 14: Content Moderation ─────────────────────────────────────────────
@@ -9055,6 +10081,13 @@ function PromotionsQueue() {
           >
             Create Preview
           </TabsTrigger>
+          <TabsTrigger
+            value="targeting"
+            className="text-xs"
+            data-ocid="admin.promotions.targeting.tab"
+          >
+            Audience Targeting
+          </TabsTrigger>
         </TabsList>
 
         {/* Plans Tab */}
@@ -9473,6 +10506,231 @@ function PromotionsQueue() {
                 </div>
               ))}
             </div>
+          </div>
+        </TabsContent>
+
+        {/* Targeting Tab */}
+        <TabsContent value="targeting" className="mt-0 space-y-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              🌏 Geographic Targeting
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  label: "Regions",
+                  items: [
+                    "North India",
+                    "South India",
+                    "East India",
+                    "West India",
+                    "Central India",
+                    "Northeast India",
+                  ],
+                },
+                {
+                  label: "Countries",
+                  items: [
+                    "India",
+                    "Sri Lanka",
+                    "Bangladesh",
+                    "Nepal",
+                    "Bhutan",
+                    "Maldives",
+                    "Pakistan",
+                    "UAE",
+                    "UK",
+                    "USA",
+                    "Canada",
+                    "Australia",
+                  ],
+                },
+                {
+                  label: "States",
+                  items: [
+                    "Maharashtra",
+                    "Delhi",
+                    "Karnataka",
+                    "Tamil Nadu",
+                    "Gujarat",
+                    "Rajasthan",
+                    "Uttar Pradesh",
+                    "West Bengal",
+                    "Telangana",
+                    "Andhra Pradesh",
+                  ],
+                },
+              ].map((group) => (
+                <div key={group.label} className="space-y-2">
+                  <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+                    {group.label}
+                  </p>
+                  <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                    {group.items.map((item) => (
+                      <label
+                        key={item}
+                        className="flex items-center gap-2 text-xs cursor-pointer hover:bg-secondary/40 rounded px-1 py-0.5"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          defaultChecked={[
+                            "India",
+                            "North India",
+                            "South India",
+                          ].includes(item)}
+                        />
+                        {item}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              👥 Demographic Targeting
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+                  Age Groups
+                </p>
+                <div className="space-y-1">
+                  {[
+                    "13–17 (Teen)",
+                    "18–24 (Young Adult)",
+                    "25–34 (Millennial)",
+                    "35–44 (Adult)",
+                    "45–54 (Mid-Age)",
+                    "55+ (Senior)",
+                  ].map((ag) => (
+                    <label
+                      key={ag}
+                      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-secondary/40 rounded px-1 py-0.5"
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        defaultChecked={ag.includes("18") || ag.includes("25")}
+                      />
+                      {ag}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+                  Gender
+                </p>
+                <div className="space-y-1">
+                  {["All Genders", "Male", "Female", "Non-binary"].map((g) => (
+                    <label
+                      key={g}
+                      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-secondary/40 rounded px-1 py-0.5"
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        defaultChecked={g === "All Genders"}
+                      />
+                      {g}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              🕉️ Cultural & Community Targeting
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+                  Religion / Culture
+                </p>
+                <div className="space-y-1">
+                  {[
+                    "Hindu",
+                    "Muslim",
+                    "Christian",
+                    "Sikh",
+                    "Buddhist",
+                    "Jain",
+                    "Parsi",
+                    "Jewish",
+                    "All Religions",
+                  ].map((r) => (
+                    <label
+                      key={r}
+                      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-secondary/40 rounded px-1 py-0.5"
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        defaultChecked={r === "All Religions"}
+                      />
+                      {r}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+                  Language Groups
+                </p>
+                <div className="space-y-1">
+                  {[
+                    "Hindi",
+                    "English",
+                    "Tamil",
+                    "Telugu",
+                    "Kannada",
+                    "Malayalam",
+                    "Marathi",
+                    "Bengali",
+                    "Gujarati",
+                    "Punjabi",
+                  ].map((l) => (
+                    <label
+                      key={l}
+                      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-secondary/40 rounded px-1 py-0.5"
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        defaultChecked={["Hindi", "English"].includes(l)}
+                      />
+                      {l}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              type="button"
+              className="px-4 py-2 text-xs border border-border rounded-lg hover:bg-secondary/40"
+            >
+              Reset to All
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 text-xs rounded-lg font-semibold text-white"
+              style={{ background: "oklch(0.55 0.22 280)" }}
+              onClick={() => {
+                const t = (window as any).toast;
+                if (t) t.success("Targeting preferences saved");
+              }}
+            >
+              Save Targeting
+            </button>
           </div>
         </TabsContent>
       </Tabs>
@@ -10548,6 +11806,234 @@ function WhatsAppAPISettings() {
         </div>
       </TabsContent>
     </Tabs>
+  );
+}
+
+// ─── Agent 22: Module Tester ──────────────────────────────────────────────────
+function Agent22ModuleTester() {
+  const modules = [
+    "Shop",
+    "POS",
+    "Business Page",
+    "Family Tree",
+    "Community",
+    "Jobs",
+    "Healthcare",
+    "Education",
+    "Real Estate",
+    "Travel",
+    "Transport & Pay",
+    "Rides",
+    "Blog",
+    "GeoMap",
+  ];
+  const [results, setResults] = React.useState<
+    Record<string, "pass" | "fail" | "idle">
+  >({});
+  const [running, setRunning] = React.useState<string | null>(null);
+  const [runningAll, setRunningAll] = React.useState(false);
+
+  const runTest = (mod: string) => {
+    setRunning(mod);
+    setResults((p) => ({ ...p, [mod]: "idle" }));
+    setTimeout(() => {
+      setResults((p) => ({
+        ...p,
+        [mod]: Math.random() > 0.1 ? "pass" : "fail",
+      }));
+      setRunning(null);
+    }, 1800);
+  };
+
+  const runAll = async () => {
+    setRunningAll(true);
+    for (const mod of modules) {
+      setRunning(mod);
+      await new Promise((r) => setTimeout(r, 400));
+      setResults((p) => ({
+        ...p,
+        [mod]: Math.random() > 0.1 ? "pass" : "fail",
+      }));
+    }
+    setRunning(null);
+    setRunningAll(false);
+    toast.success("All module tests complete");
+  };
+
+  const passing = Object.values(results).filter((v) => v === "pass").length;
+  const total = Object.keys(results).length;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-display font-bold">
+          Agent 22 — Module Tester
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Tests all module functionality and reports results to admin.
+        </p>
+      </div>
+      <div className="flex items-center gap-4 flex-wrap">
+        <Button
+          onClick={runAll}
+          disabled={runningAll}
+          data-ocid="admin.agent22.run_all_button"
+          size="sm"
+        >
+          {runningAll ? "Running..." : "▶ Run All Tests"}
+        </Button>
+        {total > 0 && (
+          <span className="text-sm font-medium">
+            {passing}/{total} modules passing
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {modules.map((mod) => (
+          <div
+            key={mod}
+            className="flex items-center justify-between bg-card border border-border rounded-xl p-4"
+          >
+            <div className="flex items-center gap-2">
+              {results[mod] === "pass" ? (
+                <span className="text-green-600 text-base">✓</span>
+              ) : results[mod] === "fail" ? (
+                <span className="text-red-500 text-base">✗</span>
+              ) : (
+                <span className="text-muted-foreground text-base">○</span>
+              )}
+              <span className="text-sm font-medium">{mod}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {results[mod] && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${results[mod] === "pass" ? "bg-green-100 text-green-700" : results[mod] === "fail" ? "bg-red-100 text-red-700" : "bg-muted text-muted-foreground"}`}
+                >
+                  {results[mod] === "idle" ? "running..." : results[mod]}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => runTest(mod)}
+                disabled={running === mod || runningAll}
+                className="h-7 text-xs"
+                data-ocid="admin.agent22.run_test_button"
+              >
+                Test
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Commission & Fees Panel ──────────────────────────────────────────────────
+function CommissionFeesPanel() {
+  const CATEGORIES = [
+    "Food & Beverages",
+    "Electronics",
+    "Fashion",
+    "Healthcare",
+    "Real Estate",
+    "Travel",
+    "Education",
+    "Services",
+    "General",
+  ];
+  const [config, setConfig] = React.useState<
+    Record<string, { percent: number; flat: number }>
+  >(() => {
+    try {
+      const raw = localStorage.getItem("ic_commission_config");
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return Object.fromEntries(
+      CATEGORIES.map((c) => [c, { percent: 5, flat: 10 }]),
+    );
+  });
+
+  const handleSave = () => {
+    localStorage.setItem("ic_commission_config", JSON.stringify(config));
+    toast.success("Commission configuration saved");
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-display font-bold">Commission & Fees</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Configure per-category merchant commission rates (percentage + flat
+          fee) for the platform.
+        </p>
+      </div>
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="text-left p-3 font-label font-medium">Category</th>
+              <th className="text-left p-3 font-label font-medium">
+                Commission %
+              </th>
+              <th className="text-left p-3 font-label font-medium">
+                Flat Fee (₹)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {CATEGORIES.map((cat) => (
+              <tr
+                key={cat}
+                className="border-b border-border/50 last:border-0"
+                data-ocid="admin.commission.row"
+              >
+                <td className="p-3 font-medium">{cat}</td>
+                <td className="p-3">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={config[cat]?.percent ?? 5}
+                    onChange={(e) =>
+                      setConfig((p) => ({
+                        ...p,
+                        [cat]: {
+                          ...p[cat],
+                          percent: Number.parseFloat(e.target.value) || 0,
+                        },
+                      }))
+                    }
+                    className="w-20 border border-border rounded-md px-2 py-1 text-sm bg-background"
+                  />
+                </td>
+                <td className="p-3">
+                  <input
+                    type="number"
+                    min="0"
+                    value={config[cat]?.flat ?? 10}
+                    onChange={(e) =>
+                      setConfig((p) => ({
+                        ...p,
+                        [cat]: {
+                          ...p[cat],
+                          flat: Number.parseFloat(e.target.value) || 0,
+                        },
+                      }))
+                    }
+                    className="w-20 border border-border rounded-md px-2 py-1 text-sm bg-background"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Button onClick={handleSave} data-ocid="admin.commission.save_button">
+        Save Commission Config
+      </Button>
+    </div>
   );
 }
 
@@ -12647,5 +14133,422 @@ function Agent21FullPanel() {
         </Dialog>
       </TabsContent>
     </Tabs>
+  );
+}
+
+// ─── Agent 23: News Agent ─────────────────────────────────────────────────────
+function Agent23NewsAgent() {
+  const [tab, setTab] = React.useState("config");
+  const [logs, setLogs] = React.useState<string[]>([
+    "Agent 23 initialized. Fetching news for configured categories...",
+  ]);
+  const [stats, setStats] = React.useState({ posts: 0, users: 0 });
+  const categories = [
+    "Politics",
+    "Tech",
+    "Sports",
+    "Entertainment",
+    "Business",
+    "Health",
+    "Local",
+  ];
+  const [selectedCats, setSelectedCats] = React.useState([
+    "Tech",
+    "Sports",
+    "Entertainment",
+  ]);
+  const [postsPerDay, setPostsPerDay] = React.useState([8]);
+  const [language, setLanguage] = React.useState("English");
+
+  const newsItems = [
+    {
+      headline: "India's Tech Sector Grows 18% in Q1 2026",
+      source: "TechIndia",
+      category: "Tech",
+      time: "2 min ago",
+    },
+    {
+      headline: "IPL Season 2026 Opens with Record Viewership",
+      source: "SportsBuzz",
+      category: "Sports",
+      time: "15 min ago",
+    },
+    {
+      headline: "New Startup Policy Announced by Ministry of Commerce",
+      source: "BusinessLine",
+      category: "Business",
+      time: "32 min ago",
+    },
+    {
+      headline: "AI Healthcare Tools Reduce Diagnosis Time by 40%",
+      source: "HealthToday",
+      category: "Health",
+      time: "1 hr ago",
+    },
+  ];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const cat =
+        selectedCats[Math.floor(Math.random() * selectedCats.length)] || "Tech";
+      const n = Math.floor(Math.random() * 200) + 50;
+      const newLog = `[${new Date().toLocaleTimeString()}] Fetching news for ${cat}... Posted to ${n} users`;
+      setLogs((prev) => [newLog, ...prev.slice(0, 29)]);
+      setStats((prev) => ({ posts: prev.posts + 1, users: prev.users + n }));
+    }, 9000);
+    return () => clearInterval(interval);
+  }, [selectedCats]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2">
+            Agent 23 — News Agent
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-500/20 text-green-600">
+              ● RUNNING
+            </span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Posts news relevant to each user's interests, sourced from public
+            feeds.
+          </p>
+        </div>
+        <div className="flex gap-3 text-xs">
+          <div className="text-center">
+            <p className="font-bold text-foreground">{stats.posts}</p>
+            <p className="text-muted-foreground">Posts</p>
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">
+              {stats.users.toLocaleString()}
+            </p>
+            <p className="text-muted-foreground">Users Reached</p>
+          </div>
+        </div>
+      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="config">Config</TabsTrigger>
+          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
+        </TabsList>
+        <TabsContent value="config" className="space-y-4 mt-4">
+          <div>
+            <Label className="text-xs font-label">Interest Categories</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {categories.map((cat) => (
+                <label
+                  key={cat}
+                  className="flex items-center gap-1.5 text-xs cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCats.includes(cat)}
+                    onChange={(e) =>
+                      setSelectedCats((prev) =>
+                        e.target.checked
+                          ? [...prev, cat]
+                          : prev.filter((c) => c !== cat),
+                      )
+                    }
+                  />
+                  {cat}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-label">
+              Posts per day: {postsPerDay[0]}
+            </Label>
+            <Slider
+              value={postsPerDay}
+              onValueChange={setPostsPerDay}
+              min={1}
+              max={50}
+              step={1}
+              className="mt-2 max-w-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs font-label">Language</Label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="mt-1 block border border-border rounded px-2 py-1.5 text-xs bg-background text-foreground"
+            >
+              {[
+                "English",
+                "Hindi",
+                "Tamil",
+                "Telugu",
+                "Bengali",
+                "Marathi",
+              ].map((l) => (
+                <option key={l}>{l}</option>
+              ))}
+            </select>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => toast.success("Agent 23 config saved")}
+            data-ocid="admin.agent23.save_button"
+          >
+            Save Config
+          </Button>
+        </TabsContent>
+        <TabsContent value="monitoring" className="mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs font-label font-medium text-green-600">
+              LIVE — updating every 9 seconds
+            </span>
+          </div>
+          <div className="h-64 overflow-y-auto bg-muted/30 rounded-xl p-3 space-y-1 font-mono text-xs text-muted-foreground">
+            {logs.map((log, i) => (
+              <div key={String(i)}>{log}</div>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="preview" className="mt-4 space-y-3">
+          {newsItems.map((item, i) => (
+            <Card key={String(i)} className="rounded-xl border-border">
+              <CardContent className="p-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-foreground">
+                    {item.headline}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {item.source} · {item.time}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] shrink-0">
+                  {item.category}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─── Agent 24: Food Stock Agent ───────────────────────────────────────────────
+function Agent24FoodStockAgent() {
+  const [tab, setTab] = React.useState("config");
+  const [logs, setLogs] = React.useState<string[]>([
+    "Agent 24 initialized. Scanning nearby stores for food stock availability...",
+  ]);
+  const [stats, setStats] = React.useState({ scans: 0, alerts: 0 });
+  const foodCategories = ["Vegetables", "Fruits", "Grains", "Dairy", "Meat"];
+  const [selectedCats, setSelectedCats] = React.useState([
+    "Vegetables",
+    "Fruits",
+    "Dairy",
+  ]);
+  const [alertThreshold, setAlertThreshold] = React.useState([15]);
+  const [radius, setRadius] = React.useState([10]);
+
+  const stockItems = [
+    {
+      item: "Fresh Tomatoes",
+      price: "₹28/kg",
+      store: "Sharma Vegetables",
+      distance: "0.8 km",
+      alerts: 142,
+    },
+    {
+      item: "Toned Milk 500ml",
+      price: "₹26/pack",
+      store: "Mother Dairy Booth",
+      distance: "1.2 km",
+      alerts: 89,
+    },
+    {
+      item: "Basmati Rice 5kg",
+      price: "₹380/bag",
+      store: "Agarwal Kirana",
+      distance: "2.1 km",
+      alerts: 67,
+    },
+    {
+      item: "Bananas (dozen)",
+      price: "₹42/dz",
+      store: "Fresh Fruits Corner",
+      distance: "1.5 km",
+      alerts: 54,
+    },
+  ];
+
+  const stores = [
+    "Sharma Vegetables",
+    "Mother Dairy Booth",
+    "Agarwal Kirana",
+    "Fresh Fruits Corner",
+    "Ramesh Grocery",
+  ];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const store = stores[Math.floor(Math.random() * stores.length)];
+      const items = [
+        "Tomatoes",
+        "Onions",
+        "Potatoes",
+        "Milk",
+        "Rice",
+        "Wheat Flour",
+        "Apples",
+        "Oranges",
+      ];
+      const item = items[Math.floor(Math.random() * items.length)];
+      const price = Math.floor(Math.random() * 200) + 20;
+      const newLog = `[${new Date().toLocaleTimeString()}] Scanning ${store} for ${item}... Best price ₹${price} found at ${store}`;
+      setLogs((prev) => [newLog, ...prev.slice(0, 29)]);
+      setStats((prev) => ({
+        scans: prev.scans + 1,
+        alerts: prev.alerts + Math.floor(Math.random() * 20) + 5,
+      }));
+    }, 11000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2">
+            Agent 24 — Food Stock Agent
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-500/20 text-green-600">
+              ● RUNNING
+            </span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Finds where food items are available nearby at best prices and
+            notifies users.
+          </p>
+        </div>
+        <div className="flex gap-3 text-xs">
+          <div className="text-center">
+            <p className="font-bold text-foreground">{stats.scans}</p>
+            <p className="text-muted-foreground">Scans</p>
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">{stats.alerts}</p>
+            <p className="text-muted-foreground">Alerts Sent</p>
+          </div>
+        </div>
+      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="config">Config</TabsTrigger>
+          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
+        </TabsList>
+        <TabsContent value="config" className="space-y-4 mt-4">
+          <div>
+            <Label className="text-xs font-label">
+              Food Categories to Monitor
+            </Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {foodCategories.map((cat) => (
+                <label
+                  key={cat}
+                  className="flex items-center gap-1.5 text-xs cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCats.includes(cat)}
+                    onChange={(e) =>
+                      setSelectedCats((prev) =>
+                        e.target.checked
+                          ? [...prev, cat]
+                          : prev.filter((c) => c !== cat),
+                      )
+                    }
+                  />
+                  {cat}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-label">
+              Price Alert Threshold: {alertThreshold[0]}% below average
+            </Label>
+            <Slider
+              value={alertThreshold}
+              onValueChange={setAlertThreshold}
+              min={5}
+              max={50}
+              step={5}
+              className="mt-2 max-w-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs font-label">
+              Coverage Radius: {radius[0]} km
+            </Label>
+            <Slider
+              value={radius}
+              onValueChange={setRadius}
+              min={1}
+              max={50}
+              step={1}
+              className="mt-2 max-w-xs"
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={() => toast.success("Agent 24 config saved")}
+            data-ocid="admin.agent24.save_button"
+          >
+            Save Config
+          </Button>
+        </TabsContent>
+        <TabsContent value="monitoring" className="mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs font-label font-medium text-green-600">
+              LIVE — updating every 11 seconds
+            </span>
+          </div>
+          <div className="h-64 overflow-y-auto bg-muted/30 rounded-xl p-3 space-y-1 font-mono text-xs text-muted-foreground">
+            {logs.map((log, i) => (
+              <div key={String(i)}>{log}</div>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="preview" className="mt-4 space-y-3">
+          {stockItems.map((s, i) => (
+            <Card key={String(i)} className="rounded-xl border-border">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">
+                      {s.item}
+                    </p>
+                    <p
+                      className="text-sm font-bold mt-0.5"
+                      style={{ color: "oklch(0.52 0.14 155)" }}
+                    >
+                      {s.price}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {s.store} · {s.distance}
+                    </p>
+                  </div>
+                  <Badge className="text-[10px] bg-primary/10 text-primary border-0">
+                    Alert sent to {s.alerts} users
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

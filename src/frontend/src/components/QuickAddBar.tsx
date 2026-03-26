@@ -1850,7 +1850,29 @@ function GenericProductForm({
       toast.error("Product name is required");
       return;
     }
-    toast.success(`Product "${form.name}" added and linked to ${moduleName}`);
+    // Save to shared ic_user_products so Shop page can display it
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem("ic_user_products") || "[]",
+      );
+      const newProduct = {
+        id: `${Date.now()}-${Math.random()}`,
+        name: form.name,
+        description: form.description,
+        price: Number.parseFloat(form.price) || 0,
+        category: form.category || "Other",
+        seller: "You",
+        isService: false,
+        sourceModule: moduleName,
+      };
+      existing.push(newProduct);
+      localStorage.setItem("ic_user_products", JSON.stringify(existing));
+    } catch {
+      /* ignore */
+    }
+    toast.success(
+      `Product "${form.name}" added to Shop and linked to ${moduleName}`,
+    );
     onSubmit();
   };
   return (
@@ -1965,7 +1987,28 @@ function GenericServiceForm({
       toast.error("Service name is required");
       return;
     }
-    toast.success(`Service "${form.name}" added and linked to ${moduleName}`);
+    // Save to shared ic_user_products so Shop page can display it
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem("ic_user_products") || "[]",
+      );
+      existing.push({
+        id: `${Date.now()}-${Math.random()}`,
+        name: form.name,
+        description: form.description,
+        price: Number.parseFloat(form.rate) || 0,
+        category: form.category || "Services",
+        seller: "You",
+        isService: true,
+        sourceModule: moduleName,
+      });
+      localStorage.setItem("ic_user_products", JSON.stringify(existing));
+    } catch {
+      /* ignore */
+    }
+    toast.success(
+      `Service "${form.name}" added to Shop and linked to ${moduleName}`,
+    );
     onSubmit();
   };
   return (

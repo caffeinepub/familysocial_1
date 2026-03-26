@@ -13,8 +13,12 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  type StoreNotification,
+  getNotifications,
+} from "../stores/notificationStore";
 
 interface Notification {
   id: number;
@@ -34,6 +38,7 @@ const MODULE_COLORS: Record<string, string> = {
   Healthcare: "oklch(0.58 0.22 25)",
   Travel: "oklch(0.55 0.18 240)",
   Blog: "oklch(0.60 0.22 310)",
+  GatedCommunity: "oklch(0.62 0.19 25)",
 };
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -45,6 +50,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
   Healthcare: Heart,
   Travel: Plane,
   Blog: FileText,
+  GatedCommunity: Home,
 };
 
 const SAMPLE_NOTIFICATIONS: Notification[] = [
@@ -188,6 +194,16 @@ export default function NotificationsPanel({
   onNavigateHome,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [storeNotifs, setStoreNotifs] = useState<StoreNotification[]>(() =>
+    getNotifications(),
+  );
+
+  useEffect(() => {
+    const handler = () => setStoreNotifs(getNotifications());
+    window.addEventListener("indya_notification_added", handler);
+    return () =>
+      window.removeEventListener("indya_notification_added", handler);
+  }, []);
 
   // Close on Escape key
   useEffect(() => {
@@ -200,6 +216,8 @@ export default function NotificationsPanel({
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const allNotifications = [...storeNotifs, ...notifications];
 
   return createPortal(
     <>
@@ -298,7 +316,7 @@ export default function NotificationsPanel({
 
         {/* Notification list */}
         <div className="flex-1 overflow-y-auto main-scroll">
-          {notifications.length === 0 ? (
+          {allNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3">
               <Bell size={32} className="text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">
@@ -307,17 +325,19 @@ export default function NotificationsPanel({
             </div>
           ) : (
             <div className="py-2">
-              {notifications.map((notif) => {
+              {allNotifications.map((notif, idx) => {
                 const ModuleIcon = MODULE_ICONS[notif.module] ?? Bell;
                 const moduleColor =
                   MODULE_COLORS[notif.module] ?? "oklch(0.55 0.22 280)";
                 const isUnread =
-                  unreadCount > 0 &&
-                  SAMPLE_NOTIFICATIONS.findIndex((n) => n.id === notif.id) < 5;
+                  notif.unread ||
+                  (unreadCount > 0 &&
+                    SAMPLE_NOTIFICATIONS.findIndex((n) => n.id === notif.id) <
+                      5);
 
                 return (
                   <button
-                    key={notif.id}
+                    key={`${notif.id}-${idx}`}
                     type="button"
                     className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-secondary/60 transition-colors relative group"
                     style={{

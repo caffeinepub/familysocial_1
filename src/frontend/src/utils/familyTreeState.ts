@@ -52,13 +52,16 @@ export function getFamilyTreeBusinesses(): FamilyTreeBusiness[] {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as FamilyTreeBusiness[];
-      if (parsed.length > 0) return parsed;
+      const userBusinesses = JSON.parse(raw) as FamilyTreeBusiness[];
+      // Always merge seed + user businesses, deduped by id
+      const seedFiltered = SEED_BUSINESSES.filter(
+        (s) => !userBusinesses.some((u) => u.id === s.id),
+      );
+      return [...seedFiltered, ...userBusinesses];
     }
   } catch {
     // ignore parse errors
   }
-  // Return seed data so pages aren't empty on first load
   return SEED_BUSINESSES;
 }
 

@@ -51,6 +51,7 @@ import {
   type ReactNode,
   Suspense,
   lazy,
+  useEffect,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -100,6 +101,7 @@ const TransportBookingPage = lazy(
   () => import("../pages/TransportBookingPage"),
 );
 const LoginPage = lazy(() => import("../pages/LoginPage"));
+import { getNotifications } from "../stores/notificationStore";
 import AgentConsentBanner from "./AgentConsentBanner";
 import Footer from "./Footer";
 import NearbySearchBar from "./NearbySearchBar";
@@ -185,11 +187,11 @@ const NAV_ITEMS: NavItem[] = [
   { id: "jobs", label: "Jobs", icon: Briefcase },
   { id: "healthcare", label: "Healthcare", icon: Heart },
   { id: "education", label: "Education", icon: GraduationCap },
-  { id: "spiritual", label: "Spiritual Stories", icon: Star },
   { id: "real-estate", label: "Real Estate", icon: Building2 },
   { id: "travel", label: "Travel", icon: Plane },
   { id: "transport", label: "Transport & Pay", icon: Bus },
   { id: "rides", label: "Rides", icon: Car },
+  { id: "blog", label: "Blog", icon: BookOpen },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "admin-panel", label: "Admin Panel", icon: ShieldCheck },
 ];
@@ -219,6 +221,17 @@ export default function AppShell({
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(5);
+  const [_storeNotifCount, setStoreNotifCount] = useState(
+    () => getNotifications().filter((n) => n.unread).length,
+  );
+
+  useEffect(() => {
+    const handler = () =>
+      setStoreNotifCount(getNotifications().filter((n) => n.unread).length);
+    window.addEventListener("indya_notification_added", handler);
+    return () =>
+      window.removeEventListener("indya_notification_added", handler);
+  }, []);
   const { clear, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
   const { isAdmin, assignAdmin: claimAdminMutation } = useAdminStatus();

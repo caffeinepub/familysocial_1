@@ -51,11 +51,16 @@ import {
   Truck,
   Wrench,
   X,
+  Zap,
 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
+import BoostPostDialog from "../components/BoostPostDialog";
+import { ShopAuctionTab } from "../components/BusinessDiscoveryFeatures";
 import { useCurrency } from "../contexts/CurrencyContext";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
+import { getGlobalProducts } from "../utils/globalProductsState";
 import { SAMPLE_PRODUCTS, SAMPLE_SERVICES } from "./ProductsServicesPage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -531,9 +536,11 @@ function ShopProductCard({
   photoUrl,
   sourceModule,
   votes,
+  isBestBuy,
   onAddToCart,
   onReview,
   distanceKm,
+  isLoggedIn,
 }: {
   name: string;
   description: string;
@@ -545,18 +552,32 @@ function ShopProductCard({
   photoUrl?: string;
   sourceModule?: string;
   votes?: number;
+  isBestBuy?: boolean;
   onAddToCart: () => void;
   onReview: () => void;
   distanceKm?: number;
+  isLoggedIn?: boolean;
 }) {
   const { formatPrice } = useCurrency();
   const color = CATEGORY_COLORS[category] || "oklch(0.55 0.10 200)";
+  const [boostOpen, setBoostOpen] = useState(false);
+  const [boosted, setBoosted] = useState(() => {
+    const b: string[] = JSON.parse(
+      localStorage.getItem("ic_boosted_posts") || "[]",
+    );
+    return b.includes(name);
+  });
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group relative">
       {distanceKm !== undefined && distanceKm > 0 && (
         <span className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-primary/90 text-primary-foreground">
           ~{distanceKm.toFixed(1)} km
+        </span>
+      )}
+      {isBestBuy && (
+        <span className="absolute top-2 left-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-bold bg-yellow-400 text-yellow-900">
+          ⭐ Best Buy
         </span>
       )}
       {photoUrl ? (
@@ -649,9 +670,29 @@ function ShopProductCard({
               <ShoppingCart size={12} />
               {isService ? "Book" : "Cart"}
             </Button>
+            {isLoggedIn && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs font-label gap-1 px-2"
+                onClick={() => setBoostOpen(true)}
+                style={{ color: boosted ? "oklch(0.65 0.20 85)" : undefined }}
+                data-ocid="shop.product.primary_button"
+              >
+                <Zap size={11} fill={boosted ? "currentColor" : "none"} />
+                {boosted ? "Boosted" : "Boost"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
+      <BoostPostDialog
+        open={boostOpen}
+        onClose={() => setBoostOpen(false)}
+        postTitle={name}
+        postType="product"
+        onBoostSuccess={() => setBoosted(true)}
+      />
     </div>
   );
 }
@@ -1542,6 +1583,8 @@ function haversineKm(
 }
 
 export default function ShopPage() {
+  const { identity } = useInternetIdentity();
+  const isLoggedIn = !!identity;
   const [bizRegOpen, setBizRegOpen] = useState(false);
   const [dpRegOpen, setDpRegOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1570,6 +1613,12 @@ export default function ShopPage() {
     }
   });
   const [cartItems, setCartItems] = useState<ShopCartItem[]>([]);
+  const [productsVersion, setProductsVersion] = React.useState(0);
+  React.useEffect(() => {
+    const h = () => setProductsVersion((v) => v + 1);
+    window.addEventListener("globalProductsUpdated", h);
+    return () => window.removeEventListener("globalProductsUpdated", h);
+  }, []);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [deliveryProviders, setDeliveryProviders] = useState<
@@ -1582,7 +1631,72 @@ export default function ShopPage() {
   } | null>(null);
 
   // Build shop catalog from products + services + extra module items
+  // Include user-added products from QuickAddBar (shared via localStorage)
+  const userAddedProducts = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem("ic_user_products");
+      if (!raw) return [];
+      const arr = JSON.parse(raw) as Array<{
+        id: string;
+        name: string;
+        description?: string;
+        price?: number;
+        category?: string;
+        seller?: string;
+        photoUrl?: string;
+        isService?: boolean;
+        sourceModule?: string;
+      }>;
+      return arr.map((p, i) => ({
+        id: `user-${p.id || i}`,
+        productId: 9000 + i,
+        name: p.name || "User Product",
+        description: p.description || "",
+        price: p.price || 0,
+        category: p.category || "Other",
+        rating: 4.0,
+        seller: p.seller || "IndyaCentral User",
+        isService: p.isService || false,
+        photoUrl: p.photoUrl || "",
+        votes: 5,
+        sourceModule: p.sourceModule || "User",
+      }));
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const viewedCategories = React.useMemo(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("ic_viewed_categories") || "[]",
+      ) as string[];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const globalProducts = getGlobalProducts().map((p, i) => ({
+    id: `global-${p.id}`,
+    productId: 8000 + i,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    category: p.category,
+    rating: p.rating || 4.0,
+    seller: p.seller || p.businessName || "IndyaCentral",
+    isService: p.isService || false,
+    photoUrl: p.imageUrl || "",
+    votes: p.votes,
+    sourceModule: p.module,
+    isBestBuy: p.isBestBuy || viewedCategories.includes(p.category),
+  }));
+  // productsVersion is used above to trigger re-render when products change
+  void productsVersion;
+
   const baseItems = [
+    ...globalProducts,
+    ...userAddedProducts,
     ...SAMPLE_PRODUCTS.map((p) => ({
       id: `product-${p.id}`,
       productId: p.id,
@@ -1770,7 +1884,7 @@ export default function ShopPage() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     toast.success(
-                      "Business registration submitted! Login to complete.",
+                      "Registration submitted! Your business will be linked to your Family Tree. A Family Circle admin will review and approve.",
                     );
                     setBizRegOpen(false);
                   }}
@@ -2029,6 +2143,9 @@ export default function ShopPage() {
             <Truck size={13} className="mr-1.5" />
             Delivery Providers
           </TabsTrigger>
+          <TabsTrigger value="auctions" data-ocid="shop.auction.tab">
+            🔨 Auctions
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Listings Tab ── */}
@@ -2143,6 +2260,8 @@ export default function ShopPage() {
                   photoUrl={item.photoUrl}
                   sourceModule={item.sourceModule}
                   votes={item.votes}
+                  isBestBuy={(item as { isBestBuy?: boolean }).isBestBuy}
+                  isLoggedIn={isLoggedIn}
                   onAddToCart={() => addToCart(item)}
                   onReview={() =>
                     setReviewTarget({ id: item.id, name: item.name })
@@ -2169,6 +2288,11 @@ export default function ShopPage() {
             providers={deliveryProviders}
             onRegister={(p) => setDeliveryProviders((prev) => [p, ...prev])}
           />
+        </TabsContent>
+
+        {/* ── Auctions Tab ── */}
+        <TabsContent value="auctions">
+          <ShopAuctionTab />
         </TabsContent>
       </Tabs>
 

@@ -1,6 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -36,10 +43,17 @@ import {
   User,
   Utensils,
   X,
+  Zap,
 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
+import BoostPostDialog from "../components/BoostPostDialog";
+import { DiscoverClaimTab } from "../components/BusinessDiscoveryFeatures";
 import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
+import {
+  addGlobalProduct,
+  getGlobalProducts,
+} from "../utils/globalProductsState";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -65,13 +79,16 @@ const _MOCK_SERVICES = [
   { id: 4, name: "Corporate Lunch Box", price: 200, duration: "Per person" },
 ];
 
-const BRANCHES = [
+const BRANCHES_DEFAULT = [
   {
     id: "b1",
     name: "Connaught Place, Delhi",
     tables: 20,
     activeOrders: 12,
     revenue: 45200,
+    paymentModes: { cash: true, online: true, advance: false },
+    deliveryAreas: "110001, 110002",
+    perKmRate: 30,
   },
   {
     id: "b2",
@@ -79,6 +96,9 @@ const BRANCHES = [
     tables: 15,
     activeOrders: 8,
     revenue: 32800,
+    paymentModes: { cash: true, online: true, advance: false },
+    deliveryAreas: "400050, 400051",
+    perKmRate: 35,
   },
   {
     id: "b3",
@@ -86,6 +106,9 @@ const BRANCHES = [
     tables: 18,
     activeOrders: 5,
     revenue: 28600,
+    paymentModes: { cash: true, online: false, advance: false },
+    deliveryAreas: "560001",
+    perKmRate: 28,
   },
 ];
 
@@ -640,17 +663,26 @@ function StorefrontTab() {
   const [bizList, setBizList] = React.useState<
     ReturnType<typeof getFamilyTreeBusinesses>
   >([]);
+  const [boostTarget, setBoostTarget] = useState<string | null>(null);
+  const [boosted, setBoosted] = useState<Record<string, boolean>>(() => {
+    const b: string[] = JSON.parse(
+      localStorage.getItem("ic_boosted_posts") || "[]",
+    );
+    return Object.fromEntries(b.map((id) => [id, true]));
+  });
 
   React.useEffect(() => {
     setBizList(getFamilyTreeBusinesses());
     const handleStorage = () => setBizList(getFamilyTreeBusinesses());
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("familyBusinessUpdated", handleStorage);
     const interval = setInterval(
       () => setBizList(getFamilyTreeBusinesses()),
       2000,
     );
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("familyBusinessUpdated", handleStorage);
       clearInterval(interval);
     };
   }, []);
@@ -723,6 +755,31 @@ function StorefrontTab() {
                   )}
                 </div>
               </div>
+              <div className="flex flex-col gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setBoostTarget(biz.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                  style={{
+                    borderColor: boosted[biz.id]
+                      ? "oklch(0.65 0.20 85)"
+                      : "oklch(var(--border))",
+                    color: boosted[biz.id]
+                      ? "oklch(0.55 0.18 85)"
+                      : "oklch(var(--muted-foreground))",
+                    background: boosted[biz.id]
+                      ? "oklch(0.65 0.20 85 / 0.1)"
+                      : "transparent",
+                  }}
+                  data-ocid="business.storefront.primary_button"
+                >
+                  <Zap
+                    size={12}
+                    fill={boosted[biz.id] ? "currentColor" : "none"}
+                  />
+                  {boosted[biz.id] ? "Promoted" : "Boost"}
+                </button>
+              </div>
               <div
                 className="rounded-xl border-2 p-4 text-center shrink-0 w-40"
                 style={{ borderColor: "oklch(0.65 0.25 335 / 0.4)" }}
@@ -750,6 +807,15 @@ function StorefrontTab() {
               </div>
             </div>
           </CardContent>
+          <BoostPostDialog
+            open={boostTarget === biz.id}
+            onClose={() => setBoostTarget(null)}
+            postTitle={biz.name}
+            postType="product"
+            onBoostSuccess={() =>
+              setBoosted((prev) => ({ ...prev, [biz.id]: true }))
+            }
+          />
         </Card>
       ))}
       <p className="text-xs text-muted-foreground text-center">
@@ -780,6 +846,7 @@ function MyBusinessesTab({
     setBizList(getFamilyTreeBusinesses());
     const handleStorage = () => setBizList(getFamilyTreeBusinesses());
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("familyBusinessUpdated", handleStorage);
     // Also poll for same-tab updates
     const interval = setInterval(
       () => setBizList(getFamilyTreeBusinesses()),
@@ -787,6 +854,7 @@ function MyBusinessesTab({
     );
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("familyBusinessUpdated", handleStorage);
       clearInterval(interval);
     };
   }, []);
@@ -913,6 +981,485 @@ function MyBusinessesTab({
   );
 }
 
+// ─── BusinessPOSProducts ──────────────────────────────────────────────────────
+function BusinessPOSProducts() {
+  const [bizList, setBizList] = React.useState(() => getFamilyTreeBusinesses());
+  const [selectedBiz, setSelectedBiz] = React.useState(
+    () => getFamilyTreeBusinesses()[0]?.id || "",
+  );
+  const [form, setForm] = React.useState({
+    name: "",
+    category: "Food & Beverages",
+    price: "",
+    description: "",
+    videoUrl: "",
+  });
+  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
+  const [variants, setVariants] = React.useState<
+    { label: string; price: string; stock: string }[]
+  >([]);
+  const [addons, setAddons] = React.useState<{ name: string; price: string }[]>(
+    [],
+  );
+  const [addonInput, setAddonInput] = React.useState({ name: "", price: "" });
+  const [detectingVariants, setDetectingVariants] = React.useState(false);
+  const [products, setProducts] = React.useState(() => getGlobalProducts());
+
+  React.useEffect(() => {
+    const refresh = () => {
+      setBizList(getFamilyTreeBusinesses());
+      setProducts(getGlobalProducts());
+    };
+    window.addEventListener("familyBusinessUpdated", refresh);
+    window.addEventListener("globalProductsUpdated", refresh);
+    return () => {
+      window.removeEventListener("familyBusinessUpdated", refresh);
+      window.removeEventListener("globalProductsUpdated", refresh);
+    };
+  }, []);
+
+  const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setImagePreviews((prev) => [
+      ...prev,
+      ...files.map((f) => URL.createObjectURL(f)),
+    ]);
+  };
+
+  const detectVariants = () => {
+    setDetectingVariants(true);
+    setTimeout(() => {
+      const base = form.price || "0";
+      const cat = form.category;
+      let detected: { label: string; price: string; stock: string }[] = [];
+      if (cat === "Fashion") {
+        detected = [
+          "Red / S",
+          "Red / M",
+          "Blue / S",
+          "Blue / M",
+          "Black / L",
+        ].map((label) => ({ label, price: base, stock: "10" }));
+      } else if (cat === "Electronics") {
+        detected = ["64GB / Black", "128GB / Silver", "256GB / Gold"].map(
+          (label) => ({ label, price: base, stock: "5" }),
+        );
+      } else if (cat === "Food & Beverages") {
+        detected = ["Small", "Medium", "Large", "Family Pack"].map((label) => ({
+          label,
+          price: base,
+          stock: "50",
+        }));
+      } else if (cat === "Healthcare") {
+        detected = ["Strip of 10", "Pack of 30", "Pack of 100"].map(
+          (label) => ({ label, price: base, stock: "20" }),
+        );
+      } else if (cat === "Home Services") {
+        detected = ["Basic", "Standard", "Premium"].map((label, i) => ({
+          label,
+          price: String(Math.round(Number(base) * (1 + i * 0.5))),
+          stock: "999",
+        }));
+      } else {
+        detected = ["Standard", "Deluxe", "Premium"].map((label, i) => ({
+          label,
+          price: String(Math.round(Number(base) * (1 + i * 0.3))),
+          stock: "10",
+        }));
+      }
+      setVariants(detected);
+      setDetectingVariants(false);
+      toast.success(`${detected.length} variants detected`);
+    }, 1000);
+  };
+
+  const refresh = () => setProducts(getGlobalProducts());
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    const biz = bizList.find((b) => b.id === selectedBiz);
+    addGlobalProduct({
+      name: form.name,
+      description: form.description,
+      price: Number.parseFloat(form.price) || 0,
+      category: form.category,
+      module: "Business",
+      businessId: selectedBiz,
+      businessName: biz?.name,
+      seller: biz?.ownerName || "Business Owner",
+      videoUrl: form.videoUrl || undefined,
+      imageUrl: imagePreviews[0] || undefined,
+      variantDetails: variants.map((v) => ({
+        label: v.label,
+        price: Number.parseFloat(v.price) || 0,
+        stock: Number.parseInt(v.stock) || 0,
+      })),
+      addons: addons.map((a) => ({
+        name: a.name,
+        price: Number.parseFloat(a.price) || 0,
+      })),
+      isService: false,
+      status: "pending",
+    });
+    toast.success(`"${form.name}" added to Products & Services`);
+    setForm({
+      name: "",
+      category: "Food & Beverages",
+      price: "",
+      description: "",
+      videoUrl: "",
+    });
+    setImagePreviews([]);
+    setVariants([]);
+    setAddons([]);
+    refresh();
+  };
+
+  const bizProducts = products.filter(
+    (p) =>
+      !selectedBiz || p.businessId === selectedBiz || p.module === "Business",
+  );
+
+  const CATS = [
+    "Food & Beverages",
+    "Electronics",
+    "Fashion",
+    "Healthcare",
+    "Home Services",
+    "Education",
+    "Travel",
+    "Real Estate",
+    "Other",
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-display font-bold">Products & Services</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Add products and services directly to your business catalog. They will
+          appear in the Shop.
+        </p>
+      </div>
+      {bizList.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No businesses found. Register one in Family Tree first.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Label className="text-sm font-medium">Business:</Label>
+            <select
+              value={selectedBiz}
+              onChange={(e) => setSelectedBiz(e.target.value)}
+              className="border border-border rounded-md px-3 py-1.5 text-sm bg-background text-foreground"
+            >
+              {bizList.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <form
+            onSubmit={handleSubmit}
+            className="bg-card border border-border rounded-xl p-5 space-y-4"
+          >
+            <h3 className="text-sm font-semibold">Add New Product/Service</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Name *</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  placeholder="Product name"
+                  className="h-9"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Category</Label>
+                <select
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, category: e.target.value }))
+                  }
+                  className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground"
+                >
+                  {CATS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Price (₹)</Label>
+                <Input
+                  type="number"
+                  value={form.price}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, price: e.target.value }))
+                  }
+                  placeholder="0.00"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Video URL</Label>
+                <Input
+                  value={form.videoUrl}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, videoUrl: e.target.value }))
+                  }
+                  placeholder="YouTube link"
+                  className="h-9"
+                />
+              </div>
+            </div>
+            {/* Image Upload */}
+            <div className="space-y-1">
+              <Label className="text-xs">Product Images</Label>
+              <label className="flex items-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors">
+                <Upload size={14} className="text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Upload images (JPG, PNG)
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImages}
+                  data-ocid="business.pos_products.upload_button"
+                />
+              </label>
+              {imagePreviews.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-1">
+                  {imagePreviews.map((url) => (
+                    <img
+                      key={url}
+                      src={url}
+                      alt=""
+                      className="w-14 h-14 object-cover rounded-lg border border-border"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Description</Label>
+              <Textarea
+                value={form.description}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, description: e.target.value }))
+                }
+                placeholder="Describe your product or service..."
+                rows={3}
+              />
+            </div>
+            {/* Variant Detection */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Variants</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1"
+                onClick={detectVariants}
+                disabled={detectingVariants}
+              >
+                {detectingVariants ? "Detecting..." : "Detect Variants (AI)"}
+              </Button>
+              {variants.length > 0 && (
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40">
+                      <tr>
+                        <th className="p-1.5 text-left">Variant</th>
+                        <th className="p-1.5 text-left">Price (₹)</th>
+                        <th className="p-1.5 text-left">Stock</th>
+                        <th className="p-1.5" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((v, i) => (
+                        <tr key={v.label} className="border-t border-border/50">
+                          <td className="p-1.5 font-medium">{v.label}</td>
+                          <td className="p-1.5">
+                            <input
+                              type="number"
+                              value={v.price}
+                              onChange={(e) =>
+                                setVariants((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, price: e.target.value }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              className="w-20 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                            />
+                          </td>
+                          <td className="p-1.5">
+                            <input
+                              type="number"
+                              value={v.stock}
+                              onChange={(e) =>
+                                setVariants((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, stock: e.target.value }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              className="w-16 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                            />
+                          </td>
+                          <td className="p-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setVariants((prev) =>
+                                  prev.filter((_, xi) => xi !== i),
+                                )
+                              }
+                              className="text-destructive hover:opacity-70 text-xs"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            {/* Add-ons */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Add-ons</Label>
+              {addons.map((a, i) => (
+                <div key={a.name} className="flex items-center gap-2 text-xs">
+                  <span className="flex-1 bg-muted/30 rounded px-2 py-1">
+                    {a.name}
+                  </span>
+                  <span className="text-muted-foreground">₹{a.price}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAddons((prev) => prev.filter((_, xi) => xi !== i))
+                    }
+                    className="text-destructive text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Addon name"
+                  value={addonInput.name}
+                  onChange={(e) =>
+                    setAddonInput((p) => ({ ...p, name: e.target.value }))
+                  }
+                  className="flex-1 border border-border rounded px-2 py-1 text-xs bg-background"
+                />
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={addonInput.price}
+                  onChange={(e) =>
+                    setAddonInput((p) => ({ ...p, price: e.target.value }))
+                  }
+                  className="w-20 border border-border rounded px-2 py-1 text-xs bg-background"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!addonInput.name.trim()) return;
+                    setAddons((prev) => [...prev, { ...addonInput }]);
+                    setAddonInput({ name: "", price: "" });
+                  }}
+                  className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              data-ocid="business.pos_products.submit_button"
+            >
+              Add to Products &amp; Services
+            </Button>
+          </form>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">
+              Products &amp; Services ({bizProducts.length})
+            </h3>
+            {bizProducts.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No products added yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {bizProducts.map((p, i) => (
+                  <div
+                    key={p.id}
+                    className="border border-border rounded-xl overflow-hidden bg-card"
+                    data-ocid={`business.pos_products.item.${i + 1}`}
+                  >
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className="w-full h-28 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-28 bg-muted/40 flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                        {p.category.charAt(0)}
+                      </div>
+                    )}
+                    <div className="p-2 space-y-1">
+                      <p className="text-xs font-semibold truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.category}
+                      </p>
+                      <p className="text-xs font-medium text-primary">
+                        ₹{p.price.toLocaleString()}
+                      </p>
+                      {p.variantDetails && p.variantDetails.length > 0 && (
+                        <p className="text-[10px] text-muted-foreground">
+                          {p.variantDetails.length} variants
+                        </p>
+                      )}
+                      <span
+                        className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] ${p.status === "active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                      >
+                        {p.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function BusinessPage() {
   const [tables, setTables] = useState([
     {
@@ -947,7 +1494,19 @@ export default function BusinessPage() {
   const [newTableNo, setNewTableNo] = useState("");
   const [_rating, _setRating] = useState(0);
   const [_hoverRating, _setHoverRating] = useState(0);
+  const [branches, setBranches] = useState(BRANCHES_DEFAULT);
   const [selectedBranch, setSelectedBranch] = useState("b1");
+  const [addBranchOpen, setAddBranchOpen] = useState(false);
+  const [newBranch, setNewBranch] = useState({
+    name: "",
+    city: "",
+    tables: "5",
+    deliveryAreas: "",
+    perKmRate: "30",
+    cash: true,
+    online: true,
+    advance: false,
+  });
   const [dynamicQrGenerated, setDynamicQrGenerated] = useState(false);
   const [paymentModes, setPaymentModes] = useState({
     cod: true,
@@ -961,7 +1520,7 @@ export default function BusinessPage() {
   const [orders, setOrders] = useState(MOCK_ORDERS);
   const [liveRefresh, setLiveRefresh] = useState(true);
 
-  const branch = BRANCHES.find((b) => b.id === selectedBranch) ?? BRANCHES[0];
+  const branch = branches.find((b) => b.id === selectedBranch) ?? branches[0];
 
   const addTable = () => {
     if (!newTableNo.trim()) return;
@@ -1033,8 +1592,17 @@ export default function BusinessPage() {
           >
             AI Marketing
           </TabsTrigger>
+          <TabsTrigger
+            value="pos-products"
+            data-ocid="business.pos_products.tab"
+          >
+            Products & Services
+          </TabsTrigger>
           <TabsTrigger value="csv-import" data-ocid="business.csv_import.tab">
             CSV Import
+          </TabsTrigger>
+          <TabsTrigger value="discover-claim" data-ocid="business.discover.tab">
+            🔍 Discover & Claim
           </TabsTrigger>
         </TabsList>
 
@@ -1354,8 +1922,8 @@ export default function BusinessPage() {
 
         {/* ── Multi-Branch ── */}
         <TabsContent value="branches" className="mt-6 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {BRANCHES.map((b) => (
+          <div className="flex flex-wrap gap-2 items-center">
+            {branches.map((b) => (
               <button
                 key={b.id}
                 type="button"
@@ -1371,7 +1939,178 @@ export default function BusinessPage() {
                 {b.name}
               </button>
             ))}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddBranchOpen(true)}
+              data-ocid="business.add_branch_button"
+            >
+              + Add Branch
+            </Button>
           </div>
+          <Dialog open={addBranchOpen} onOpenChange={setAddBranchOpen}>
+            <DialogContent data-ocid="business.add_branch.dialog">
+              <DialogHeader>
+                <DialogTitle>Add New Branch</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div>
+                  <Label className="text-xs">Branch Name</Label>
+                  <Input
+                    placeholder="e.g. Juhu, Mumbai"
+                    value={newBranch.name}
+                    onChange={(e) =>
+                      setNewBranch((p) => ({ ...p, name: e.target.value }))
+                    }
+                    data-ocid="business.branch_name.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">City</Label>
+                  <Input
+                    placeholder="City"
+                    value={newBranch.city}
+                    onChange={(e) =>
+                      setNewBranch((p) => ({ ...p, city: e.target.value }))
+                    }
+                    data-ocid="business.branch_city.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Number of Tables</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newBranch.tables}
+                    onChange={(e) =>
+                      setNewBranch((p) => ({ ...p, tables: e.target.value }))
+                    }
+                    data-ocid="business.branch_tables.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">
+                    Delivery Pincodes (comma separated)
+                  </Label>
+                  <Input
+                    placeholder="110001, 110002"
+                    value={newBranch.deliveryAreas}
+                    onChange={(e) =>
+                      setNewBranch((p) => ({
+                        ...p,
+                        deliveryAreas: e.target.value,
+                      }))
+                    }
+                    data-ocid="business.branch_delivery.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Rate per km (₹)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={newBranch.perKmRate}
+                    onChange={(e) =>
+                      setNewBranch((p) => ({ ...p, perKmRate: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Payment Modes</Label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newBranch.cash}
+                        onChange={(e) =>
+                          setNewBranch((p) => ({
+                            ...p,
+                            cash: e.target.checked,
+                          }))
+                        }
+                      />
+                      Cash
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newBranch.online}
+                        onChange={(e) =>
+                          setNewBranch((p) => ({
+                            ...p,
+                            online: e.target.checked,
+                          }))
+                        }
+                      />
+                      Online
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newBranch.advance}
+                        onChange={(e) =>
+                          setNewBranch((p) => ({
+                            ...p,
+                            advance: e.target.checked,
+                          }))
+                        }
+                      />
+                      Advance
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setAddBranchOpen(false)}
+                  data-ocid="business.add_branch.cancel_button"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!newBranch.name.trim()) return;
+                    const id = `b${Date.now()}`;
+                    setBranches((prev) => [
+                      ...prev,
+                      {
+                        id,
+                        name: newBranch.city
+                          ? `${newBranch.name}, ${newBranch.city}`
+                          : newBranch.name,
+                        tables: Number(newBranch.tables) || 5,
+                        activeOrders: 0,
+                        revenue: 0,
+                        paymentModes: {
+                          cash: newBranch.cash,
+                          online: newBranch.online,
+                          advance: newBranch.advance,
+                        },
+                        deliveryAreas: newBranch.deliveryAreas,
+                        perKmRate: Number(newBranch.perKmRate) || 30,
+                      },
+                    ]);
+                    setSelectedBranch(id);
+                    setAddBranchOpen(false);
+                    setNewBranch({
+                      name: "",
+                      city: "",
+                      tables: "5",
+                      deliveryAreas: "",
+                      perKmRate: "30",
+                      cash: true,
+                      online: true,
+                      advance: false,
+                    });
+                  }}
+                  data-ocid="business.add_branch.confirm_button"
+                >
+                  Add Branch
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Branch stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1434,7 +2173,7 @@ export default function BusinessPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {BRANCHES.map((b, idx) => (
+                    {branches.map((b, idx) => (
                       <tr
                         key={b.id}
                         className="border-t border-border"
@@ -1693,8 +2432,18 @@ export default function BusinessPage() {
         </TabsContent>
 
         {/* ── CSV Import ── */}
+        {/* u2500u2500 POS Products u2500u2500 */}
+        <TabsContent value="pos-products" className="mt-6 space-y-6">
+          <BusinessPOSProducts />
+        </TabsContent>
+
         <TabsContent value="csv-import" className="mt-6 space-y-6">
           <BusinessCSVImport />
+        </TabsContent>
+
+        {/* ── Discover & Claim ── */}
+        <TabsContent value="discover-claim" className="mt-6 space-y-4">
+          <DiscoverClaimTab />
         </TabsContent>
       </Tabs>
 

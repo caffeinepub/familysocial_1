@@ -38,7 +38,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CommunityBiddingSection } from "../components/BusinessDiscoveryFeatures";
 import EventsTab from "../components/EventsTab";
+import { addGlobalProduct } from "../utils/globalProductsState";
 
 type CommunityRole =
   | "owner"
@@ -654,6 +656,12 @@ function AdminCommunityView() {
         <TabsTrigger value="events" data-ocid="community.admin.events.tab">
           Events
         </TabsTrigger>
+        <TabsTrigger
+          value="vendor-bids"
+          data-ocid="community.admin.vendor_bids.tab"
+        >
+          🔨 Vendor Bids
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="visitors">
         <div className="space-y-3">
@@ -769,7 +777,7 @@ function AdminCommunityView() {
         </div>
       </TabsContent>
       <TabsContent value="marketplace">
-        <ResidentView />
+        <CommunityAdminMarketplace />
       </TabsContent>
       <TabsContent value="security">
         <SecurityView />
@@ -806,6 +814,97 @@ function AdminCommunityView() {
   );
 }
 
+function CommunityAdminMarketplace() {
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    category: "Home Services",
+    description: "",
+  });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    addGlobalProduct({
+      name: form.name,
+      description: form.description,
+      price: Number.parseFloat(form.price) || 0,
+      category: form.category,
+      module: "Community",
+      seller: "Community Admin",
+      isService: false,
+      status: "pending",
+    });
+    toast.success(`"${form.name}" posted to marketplace and Shop`);
+    setForm({
+      name: "",
+      price: "",
+      category: "Home Services",
+      description: "",
+    });
+  };
+  return (
+    <div className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-card border border-border rounded-xl p-4 space-y-3"
+      >
+        <p className="text-sm font-semibold">Post to Marketplace & Shop</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label htmlFor="comm-item-name" className="text-xs font-medium">
+              Item Name *
+            </label>
+            <Input
+              id="comm-item-name"
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="e.g. Sofa Set"
+              className="h-9"
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="comm-item-price" className="text-xs font-medium">
+              Price (₹)
+            </label>
+            <Input
+              id="comm-item-price"
+              type="number"
+              value={form.price}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, price: e.target.value }))
+              }
+              placeholder="0"
+              className="h-9"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="comm-item-desc" className="text-xs font-medium">
+            Description
+          </label>
+          <Input
+            id="comm-item-desc"
+            value={form.description}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, description: e.target.value }))
+            }
+            placeholder="Brief description"
+            className="h-9"
+          />
+        </div>
+        <Button
+          type="submit"
+          size="sm"
+          data-ocid="community.marketplace.submit_button"
+        >
+          Post to Marketplace & Shop
+        </Button>
+      </form>
+      <ResidentView />
+    </div>
+  );
+}
 interface NewCommunityForm {
   name: string;
   description: string;

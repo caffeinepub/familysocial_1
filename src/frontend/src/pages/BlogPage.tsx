@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
 import QuickAddBar from "../components/QuickAddBar";
 
@@ -1042,6 +1043,16 @@ export default function BlogPage() {
   const [isSponsored, setIsSponsored] = useState(false);
 
   // My blogs state
+  const [blogBoostTarget, setBlogBoostTarget] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
+  const [blogBoosted, setBlogBoosted] = useState<number[]>(() => {
+    const b: string[] = JSON.parse(
+      localStorage.getItem("ic_boosted_posts") || "[]",
+    );
+    return b.map(Number).filter(Boolean);
+  });
   const [blogFilter, setBlogFilter] = useState<"published" | "draft">(
     "published",
   );
@@ -1641,10 +1652,24 @@ export default function BlogPage() {
                             size="sm"
                             className="h-7 text-xs font-label flex-1"
                             onClick={() =>
-                              toast.info("Promotion feature coming soon!")
+                              setBlogBoostTarget({
+                                id: blog.id,
+                                title: blog.title,
+                              })
                             }
+                            style={{
+                              color: blogBoosted.includes(blog.id)
+                                ? "oklch(0.65 0.20 85)"
+                                : undefined,
+                              borderColor: blogBoosted.includes(blog.id)
+                                ? "oklch(0.65 0.20 85)"
+                                : undefined,
+                            }}
                           >
-                            <TrendingUp size={11} className="mr-1" /> Boost Post
+                            <TrendingUp size={11} className="mr-1" />{" "}
+                            {blogBoosted.includes(blog.id)
+                              ? "Promoted"
+                              : "Boost Post"}
                           </Button>
                         )}
                         <Button
@@ -1673,6 +1698,17 @@ export default function BlogPage() {
               },
             )}
           </div>
+          <BoostPostDialog
+            open={!!blogBoostTarget}
+            onClose={() => setBlogBoostTarget(null)}
+            postTitle={blogBoostTarget?.title || ""}
+            postType="blog"
+            onBoostSuccess={() => {
+              if (blogBoostTarget) {
+                setBlogBoosted((prev) => [...prev, blogBoostTarget.id]);
+              }
+            }}
+          />
         </TabsContent>
 
         {/* ── TAB 3: AFFILIATE ─────────────────────────────────────── */}

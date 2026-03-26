@@ -32,9 +32,11 @@ import {
   TreePine,
   Users,
   Video,
+  Zap,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import type { UserProfile } from "../backend.d";
+import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -266,6 +268,13 @@ function FeedTabs({
 function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likes);
+  const [boostOpen, setBoostOpen] = useState(false);
+  const [boosted, setBoosted] = useState(() => {
+    const b: string[] = JSON.parse(
+      localStorage.getItem("ic_boosted_posts") || "[]",
+    );
+    return b.includes(String(post.id));
+  });
   const tagColor =
     MODULE_COLORS[post.tag ?? ""] ??
     MODULE_COLORS[post.module ?? ""] ??
@@ -372,7 +381,24 @@ function PostCard({ post }: { post: Post }) {
         >
           <Bookmark size={14} />
         </button>
+        <button
+          type="button"
+          onClick={() => setBoostOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-label font-medium transition-colors"
+          style={{ color: boosted ? "oklch(0.65 0.20 85)" : undefined }}
+          data-ocid="feed.post.primary_button"
+        >
+          <Zap size={13} fill={boosted ? "currentColor" : "none"} />
+          {boosted ? "Promoted" : "Boost"}
+        </button>
       </div>
+      <BoostPostDialog
+        open={boostOpen}
+        onClose={() => setBoostOpen(false)}
+        postTitle={post.content.slice(0, 60)}
+        postType="post"
+        onBoostSuccess={() => setBoosted(true)}
+      />
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -48,11 +50,19 @@ import {
   Wand2,
   Wrench,
   X,
+  Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import BoostPostDialog from "../components/BoostPostDialog";
 import POSModulesPanel from "../components/POSModulesPanel";
 import { useCurrency } from "../contexts/CurrencyContext";
+import {
+  addGlobalProduct,
+  deleteGlobalProduct,
+  getGlobalProducts,
+  saveGlobalProduct,
+} from "../utils/globalProductsState";
 import {
   type Product,
   SAMPLE_PRODUCTS,
@@ -90,6 +100,7 @@ interface SaleRecord {
 
 const CATALOG_CATEGORIES = [
   "All",
+  "Food & Beverages",
   "Electronics",
   "Vehicles",
   "Fashion",
@@ -641,10 +652,11 @@ function QuickAddProductDialog({
   });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [variants, setVariants] = useState<
-    { color: string; size: string; price: string }[]
+    { label: string; price: string; stock: string }[]
   >([]);
+  const [addons, setAddons] = useState<{ name: string; price: string }[]>([]);
+  const [addonInput, setAddonInput] = useState({ name: "", price: "" });
   const [detectingVariants, setDetectingVariants] = useState(false);
-
   const margin =
     form.price && form.purchasePrice
       ? (
@@ -657,31 +669,79 @@ function QuickAddProductDialog({
 
   const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const urls = files.map((f) => URL.createObjectURL(f));
-    setImagePreviews((prev) => [...prev, ...urls]);
+    for (const f of files) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setImagePreviews((prev) => [...prev, ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(f);
+    }
   };
 
   const detectVariants = () => {
     setDetectingVariants(true);
     setTimeout(() => {
-      const colors = ["Red", "Blue", "Black", "White", "Green"];
-      const sizes = ["S", "M", "L", "XL"];
-      const detected = colors.slice(0, 3).map((color, i) => ({
-        color,
-        size: sizes[i % sizes.length],
-        price: form.price || "0",
-      }));
+      const basePrice = form.price || "0";
+      let detected: { label: string; price: string; stock: string }[] = [];
+      const cat = form.category;
+      if (cat === "Fashion" || cat === "Clothing") {
+        const colors = ["Red", "Blue", "Black", "White", "Green"];
+        const sizes = ["S", "M", "L", "XL"];
+        detected = colors.slice(0, 3).flatMap((color) =>
+          sizes.slice(0, 2).map((size) => ({
+            label: `${color} / ${size}`,
+            price: basePrice,
+            stock: "10",
+          })),
+        );
+      } else if (cat === "Electronics") {
+        detected = ["64GB / Black", "128GB / Silver", "256GB / Gold"].map(
+          (label) => ({
+            label,
+            price: basePrice,
+            stock: "5",
+          }),
+        );
+      } else if (cat === "Food & Beverages" || cat === "Food") {
+        detected = ["Small", "Medium", "Large", "Family Pack"].map((label) => ({
+          label,
+          price: basePrice,
+          stock: "50",
+        }));
+      } else if (cat === "Healthcare") {
+        detected = ["Strip of 10", "Pack of 30", "Pack of 100"].map(
+          (label) => ({
+            label,
+            price: basePrice,
+            stock: "20",
+          }),
+        );
+      } else if (cat === "Home Services") {
+        detected = ["Basic", "Standard", "Premium"].map((label, i) => ({
+          label,
+          price: String(Math.round(Number(basePrice) * (1 + i * 0.5))),
+          stock: "999",
+        }));
+      } else {
+        detected = ["Standard", "Deluxe", "Premium"].map((label, i) => ({
+          label,
+          price: String(Math.round(Number(basePrice) * (1 + i * 0.3))),
+          stock: "10",
+        }));
+      }
       setVariants(detected);
       setDetectingVariants(false);
-      toast.success("Variants detected from product images");
+      toast.success(`${detected.length} variants detected for ${cat}`);
     }, 1200);
   };
 
   const detectColors = () => {
     setTimeout(() => {
       const detected = [
-        { color: "Midnight Blue", size: "M", price: form.price || "0" },
-        { color: "Ivory White", size: "M", price: form.price || "0" },
+        { label: "Midnight Blue", price: form.price || "0", stock: "10" },
+        { label: "Ivory White", price: form.price || "0", stock: "10" },
       ];
       setVariants((prev) => [...prev, ...detected]);
       toast.success("2 dominant colors detected");
@@ -701,7 +761,41 @@ function QuickAddProductDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
+    const sameCatCount = getGlobalProducts().filter(
+      (p) => p.category === form.category && !p.isService,
+    ).length;
+    addGlobalProduct({
+      name: form.name,
+      description: form.description,
+      price: Number.parseFloat(form.price) || 0,
+      category: form.category,
+      module: "POS",
+      seller: "Business Owner",
+      supplier: form.supplierName,
+      purchasePrice: Number.parseFloat(form.purchasePrice) || undefined,
+      inventory: Number.parseInt(form.stockQty) || undefined,
+      videoUrl: form.videoUrl || undefined,
+      imageUrl: imagePreviews[0] || undefined,
+      variantDetails: variants.map((v) => ({
+        label: v.label,
+        price: Number.parseFloat(v.price) || 0,
+        stock: Number.parseInt(v.stock) || 0,
+      })),
+      addons: addons.map((a) => ({
+        name: a.name,
+        price: Number.parseFloat(a.price) || 0,
+      })),
+      isService: false,
+      status: "pending",
+    });
     toast.success(`Product "${form.name}" added to catalog`);
+    if (sameCatCount >= 1) {
+      setTimeout(() => {
+        toast.info(
+          `Tip: ${sameCatCount + 1} matching products found. Consider creating a combo!`,
+        );
+      }, 500);
+    }
     setForm({
       name: "",
       price: "",
@@ -716,6 +810,7 @@ function QuickAddProductDialog({
     });
     setImagePreviews([]);
     setVariants([]);
+    setAddons([]);
     onClose();
   };
 
@@ -838,23 +933,135 @@ function QuickAddProductDialog({
                 <table className="w-full text-xs">
                   <thead className="bg-muted/40">
                     <tr>
-                      <th className="p-1.5 text-left">Color</th>
-                      <th className="p-1.5 text-left">Size</th>
-                      <th className="p-1.5 text-left">Price</th>
+                      <th className="p-1.5 text-left">Variant</th>
+                      <th className="p-1.5 text-left">Price (₹)</th>
+                      <th className="p-1.5 text-left">Stock</th>
+                      <th className="p-1.5 text-left" />
                     </tr>
                   </thead>
                   <tbody>
-                    {variants.map((v) => (
-                      <tr key={v.color} className="border-t border-border/50">
-                        <td className="p-1.5">{v.color}</td>
-                        <td className="p-1.5">{v.size}</td>
-                        <td className="p-1.5">₹{v.price}</td>
+                    {variants.map((v, i) => (
+                      <tr key={v.label} className="border-t border-border/50">
+                        <td className="p-1.5 font-medium">
+                          <input
+                            type="text"
+                            value={v.label}
+                            onChange={(e) =>
+                              setVariants((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, label: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-28 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="number"
+                            value={v.price}
+                            onChange={(e) =>
+                              setVariants((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, price: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-20 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="number"
+                            value={v.stock}
+                            onChange={(e) =>
+                              setVariants((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, stock: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-16 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setVariants((prev) =>
+                                prev.filter((_, xi) => xi !== i),
+                              )
+                            }
+                            className="text-destructive hover:opacity-70"
+                          >
+                            ✕
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
+          </div>
+
+          {/* Add-ons */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Add-ons</Label>
+            {addons.map((a, i) => (
+              <div key={a.name} className="flex items-center gap-2 text-xs">
+                <span className="flex-1 bg-muted/30 rounded px-2 py-1">
+                  {a.name}
+                </span>
+                <span className="text-muted-foreground">₹{a.price}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAddons((prev) => prev.filter((_, xi) => xi !== i))
+                  }
+                  className="text-destructive hover:opacity-70"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Addon name"
+                value={addonInput.name}
+                onChange={(e) =>
+                  setAddonInput((p) => ({ ...p, name: e.target.value }))
+                }
+                className="flex-1 border border-border rounded px-2 py-1 text-xs bg-background"
+              />
+              <input
+                type="number"
+                placeholder="Price"
+                value={addonInput.price}
+                onChange={(e) =>
+                  setAddonInput((p) => ({ ...p, price: e.target.value }))
+                }
+                className="w-20 border border-border rounded px-2 py-1 text-xs bg-background"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!addonInput.name.trim()) return;
+                  setAddons((prev) => [...prev, { ...addonInput }]);
+                  setAddonInput({ name: "", price: "" });
+                }}
+                className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs"
+              >
+                + Add
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -1050,35 +1257,88 @@ function QuickAddServiceDialog({
     moderationStatus: "Pending Review",
   });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [variants, setVariants] = useState<{ type: string; price: string }[]>(
-    [],
-  );
+  const [variants, setVariants] = useState<
+    { label: string; price: string; stock: string }[]
+  >([]);
+  const [addons, setAddons] = useState<{ name: string; price: string }[]>([]);
+  const [addonInput, setAddonInput] = useState({ name: "", price: "" });
 
   const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setImagePreviews((prev) => [
-      ...prev,
-      ...files.map((f) => URL.createObjectURL(f)),
-    ]);
+    for (const f of files) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setImagePreviews((prev) => [...prev, ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(f);
+    }
   };
 
   const detectVariants = () => {
     setTimeout(() => {
-      setVariants([
-        { type: "Basic Package", price: form.pricePerHour || "0" },
-        {
-          type: "Standard Package",
-          price: String(
-            (Number.parseFloat(form.pricePerHour || "0") * 1.5).toFixed(0),
-          ),
-        },
-        {
-          type: "Premium Package",
-          price: String(
-            (Number.parseFloat(form.pricePerHour || "0") * 2).toFixed(0),
-          ),
-        },
-      ]);
+      const base = Number.parseFloat(form.pricePerHour || "0");
+      const cat = form.category;
+      let detected: { label: string; price: string; stock: string }[] = [];
+      if (cat === "Home Services") {
+        detected = [
+          { label: "Basic", price: String(base), stock: "999" },
+          {
+            label: "Standard",
+            price: String(Math.round(base * 1.5)),
+            stock: "999",
+          },
+          {
+            label: "Premium",
+            price: String(Math.round(base * 2)),
+            stock: "999",
+          },
+        ];
+      } else if (cat === "Healthcare" || cat === "Health") {
+        detected = [
+          { label: "15 min Consultation", price: String(base), stock: "20" },
+          {
+            label: "30 min Consultation",
+            price: String(Math.round(base * 1.8)),
+            stock: "20",
+          },
+          {
+            label: "60 min Session",
+            price: String(Math.round(base * 3)),
+            stock: "10",
+          },
+        ];
+      } else if (cat === "Education") {
+        detected = [
+          { label: "Single Session", price: String(base), stock: "999" },
+          {
+            label: "Monthly Plan (12 sessions)",
+            price: String(Math.round(base * 10)),
+            stock: "50",
+          },
+          {
+            label: "Crash Course",
+            price: String(Math.round(base * 5)),
+            stock: "30",
+          },
+        ];
+      } else {
+        detected = [
+          { label: "Basic Package", price: String(base), stock: "999" },
+          {
+            label: "Standard Package",
+            price: String(Math.round(base * 1.5)),
+            stock: "999",
+          },
+          {
+            label: "Premium Package",
+            price: String(Math.round(base * 2)),
+            stock: "999",
+          },
+        ];
+      }
+      setVariants(detected);
       toast.success("Service variants detected");
     }, 900);
   };
@@ -1098,6 +1358,29 @@ function QuickAddServiceDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
+    addGlobalProduct({
+      name: form.name,
+      description: form.description,
+      price: Number.parseFloat(form.pricePerHour) || 0,
+      category: form.category,
+      module: "POS",
+      seller: "Business Owner",
+      supplier: form.supplierName,
+      purchasePrice: Number.parseFloat(form.purchasePrice) || undefined,
+      videoUrl: form.videoUrl || undefined,
+      imageUrl: imagePreviews[0] || undefined,
+      variantDetails: variants.map((v) => ({
+        label: v.label,
+        price: Number.parseFloat(v.price) || 0,
+        stock: Number.parseInt(v.stock) || 0,
+      })),
+      addons: addons.map((a) => ({
+        name: a.name,
+        price: Number.parseFloat(a.price) || 0,
+      })),
+      isService: true,
+      status: "pending",
+    });
     toast.success(`Service "${form.name}" added to catalog`);
     setForm({
       name: "",
@@ -1111,6 +1394,7 @@ function QuickAddServiceDialog({
     });
     setImagePreviews([]);
     setVariants([]);
+    setAddons([]);
     onClose();
   };
 
@@ -1198,21 +1482,135 @@ function QuickAddServiceDialog({
                 <table className="w-full text-xs">
                   <thead className="bg-muted/40">
                     <tr>
-                      <th className="p-1.5 text-left">Type</th>
-                      <th className="p-1.5 text-left">Price</th>
+                      <th className="p-1.5 text-left">Variant</th>
+                      <th className="p-1.5 text-left">Price (₹)</th>
+                      <th className="p-1.5 text-left">Slots</th>
+                      <th className="p-1.5" />
                     </tr>
                   </thead>
                   <tbody>
-                    {variants.map((v) => (
-                      <tr key={v.type} className="border-t border-border/50">
-                        <td className="p-1.5">{v.type}</td>
-                        <td className="p-1.5">₹{v.price}/hr</td>
+                    {variants.map((v, i) => (
+                      <tr key={v.label} className="border-t border-border/50">
+                        <td className="p-1.5 font-medium">
+                          <input
+                            type="text"
+                            value={v.label}
+                            onChange={(e) =>
+                              setVariants((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, label: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-28 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="number"
+                            value={v.price}
+                            onChange={(e) =>
+                              setVariants((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, price: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-20 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="number"
+                            value={v.stock}
+                            onChange={(e) =>
+                              setVariants((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, stock: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="w-16 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setVariants((prev) =>
+                                prev.filter((_, xi) => xi !== i),
+                              )
+                            }
+                            className="text-destructive hover:opacity-70"
+                          >
+                            ✕
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
+          </div>
+
+          {/* Add-ons */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Add-ons</Label>
+            {addons.map((a, i) => (
+              <div key={a.name} className="flex items-center gap-2 text-xs">
+                <span className="flex-1 bg-muted/30 rounded px-2 py-1">
+                  {a.name}
+                </span>
+                <span className="text-muted-foreground">₹{a.price}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAddons((prev) => prev.filter((_, xi) => xi !== i))
+                  }
+                  className="text-destructive hover:opacity-70"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Addon name"
+                value={addonInput.name}
+                onChange={(e) =>
+                  setAddonInput((p) => ({ ...p, name: e.target.value }))
+                }
+                className="flex-1 border border-border rounded px-2 py-1 text-xs bg-background"
+              />
+              <input
+                type="number"
+                placeholder="Price"
+                value={addonInput.price}
+                onChange={(e) =>
+                  setAddonInput((p) => ({ ...p, price: e.target.value }))
+                }
+                className="w-20 border border-border rounded px-2 py-1 text-xs bg-background"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!addonInput.name.trim()) return;
+                  setAddons((prev) => [...prev, { ...addonInput }]);
+                  setAddonInput({ name: "", price: "" });
+                }}
+                className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs"
+              >
+                + Add
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -1648,9 +2046,9 @@ function QuickAddJobDialog({
 
 export default function POSPage() {
   const { formatPrice, currency } = useCurrency();
-  const [activeTab, setActiveTab] = useState<"new-sale" | "history">(
-    "new-sale",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "new-sale" | "history" | "my-catalog"
+  >("new-sale");
   const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
 
   // Quick-create dialog states
@@ -1678,6 +2076,41 @@ export default function POSPage() {
   const [receiptSale, setReceiptSale] = useState<SaleRecord | null>(null);
   const [salesHistory, setSalesHistory] = useState<SaleRecord[]>([]);
 
+  // Global products state (user-added)
+  const [globalProds, setGlobalProds] = useState(() =>
+    getGlobalProducts().filter(
+      (p) => p.module === "POS" || p.seller === "Business Owner",
+    ),
+  );
+  const [editProduct, setEditProduct] = useState<null | {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    stock: number;
+  }>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [boostTarget, setBoostTarget] = useState<string | null>(null);
+  const [boostedItems, setBoostedItems] = useState<Record<string, boolean>>(
+    () => {
+      const b: string[] = JSON.parse(
+        localStorage.getItem("ic_boosted_posts") || "[]",
+      );
+      return Object.fromEntries(b.map((id) => [id, true]));
+    },
+  );
+
+  useEffect(() => {
+    const h = () =>
+      setGlobalProds(
+        getGlobalProducts().filter(
+          (p) => p.module === "POS" || p.seller === "Business Owner",
+        ),
+      );
+    window.addEventListener("globalProductsUpdated", h);
+    return () => window.removeEventListener("globalProductsUpdated", h);
+  }, []);
+
   // Build catalog
   const allItems: Array<{
     item: Product | Service;
@@ -1699,6 +2132,26 @@ export default function POSPage() {
       category: s.category,
       isRental: false,
       isService: true,
+    })),
+    ...globalProds.map((p) => ({
+      item: {
+        id: p.id as unknown as number,
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        description: p.description,
+        photos: p.imageUrl ? [p.imageUrl] : [],
+        variants: [],
+        isRental: false,
+        isVeg: false,
+        seller: p.seller ?? "",
+        rating: p.rating ?? 4.5,
+        reviews: p.reviews ?? 0,
+      } as unknown as Product,
+      price: p.price,
+      category: p.category,
+      isRental: false,
+      isService: p.isService || false,
     })),
   ];
 
@@ -2227,12 +2680,262 @@ export default function POSPage() {
                 </span>
               )}
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("my-catalog")}
+              className={`px-4 py-2 text-sm font-label font-medium transition-colors flex items-center gap-1.5
+                ${activeTab === "my-catalog" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+            >
+              <Package size={14} /> My Catalog
+              {globalProds.length > 0 && (
+                <span
+                  className="text-[10px] rounded-full px-1.5 py-0.5 font-bold"
+                  style={{
+                    background:
+                      activeTab === "my-catalog"
+                        ? "oklch(1 0 0 / 0.25)"
+                        : "oklch(0.65 0.25 155 / 0.2)",
+                    color:
+                      activeTab === "my-catalog"
+                        ? "oklch(1 0 0)"
+                        : "oklch(0.45 0.15 155)",
+                  }}
+                >
+                  {globalProds.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
       {activeTab === "history" ? (
         <HistoryPanel />
+      ) : activeTab === "my-catalog" ? (
+        <div className="space-y-4 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-display font-bold text-foreground">
+                My Catalog
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {globalProds.length} product
+                {globalProds.length !== 1 ? "s" : ""} you have added
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveTab("new-sale")}
+              data-ocid="pos.add_product_button"
+            >
+              + Add Product
+            </Button>
+          </div>
+          {globalProds.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center py-16 text-center"
+              data-ocid="pos.catalog.empty_state"
+            >
+              <Package
+                size={36}
+                className="text-muted-foreground mb-3 opacity-40"
+              />
+              <p className="text-sm font-label font-medium text-muted-foreground">
+                No products added yet
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Use the Quick Add buttons to add your first product
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {globalProds.map((p, idx) => (
+                <Card
+                  key={p.id}
+                  className="rounded-2xl border-border"
+                  data-ocid={`pos.catalog.item.${idx + 1}`}
+                >
+                  {p.imageUrl && (
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-full h-32 object-cover rounded-t-2xl"
+                    />
+                  )}
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-label font-semibold text-sm text-foreground truncate">
+                          {p.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.category}
+                        </p>
+                        <p
+                          className="text-sm font-bold mt-1"
+                          style={{ color: "oklch(0.55 0.22 280)" }}
+                        >
+                          ₹{p.price}
+                        </p>
+                        {p.stock !== undefined && (
+                          <p className="text-xs text-muted-foreground">
+                            Stock: {p.stock}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs"
+                        data-ocid={`pos.catalog.edit_button.${idx + 1}`}
+                        onClick={() => {
+                          setEditProduct({
+                            id: p.id,
+                            name: p.name,
+                            price: p.price,
+                            description: p.description,
+                            stock: p.stock ?? 0,
+                          });
+                          setEditOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1 text-xs"
+                        data-ocid={`pos.catalog.delete_button.${idx + 1}`}
+                        onClick={() => {
+                          deleteGlobalProduct(p.id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs px-2"
+                        onClick={() => setBoostTarget(p.id)}
+                        style={{
+                          color: boostedItems[p.id]
+                            ? "oklch(0.65 0.20 85)"
+                            : undefined,
+                        }}
+                        data-ocid={`pos.catalog.primary_button.${idx + 1}`}
+                      >
+                        <Zap
+                          size={11}
+                          fill={boostedItems[p.id] ? "currentColor" : "none"}
+                        />
+                      </Button>
+                    </div>
+                    <BoostPostDialog
+                      open={boostTarget === p.id}
+                      onClose={() => setBoostTarget(null)}
+                      postTitle={p.name}
+                      postType="product"
+                      onBoostSuccess={() =>
+                        setBoostedItems((prev) => ({ ...prev, [p.id]: true }))
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {editOpen && editProduct && (
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+              <DialogContent data-ocid="pos.edit_product.dialog">
+                <DialogHeader>
+                  <DialogTitle>Edit Product</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                  <div>
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={editProduct.name}
+                      onChange={(e) =>
+                        setEditProduct((p) =>
+                          p ? { ...p, name: e.target.value } : p,
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Price (₹)</Label>
+                    <Input
+                      type="number"
+                      value={editProduct.price}
+                      onChange={(e) =>
+                        setEditProduct((p) =>
+                          p ? { ...p, price: Number(e.target.value) } : p,
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Stock</Label>
+                    <Input
+                      type="number"
+                      value={editProduct.stock}
+                      onChange={(e) =>
+                        setEditProduct((p) =>
+                          p ? { ...p, stock: Number(e.target.value) } : p,
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Description</Label>
+                    <Textarea
+                      value={editProduct.description}
+                      onChange={(e) =>
+                        setEditProduct((p) =>
+                          p ? { ...p, description: e.target.value } : p,
+                        )
+                      }
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditOpen(false)}
+                    data-ocid="pos.edit_product.cancel_button"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (editProduct) {
+                        const existing = getGlobalProducts().find(
+                          (p) => p.id === editProduct.id,
+                        );
+                        if (existing)
+                          saveGlobalProduct({
+                            ...existing,
+                            name: editProduct.name,
+                            price: editProduct.price,
+                            description: editProduct.description,
+                            stock: editProduct.stock,
+                          });
+                      }
+                      setEditOpen(false);
+                    }}
+                    data-ocid="pos.edit_product.save_button"
+                  >
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       ) : (
         <>
           {/* Mobile tab switcher */}

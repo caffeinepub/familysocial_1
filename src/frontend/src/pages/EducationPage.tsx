@@ -4613,6 +4613,13 @@ function SchoolDirectoryView({
 }: { onEnterSchool: (name: string) => void }) {
   const [requested, setRequested] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newSchool, setNewSchool] = useState({
+    name: "",
+    city: "",
+    type: "School",
+    established: "",
+  });
 
   const typeColor: Record<SchoolDirType, string> = {
     Primary: "oklch(0.62 0.18 145)",
@@ -4646,6 +4653,110 @@ function SchoolDirectoryView({
             data-ocid="education.directory.search_input"
           />
         </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              className="h-9 text-sm font-label shrink-0"
+              data-ocid="education.directory.open_modal_button"
+            >
+              <Plus size={14} className="mr-1.5" />
+              Create School
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-label">
+                Create New School
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-label">School Name</Label>
+                <Input
+                  placeholder="e.g. Sunrise Academy"
+                  value={newSchool.name}
+                  onChange={(e) =>
+                    setNewSchool((s) => ({ ...s, name: e.target.value }))
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-label">City</Label>
+                <Input
+                  placeholder="e.g. Mumbai"
+                  value={newSchool.city}
+                  onChange={(e) =>
+                    setNewSchool((s) => ({ ...s, city: e.target.value }))
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-label">Type</Label>
+                <Select
+                  value={newSchool.type}
+                  onValueChange={(v) =>
+                    setNewSchool((s) => ({ ...s, type: v }))
+                  }
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="School">School</SelectItem>
+                    <SelectItem value="Academy">Academy</SelectItem>
+                    <SelectItem value="College">College</SelectItem>
+                    <SelectItem value="University">University</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-label">Established Year</Label>
+                <Input
+                  placeholder="e.g. 2005"
+                  value={newSchool.established}
+                  onChange={(e) =>
+                    setNewSchool((s) => ({ ...s, established: e.target.value }))
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!newSchool.name || !newSchool.city) {
+                    toast.error("Name and city are required");
+                    return;
+                  }
+                  toast.success(
+                    `School "${newSchool.name}" created successfully!`,
+                  );
+                  setNewSchool({
+                    name: "",
+                    city: "",
+                    type: "School",
+                    established: "",
+                  });
+                  setCreateOpen(false);
+                }}
+                data-ocid="education.create_school.submit_button"
+              >
+                Create School
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       <p className="text-sm text-muted-foreground -mt-2">
         {filtered.length} institution{filtered.length !== 1 ? "s" : ""} · Login
