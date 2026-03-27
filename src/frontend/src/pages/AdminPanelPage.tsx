@@ -5427,6 +5427,21 @@ export default function AdminPanelPage() {
         <TabsContent value="business-claims" className="mt-0 space-y-4">
           <BusinessClaimsAdmin />
         </TabsContent>
+
+        {/* ── REVIEWS ── */}
+        <TabsContent value="reviews" className="mt-0 space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-display font-bold text-foreground">
+              Review Management
+            </h3>
+          </div>
+          <ReviewsAdminPanel />
+        </TabsContent>
+
+        {/* ── PAYMENT GATEWAYS ── */}
+        <TabsContent value="payment-gateways" className="mt-0">
+          <PaymentGatewaysPanel />
+        </TabsContent>
       </Tabs>
 
       <div className="mt-6 text-center text-xs text-muted-foreground">
@@ -10866,21 +10881,6 @@ function PromotionsQueue() {
               Save Targeting
             </button>
           </div>
-        </TabsContent>
-
-        {/* ── REVIEWS ── */}
-        <TabsContent value="reviews" className="mt-0 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-display font-bold text-foreground">
-              Review Management
-            </h3>
-          </div>
-          <ReviewsAdminPanel />
-        </TabsContent>
-
-        {/* ── PAYMENT GATEWAYS ── */}
-        <TabsContent value="payment-gateways" className="mt-0">
-          <PaymentGatewaysPanel />
         </TabsContent>
       </Tabs>
     </div>
