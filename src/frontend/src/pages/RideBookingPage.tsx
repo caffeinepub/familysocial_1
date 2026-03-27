@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PaymentModal } from "../components/PaymentModal";
 
 const VEHICLE_TYPES = [
   {
@@ -150,6 +151,7 @@ export default function RideBookingPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [vehicle, setVehicle] = useState("taxi");
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [estimatedDist, setEstimatedDist] = useState(7.5);
 
   const selectedVehicle = VEHICLE_TYPES.find((v) => v.id === vehicle);
@@ -163,6 +165,11 @@ export default function RideBookingPage() {
       toast.error("Please enter pickup and drop locations");
       return;
     }
+    setPaymentOpen(true);
+  };
+
+  const handleRidePaySuccess = () => {
+    setPaymentOpen(false);
     toast.success("Ride booked! Driver will arrive in ~4 minutes.");
   };
 
@@ -489,6 +496,13 @@ export default function RideBookingPage() {
           </div>
         </TabsContent>
       </Tabs>
+      <PaymentModal
+        open={paymentOpen}
+        onCancel={() => setPaymentOpen(false)}
+        onSuccess={handleRidePaySuccess}
+        amount={Math.round(estimatedFare)}
+        title="Confirm & Pay for Ride"
+      />
     </div>
   );
 }

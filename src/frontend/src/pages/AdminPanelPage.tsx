@@ -1915,6 +1915,7 @@ export default function AdminPanelPage() {
               { value: "business-claims", label: "🏢 Business Claims" },
               { value: "commission-fees", label: "💸 Commission & Fees" },
               { value: "reviews", label: "⭐ Reviews" },
+              { value: "payment-gateways", label: "💳 Payment Gateways" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -10876,7 +10877,242 @@ function PromotionsQueue() {
           </div>
           <ReviewsAdminPanel />
         </TabsContent>
+
+        {/* ── PAYMENT GATEWAYS ── */}
+        <TabsContent value="payment-gateways" className="mt-0">
+          <PaymentGatewaysPanel />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── Payment Gateways Panel ───────────────────────────────────────────────────
+type GatewayConfig = {
+  enabled: boolean;
+  apiKey: string;
+  secretKey: string;
+  merchantId: string;
+  mode: "test" | "live";
+};
+
+const GATEWAY_META = [
+  {
+    id: "razorpay",
+    name: "Razorpay",
+    emoji: "🔵",
+    color: "#1a56db",
+    bgClass: "oklch(0.60 0.20 250 / 0.08)",
+  },
+  {
+    id: "paytm",
+    name: "Paytm",
+    emoji: "🔷",
+    color: "#0d6efd",
+    bgClass: "oklch(0.50 0.20 240 / 0.08)",
+  },
+  {
+    id: "payu",
+    name: "PayU",
+    emoji: "🟢",
+    color: "#198754",
+    bgClass: "oklch(0.52 0.14 155 / 0.08)",
+  },
+  {
+    id: "stripe",
+    name: "Stripe",
+    emoji: "🟣",
+    color: "#6f42c1",
+    bgClass: "oklch(0.50 0.22 295 / 0.08)",
+  },
+] as const;
+
+const DEFAULT_GW: GatewayConfig = {
+  enabled: false,
+  apiKey: "",
+  secretKey: "",
+  merchantId: "",
+  mode: "test",
+};
+
+function PaymentGatewaysPanel() {
+  const [gateways, setGateways] = React.useState<Record<string, GatewayConfig>>(
+    () => {
+      try {
+        return JSON.parse(localStorage.getItem("icPaymentGateways") || "{}");
+      } catch {
+        return {};
+      }
+    },
+  );
+  const [showKey, setShowKey] = React.useState<Record<string, boolean>>({});
+
+  const getGw = (id: string): GatewayConfig =>
+    gateways[id] ?? { ...DEFAULT_GW };
+
+  const updateGw = (id: string, patch: Partial<GatewayConfig>) => {
+    setGateways((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] ?? DEFAULT_GW), ...patch },
+    }));
+  };
+
+  const saveGw = (id: string) => {
+    const updated = { ...gateways };
+    localStorage.setItem("icPaymentGateways", JSON.stringify(updated));
+    toast.success(
+      `${GATEWAY_META.find((g) => g.id === id)?.name} settings saved`,
+    );
+  };
+
+  const toggleShow = (key: string) =>
+    setShowKey((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="space-y-4" data-ocid="admin.payment_gateways.panel">
+      <div>
+        <h3 className="text-sm font-display font-bold text-foreground">
+          Payment Gateway Configuration
+        </h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Configure Razorpay, Paytm, PayU, and Stripe for all paid modules.
+          Enabled gateways appear in checkout.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {GATEWAY_META.map((meta) => {
+          const gw = getGw(meta.id);
+          return (
+            <Card
+              key={meta.id}
+              className="rounded-2xl border-border overflow-hidden"
+              data-ocid="admin.gateway.card"
+            >
+              <div
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ background: meta.bgClass }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{meta.emoji}</span>
+                  <span
+                    className="font-display font-bold text-sm"
+                    style={{ color: meta.color }}
+                  >
+                    {meta.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {gw.enabled ? "Active" : "Disabled"}
+                  </span>
+                  <Switch
+                    checked={gw.enabled}
+                    onCheckedChange={(v) => updateGw(meta.id, { enabled: v })}
+                    data-ocid={`admin.gateway.${meta.id}.switch`}
+                  />
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-label text-muted-foreground">
+                    API Key
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showKey[`${meta.id}_api`] ? "text" : "password"}
+                      value={gw.apiKey}
+                      onChange={(e) =>
+                        updateGw(meta.id, { apiKey: e.target.value })
+                      }
+                      placeholder={`rzp_${gw.mode}_xxxxxxxxxx`}
+                      className="h-8 text-xs pr-8"
+                      data-ocid={`admin.gateway.${meta.id}.input`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleShow(`${meta.id}_api`)}
+                      className="absolute right-2 top-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {showKey[`${meta.id}_api`] ? "🙈" : "👁"}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-label text-muted-foreground">
+                    Secret Key
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showKey[`${meta.id}_secret`] ? "text" : "password"}
+                      value={gw.secretKey}
+                      onChange={(e) =>
+                        updateGw(meta.id, { secretKey: e.target.value })
+                      }
+                      placeholder="sk_xxxxxxxxxx"
+                      className="h-8 text-xs pr-8"
+                      data-ocid={`admin.gateway.${meta.id}.input`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleShow(`${meta.id}_secret`)}
+                      className="absolute right-2 top-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {showKey[`${meta.id}_secret`] ? "🙈" : "👁"}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-label text-muted-foreground">
+                    Merchant ID
+                  </Label>
+                  <Input
+                    value={gw.merchantId}
+                    onChange={(e) =>
+                      updateGw(meta.id, { merchantId: e.target.value })
+                    }
+                    placeholder="MID_xxxxxxxx"
+                    className="h-8 text-xs"
+                    data-ocid={`admin.gateway.${meta.id}.input`}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[10px] font-label text-muted-foreground">
+                      Mode
+                    </Label>
+                    <div className="flex rounded-lg overflow-hidden border border-border">
+                      {(["test", "live"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => updateGw(meta.id, { mode: m })}
+                          className="px-3 py-1 text-[10px] font-label font-semibold transition-colors"
+                          style={{
+                            background:
+                              gw.mode === m ? meta.color : "transparent",
+                            color: gw.mode === m ? "white" : undefined,
+                          }}
+                          data-ocid={`admin.gateway.${meta.id}.toggle`}
+                        >
+                          {m.charAt(0).toUpperCase() + m.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => saveGw(meta.id)}
+                    data-ocid={`admin.gateway.${meta.id}.save_button`}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -29,13 +29,16 @@ import {
   ChefHat,
   Clock,
   CreditCard,
+  Download,
   GitBranch,
+  Globe,
   Mail,
   MapPin,
   Phone,
   Plus,
   QrCode,
   RefreshCw,
+  Share2,
   Sparkles,
   Star,
   Truck,
@@ -662,6 +665,279 @@ function BusinessCommissionConfig() {
   );
 }
 
+// ─── Table QR Code Button ─────────────────────────────────────────────────
+function TableQRButton({
+  tableNo,
+  businessId,
+  businessName,
+}: {
+  tableNo: string;
+  businessId: string;
+  businessName: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  const tableUrl = `https://app.indyacentral.com?business=${businessId}&table=${encodeURIComponent(tableNo)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(tableUrl)}`;
+
+  // Get menu items from global products or use seed items
+  const products = getGlobalProducts();
+  const menuItems =
+    products.length > 0
+      ? products.slice(0, 6).map((p) => ({ name: p.name, price: p.price }))
+      : [
+          { name: "Masala Chai", price: 60 },
+          { name: "Butter Chicken", price: 320 },
+          { name: "Paneer Tikka", price: 280 },
+          { name: "Garlic Naan", price: 60 },
+          { name: "Mango Lassi", price: 100 },
+        ];
+
+  const handlePrint = () => {
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`
+      <html><body style="text-align:center;font-family:sans-serif;padding:20px">
+      <h2>${businessName}</h2>
+      <h3>Table ${tableNo}</h3>
+      <img src="${qrUrl}" width="200" height="200"/>
+      <p style="font-size:12px;color:#666">Scan to order • ${tableUrl}</p>
+      <hr/>
+      <h4>Menu</h4>
+      ${menuItems.map((m) => `<p>${m.name} — ₹${m.price}</p>`).join("")}
+      </body></html>
+    `);
+    w.document.close();
+    w.print();
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full text-xs gap-1.5"
+        onClick={() => setOpen(true)}
+        data-ocid="business.table.qr.button"
+      >
+        <QrCode size={13} /> Table QR
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="max-w-sm rounded-2xl"
+          data-ocid="business.table_qr.dialog"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-sm">
+              Table {tableNo} — Scan to Order
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src={qrUrl}
+              alt={`Table ${tableNo} QR`}
+              className="w-48 h-48 rounded-2xl border-2 border-primary/30"
+            />
+            <div className="text-center">
+              <p className="text-sm font-bold text-foreground">
+                {businessName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Table No: {tableNo}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+              Menu Items
+            </p>
+            <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+              {menuItems.map((item, i) => (
+                <div
+                  key={String(i)}
+                  className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs"
+                  style={{ background: "oklch(var(--muted) / 0.5)" }}
+                >
+                  <span className="text-foreground truncate">{item.name}</span>
+                  <span className="text-primary font-semibold ml-1 shrink-0">
+                    ₹{item.price}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            className="w-full gap-2"
+            onClick={handlePrint}
+            data-ocid="business.table_qr.print_button"
+          >
+            <Star size={14} /> Print QR Code
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ─── Business Visiting Card with QR ─────────────────────────────────────────
+function BusinessVisitingCard({
+  biz,
+}: { biz: ReturnType<typeof getFamilyTreeBusinesses>[number] }) {
+  const [showCard, setShowCard] = React.useState(false);
+  const vcard = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `FN:${biz.name}`,
+    `ORG:${biz.name}`,
+    biz.phone ? `TEL:${biz.phone}` : "",
+    `EMAIL:contact@${biz.name.toLowerCase().replace(/\s+/g, "")}.com`,
+    `URL:https://indyacentral.com/biz/${biz.id}`,
+    biz.location ? `ADR:;;${biz.location}` : "",
+    "END:VCARD",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(vcard)}`;
+
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.href = qrUrl;
+    link.download = `${biz.name}-qr.png`;
+    link.click();
+  };
+
+  return (
+    <div className="shrink-0" data-ocid="business.qr.card">
+      {/* Mini QR preview */}
+      <button
+        type="button"
+        onClick={() => setShowCard(true)}
+        className="rounded-xl border-2 p-2 text-center block hover:shadow-md transition-shadow"
+        style={{ borderColor: "oklch(0.65 0.25 335 / 0.4)" }}
+      >
+        <img
+          src={qrUrl}
+          alt="Business QR"
+          className="w-20 h-20 rounded-lg mx-auto"
+          loading="lazy"
+        />
+        <p className="text-[9px] font-bold text-foreground mt-1 truncate max-w-[80px]">
+          {biz.name}
+        </p>
+        <p className="text-[8px] text-primary mt-0.5">View Card</p>
+      </button>
+
+      {/* Full Business Card Dialog */}
+      <Dialog open={showCard} onOpenChange={setShowCard}>
+        <DialogContent
+          className="max-w-md rounded-2xl"
+          data-ocid="business.visiting_card.dialog"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-sm">
+              Business Visiting Card
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Physical-style business card */}
+          <div
+            className="rounded-2xl p-6 text-white relative overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.45 0.25 280), oklch(0.55 0.28 310), oklch(0.65 0.25 340))",
+              minHeight: 180,
+            }}
+          >
+            {/* Decorative circles */}
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10" />
+            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/10" />
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                  style={{ background: "oklch(1 0 0 / 0.2)" }}
+                >
+                  <Building2 size={22} className="text-white" />
+                </div>
+                <span className="text-[9px] font-label opacity-70 uppercase tracking-widest">
+                  {biz.category}
+                </span>
+              </div>
+              <h2 className="text-xl font-display font-bold leading-tight">
+                {biz.name}
+              </h2>
+              {biz.type && (
+                <p className="text-xs opacity-80 mt-0.5">{biz.type}</p>
+              )}
+              <div className="mt-4 space-y-1">
+                {biz.phone && (
+                  <div className="flex items-center gap-2 text-xs opacity-90">
+                    <Phone size={11} /> {biz.phone}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-xs opacity-90">
+                  <Mail size={11} />
+                  contact@{biz.name.toLowerCase().replace(/\s+/g, "")}.com
+                </div>
+                {biz.location && (
+                  <div className="flex items-center gap-2 text-xs opacity-90">
+                    <MapPin size={11} /> {biz.location}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-xs opacity-90">
+                  <Globe size={11} />
+                  indyacentral.com/biz/{biz.id}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="flex flex-col items-center gap-2 py-2">
+            <img
+              src={qrUrl}
+              alt="vCard QR Code"
+              className="w-36 h-36 rounded-xl border border-border"
+            />
+            <p className="text-[10px] text-muted-foreground text-center">
+              Scan to save contact • vCard 3.0
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 text-xs gap-1"
+              onClick={handleDownload}
+              data-ocid="business.qr.download_button"
+            >
+              <Download size={13} /> Download QR
+            </Button>
+            <Button
+              className="flex-1 text-xs gap-1"
+              onClick={() => {
+                navigator.clipboard?.writeText(
+                  `https://indyacentral.com/biz/${biz.id}`,
+                );
+                toast.success("Business link copied!");
+              }}
+              data-ocid="business.qr.share_button"
+            >
+              <Share2 size={13} /> Share Card
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function StorefrontTab() {
   const [bizList, setBizList] = React.useState<
     ReturnType<typeof getFamilyTreeBusinesses>
@@ -783,31 +1059,7 @@ function StorefrontTab() {
                   {boosted[biz.id] ? "Promoted" : "Boost"}
                 </button>
               </div>
-              <div
-                className="rounded-xl border-2 p-4 text-center shrink-0 w-40"
-                style={{ borderColor: "oklch(0.65 0.25 335 / 0.4)" }}
-                data-ocid="business.qr.card"
-              >
-                <div
-                  className="w-20 h-20 border-2 rounded-lg mx-auto flex items-center justify-center mb-2"
-                  style={{ borderColor: "oklch(0.55 0.22 280)" }}
-                >
-                  <QrCode size={36} style={{ color: "oklch(0.55 0.22 280)" }} />
-                </div>
-                <p className="text-[10px] font-bold text-foreground">
-                  {biz.name}
-                </p>
-                {biz.location && (
-                  <p className="text-[9px] text-muted-foreground">
-                    {biz.location}
-                  </p>
-                )}
-                {biz.phone && (
-                  <p className="text-[9px] text-muted-foreground">
-                    {biz.phone}
-                  </p>
-                )}
-              </div>
+              <BusinessVisitingCard biz={biz} />
             </div>
           </CardContent>
           <div className="px-6 pb-4 flex items-center justify-between border-t border-border/30 pt-3">
@@ -1750,6 +2002,13 @@ export default function BusinessPage() {
                         }
                         placeholder="C1, C2 ..."
                         data-ocid="business.table.cook.input"
+                      />
+                    </div>
+                    <div className="mt-2">
+                      <TableQRButton
+                        tableNo={t.no}
+                        businessId="my-business"
+                        businessName="My Business"
                       />
                     </div>
                   </div>

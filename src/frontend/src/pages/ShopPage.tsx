@@ -58,6 +58,7 @@ import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
 import { ShopAuctionTab } from "../components/BusinessDiscoveryFeatures";
 import { LikeVoteBar } from "../components/LikeVoteBar";
+import { PaymentModal } from "../components/PaymentModal";
 import { ReviewModal } from "../components/ReviewModal";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -838,6 +839,7 @@ function CheckoutDialog({
   const { formatPrice } = useCurrency();
   const [step, setStep] = useState<CheckoutStep>("billing");
   const [orderId, setOrderId] = useState("");
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [billingForm, setBillingForm] = useState<BillingForm>({
     fullName: "",
@@ -868,6 +870,14 @@ function CheckoutDialog({
   };
 
   const handlePlaceOrder = () => {
+    if (billingForm.paymentMethod !== "cod") {
+      setPaymentOpen(true);
+      return;
+    }
+    doPlaceOrder();
+  };
+
+  const doPlaceOrder = () => {
     const id = `#ORD-${Math.floor(100000 + Math.random() * 900000)}`;
     setOrderId(id);
     setStep("confirmation");
@@ -1235,6 +1245,16 @@ function CheckoutDialog({
           )}
         </div>
       </DialogContent>
+      <PaymentModal
+        open={paymentOpen}
+        onCancel={() => setPaymentOpen(false)}
+        onSuccess={() => {
+          setPaymentOpen(false);
+          doPlaceOrder();
+        }}
+        amount={finalTotal}
+        title="Order Payment"
+      />
     </Dialog>
   );
 }

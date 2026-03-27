@@ -10,6 +10,7 @@ import {
 import { CheckCircle2, Rocket, Target, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PaymentModal } from "./PaymentModal";
 
 const PLANS = [
   {
@@ -84,7 +85,7 @@ export default function BoostPostDialog({
   const [selectedGender, setSelectedGender] = useState<string>("All");
   const [selectedDuration, setSelectedDuration] = useState<number>(1);
   const [boosted, setBoosted] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
   const totalPrice = plan.price * selectedDuration;
@@ -96,12 +97,13 @@ export default function BoostPostDialog({
     );
   }
 
-  async function handlePay() {
-    setPaying(true);
-    await new Promise((res) => setTimeout(res, 1200));
-    setPaying(false);
+  function handlePay() {
+    setPaymentOpen(true);
+  }
+
+  function handlePaySuccess() {
+    setPaymentOpen(false);
     setBoosted(true);
-    // Save to localStorage
     const key = "ic_boosted_posts";
     const existing: string[] = JSON.parse(localStorage.getItem(key) || "[]");
     if (!existing.includes(postTitle)) {
@@ -115,7 +117,7 @@ export default function BoostPostDialog({
 
   function handleClose() {
     setBoosted(false);
-    setPaying(false);
+    setPaymentOpen(false);
     setSelectedPlan("basic");
     setSelectedRegions([]);
     setSelectedDuration(1);
@@ -429,27 +431,26 @@ export default function BoostPostDialog({
               </Button>
               <Button
                 className="flex-1 font-label font-semibold"
-                disabled={paying}
                 onClick={handlePay}
                 data-ocid="boost.submit_button"
                 style={{ background: plan.color }}
               >
-                {paying ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    Processing...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Rocket size={14} /> Pay & Boost · ₹
-                    {totalPrice.toLocaleString()}
-                  </span>
-                )}
+                <span className="flex items-center gap-2">
+                  <Rocket size={14} /> Pay & Boost · ₹
+                  {totalPrice.toLocaleString()}
+                </span>
               </Button>
             </div>
           </div>
         )}
       </DialogContent>
+      <PaymentModal
+        open={paymentOpen}
+        onCancel={() => setPaymentOpen(false)}
+        onSuccess={handlePaySuccess}
+        amount={totalPrice}
+        title="Boost Post Payment"
+      />
     </Dialog>
   );
 }
