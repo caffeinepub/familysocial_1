@@ -181,7 +181,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: "shop", label: "Shop", icon: ShoppingBag },
   { id: "family-tree", label: "Family Tree", icon: TreePine },
   { id: "business", label: "Business", icon: Building2 },
-  { id: "pos", label: "Point of Sale", icon: CreditCard },
   { id: "community", label: "Community", icon: Users },
   { id: "gated-community", label: "Gated Community", icon: Building2 },
   { id: "jobs", label: "Jobs", icon: Briefcase },

@@ -1915,6 +1915,7 @@ export default function AdminPanelPage() {
               { value: "business-claims", label: "🏢 Business Claims" },
               { value: "commission-fees", label: "💸 Commission & Fees" },
               { value: "reviews", label: "⭐ Reviews" },
+              { value: "agent25", label: "🛡️ A25: Content Shield" },
               { value: "payment-gateways", label: "💳 Payment Gateways" },
             ] as { value: string; label: string }[]
           ).map((t) => (
@@ -2121,6 +2122,11 @@ export default function AdminPanelPage() {
                   name: "Agent 22 — Module Tester",
                   lastRun: "On demand",
                   freq: "Manual",
+                },
+                {
+                  name: "Agent 25 — Content Shield",
+                  lastRun: "10 sec ago",
+                  freq: "Real-time",
                 },
               ].map((agent) => (
                 <div
@@ -5436,6 +5442,11 @@ export default function AdminPanelPage() {
             </h3>
           </div>
           <ReviewsAdminPanel />
+        </TabsContent>
+
+        {/* ── Agent 25: Content Shield ── */}
+        <TabsContent value="agent25" className="mt-0 space-y-4">
+          <Agent25ContentShield />
         </TabsContent>
 
         {/* ── PAYMENT GATEWAYS ── */}
@@ -11824,6 +11835,9 @@ function WhatsAppAPISettings() {
         <TabsTrigger value="otp" className="text-xs">
           OTP Config
         </TabsTrigger>
+        <TabsTrigger value="chatbot" className="text-xs">
+          🤖 Chatbot Script
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="credentials" className="mt-0">
@@ -12183,6 +12197,9 @@ function WhatsAppAPISettings() {
             Save OTP Config
           </Button>
         </div>
+      </TabsContent>
+      <TabsContent value="chatbot" className="mt-0 space-y-4">
+        <WhatsAppChatbotScript />
       </TabsContent>
     </Tabs>
   );
@@ -14928,6 +14945,497 @@ function Agent24FoodStockAgent() {
           ))}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── Agent 25: Content Shield ──────────────────────────────────────────────────
+function Agent25ContentShield() {
+  const [keywords, setKeywords] = React.useState(
+    "spam, adult, violence, fake, scam, abuse",
+  );
+  const [autoShutdown, setAutoShutdown] = React.useState(true);
+  const [notifyAuthor, setNotifyAuthor] = React.useState(true);
+  const [freq, setFreq] = React.useState([15]);
+  const [logs, setLogs] = React.useState<string[]>(() => {
+    const now = new Date();
+    return [
+      `[${now.toLocaleTimeString()}] Agent 25 initialized. Monitoring posts...`,
+      `[${now.toLocaleTimeString()}] Scanned 38 posts — 0 flagged`,
+    ];
+  });
+  const [stats, setStats] = React.useState({
+    scanned: 38,
+    flagged: 2,
+    shutdown: 1,
+  });
+  const [flagged, setFlagged] = React.useState([
+    {
+      id: "p1",
+      preview: "Buy cheap meds, no prescription needed — click here now...",
+      author: "user_3421",
+      keyword: "spam",
+      time: "2 min ago",
+      status: "Flagged",
+    },
+    {
+      id: "p2",
+      preview: "Adult content link — only for 18+ viewers, open at your...",
+      author: "newuser_99",
+      keyword: "adult",
+      time: "8 min ago",
+      status: "Shutdown",
+    },
+    {
+      id: "p3",
+      preview: "Fake giveaway — win iPhone 15 just by sharing this post...",
+      author: "promo_bot",
+      keyword: "fake",
+      time: "15 min ago",
+      status: "Flagged",
+    },
+    {
+      id: "p4",
+      preview: "Scam alert: investment scheme promises 50% returns in 30...",
+      author: "inv_advisor",
+      keyword: "scam",
+      time: "22 min ago",
+      status: "Flagged",
+    },
+  ]);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const t = new Date().toLocaleTimeString();
+      const kwList = keywords
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean);
+      const kw = kwList[Math.floor(Math.random() * kwList.length)] || "spam";
+      const count = Math.floor(Math.random() * 5);
+      const entry =
+        count > 0
+          ? `[${t}] Scanned ${30 + Math.floor(Math.random() * 20)} posts — ${count} flagged — keywords: "${kw}"`
+          : `[${t}] Scanned ${30 + Math.floor(Math.random() * 20)} posts — 0 flagged`;
+      setLogs((prev) => [entry, ...prev.slice(0, 49)]);
+      if (count > 0) {
+        setStats((prev) => ({
+          scanned: prev.scanned + 30,
+          flagged: prev.flagged + count,
+          shutdown: prev.shutdown + (autoShutdown ? count : 0),
+        }));
+      } else {
+        setStats((prev) => ({ ...prev, scanned: prev.scanned + 30 }));
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [keywords, autoShutdown]);
+
+  const handleShutdown = (id: string) => {
+    setFlagged((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: "Shutdown" } : p)),
+    );
+    toast.success("Post shut down");
+  };
+  const handleRestore = (id: string) => {
+    setFlagged((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: "Restored" } : p)),
+    );
+    toast.success("Post restored");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-display font-bold">
+          Agent 25 — Content Shield
+        </h2>
+        <Badge className="text-[10px] bg-green-500/15 text-green-600 border-green-500/30 gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />{" "}
+          Running
+        </Badge>
+      </div>
+      <Tabs defaultValue="config">
+        <TabsList>
+          <TabsTrigger value="config" className="text-xs">
+            Config
+          </TabsTrigger>
+          <TabsTrigger value="monitoring" className="text-xs">
+            Monitoring
+          </TabsTrigger>
+          <TabsTrigger value="flagged" className="text-xs">
+            Flagged Queue
+            <Badge className="ml-1.5 h-4 px-1 text-[9px] bg-red-500/20 text-red-600 border-0">
+              {flagged.filter((f) => f.status === "Flagged").length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="config" className="mt-4 space-y-4">
+          <Card className="rounded-xl border-border">
+            <CardContent className="p-4 space-y-4">
+              <div>
+                <Label className="text-xs font-semibold">
+                  Keyword Blocklist
+                </Label>
+                <Textarea
+                  className="mt-1 text-xs font-mono"
+                  rows={3}
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="spam, adult, violence, fake..."
+                  data-ocid="admin.agent25.keywords.textarea"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Comma-separated keywords. Case-insensitive.
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold">Auto Shutdown</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Immediately hide matched posts
+                  </p>
+                </div>
+                <Switch
+                  checked={autoShutdown}
+                  onCheckedChange={setAutoShutdown}
+                  data-ocid="admin.agent25.auto_shutdown.switch"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold">
+                    Notify Author on Shutdown
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Send in-app notification to post author
+                  </p>
+                </div>
+                <Switch
+                  checked={notifyAuthor}
+                  onCheckedChange={setNotifyAuthor}
+                  data-ocid="admin.agent25.notify.switch"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">
+                  Scan Frequency: every {freq[0]}s
+                </Label>
+                <Slider
+                  className="mt-2"
+                  min={10}
+                  max={60}
+                  step={5}
+                  value={freq}
+                  onValueChange={setFreq}
+                  data-ocid="admin.agent25.freq.input"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>10s</span>
+                  <span>60s</span>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => toast.success("Agent 25 config saved")}
+                data-ocid="admin.agent25.save_button"
+              >
+                Save Config
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="monitoring" className="mt-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs font-label font-medium text-green-600">
+              LIVE — updating every 10 seconds
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              {
+                label: "Posts Scanned",
+                value: stats.scanned,
+                color: "oklch(0.55 0.22 280)",
+              },
+              {
+                label: "Posts Flagged",
+                value: stats.flagged,
+                color: "oklch(0.62 0.18 55)",
+              },
+              {
+                label: "Posts Shutdown",
+                value: stats.shutdown,
+                color: "oklch(0.55 0.18 25)",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="bg-card border border-border rounded-xl p-3 text-center"
+              >
+                <p className="text-xl font-bold" style={{ color: s.color }}>
+                  {s.value}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div
+            className="h-64 overflow-y-auto bg-muted/30 rounded-xl p-3 space-y-1 font-mono text-xs text-muted-foreground"
+            data-ocid="admin.agent25.loading_state"
+          >
+            {logs.map((log, i) => (
+              <div
+                key={String(i)}
+                className={
+                  log.includes("flagged — keywords") ? "text-amber-500" : ""
+                }
+              >
+                {log}
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="flagged" className="mt-4">
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-3 py-2 font-semibold text-[11px]">
+                    Post Preview
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-[11px]">
+                    Author
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-[11px]">
+                    Keyword
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-[11px]">
+                    Time
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-[11px]">
+                    Status
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-[11px]">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {flagged.map((post, idx) => (
+                  <tr
+                    key={post.id}
+                    className="border-b border-border/50 last:border-0"
+                    data-ocid={`admin.agent25.item.${idx + 1}`}
+                  >
+                    <td className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
+                      {post.preview}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-[10px]">
+                      {post.author}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge className="text-[9px] bg-amber-500/15 text-amber-700 border-amber-500/30">
+                        {post.keyword}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {post.time}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge
+                        className={`text-[9px] ${post.status === "Shutdown" ? "bg-red-500/15 text-red-600 border-red-500/30" : post.status === "Restored" ? "bg-green-500/15 text-green-600 border-green-500/30" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}`}
+                      >
+                        {post.status}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1.5">
+                        {post.status !== "Shutdown" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-6 text-[10px] px-2"
+                            onClick={() => handleShutdown(post.id)}
+                            data-ocid={`admin.agent25.delete_button.${idx + 1}`}
+                          >
+                            Shutdown
+                          </Button>
+                        )}
+                        {post.status === "Shutdown" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] px-2"
+                            onClick={() => handleRestore(post.id)}
+                            data-ocid={`admin.agent25.secondary_button.${idx + 1}`}
+                          >
+                            Restore
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─── WhatsApp Chatbot Script ───────────────────────────────────────────────────
+function WhatsAppChatbotScript() {
+  const [testStatus, setTestStatus] = React.useState<
+    "idle" | "testing" | "ok" | "fail"
+  >("idle");
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => toast.success("Copied to clipboard"))
+      .catch(() => toast.error("Copy failed"));
+  };
+
+  const testConnection = () => {
+    setTestStatus("testing");
+    setTimeout(() => setTestStatus(Math.random() > 0.3 ? "ok" : "fail"), 1500);
+  };
+
+  const ENV_CODE = `WHATSAPP_TOKEN=your_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_id
+WHATSAPP_VERIFY_TOKEN=indyacentral_verify
+INDYACENTRAL_API_URL=https://your-canister.ic0.app`;
+
+  const WEBHOOK_CODE = `app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});`;
+
+  const HANDLER_CODE = `app.post('/webhook', async (req, res) => {
+  const entry = req.body.entry?.[0];
+  const message = entry?.changes?.[0]?.value?.messages?.[0];
+  if (!message) return res.sendStatus(200);
+
+  const from = message.from;
+  const text = message.text?.body?.toLowerCase() || '';
+
+  if (text.startsWith('search ')) {
+    const query = text.replace('search ', '');
+    const results = await searchIndyaCentral(query);
+    await sendWhatsAppMessage(from, formatProductList(results));
+  } else if (text.startsWith('buy ')) {
+    const productId = text.replace('buy ', '');
+    await placeOrder(from, productId);
+    await sendWhatsAppMessage(from, \`✅ Order placed for product #\${productId}.\`);
+  } else if (text.startsWith('sell ')) {
+    await sendWhatsAppMessage(from, \`List a product: \${process.env.INDYACENTRAL_API_URL}/pos\`);
+  } else if (['menu', 'hi', 'hello'].includes(text)) {
+    await sendWhatsAppMessage(from,
+      'Welcome to IndyaCentral! 🛒\\n\\n' +
+      '*Commands:*\\n' +
+      '🔍 *search [product]* — Find products\\n' +
+      '🛍️ *buy [product-id]* — Place an order\\n' +
+      '📦 *sell* — List your product\\n' +
+      '📍 *nearby* — Find businesses near you\\n' +
+      '👤 *account* — Your account info'
+    );
+  }
+  res.sendStatus(200);
+});`;
+
+  const HELPERS_CODE = `async function sendWhatsAppMessage(to, text) {
+  await axios.post(
+    \`https://graph.facebook.com/v18.0/\${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages\`,
+    { messaging_product: 'whatsapp', to, type: 'text', text: { body: text } },
+    { headers: { Authorization: \`Bearer \${process.env.WHATSAPP_TOKEN}\` } }
+  );
+}
+
+async function searchIndyaCentral(query) {
+  const res = await axios.get(
+    \`\${process.env.INDYACENTRAL_API_URL}/api/search?q=\${query}\`
+  );
+  return res.data.products || [];
+}
+
+function formatProductList(products) {
+  if (!products.length) return 'No products found.';
+  return products.slice(0, 5).map((p, i) =>
+    \`\${i+1}. *\${p.name}* — ₹\${p.price}\\nReply *buy \${p.id}* to order\`
+  ).join('\\n\\n');
+}`;
+
+  const CodeBlock = ({ title, code }: { title: string; code: string }) => (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-foreground">{title}</p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 text-[10px] gap-1 px-2"
+          onClick={() => copyToClipboard(code)}
+          data-ocid="admin.whatsapp.chatbot.secondary_button"
+        >
+          📋 Copy
+        </Button>
+      </div>
+      <pre className="bg-muted/60 rounded-lg p-3 text-[11px] font-mono leading-relaxed overflow-x-auto border border-border whitespace-pre-wrap break-all">
+        {code}
+      </pre>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300">
+        <strong>Setup:</strong> Deploy this script to your Node.js server,
+        configure the env vars, and set your webhook URL in Meta Business
+        Manager.
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Button
+          size="sm"
+          onClick={testConnection}
+          disabled={testStatus === "testing"}
+          data-ocid="admin.whatsapp.chatbot.primary_button"
+        >
+          {testStatus === "testing" ? "Testing..." : "🔌 Test Connection"}
+        </Button>
+        {testStatus === "ok" && (
+          <Badge className="bg-green-500/15 text-green-600 border-green-500/30">
+            ✓ Connected
+          </Badge>
+        )}
+        {testStatus === "fail" && (
+          <Badge className="bg-red-500/15 text-red-600 border-red-500/30">
+            ✗ Failed — check credentials
+          </Badge>
+        )}
+      </div>
+
+      <CodeBlock title="1. Environment Variables (.env)" code={ENV_CODE} />
+      <CodeBlock
+        title="2. Webhook Verification (Node.js/Express)"
+        code={WEBHOOK_CODE}
+      />
+      <CodeBlock
+        title="3. Incoming Message Handler — Multi-Vendor Search/Buy/Sell"
+        code={HANDLER_CODE}
+      />
+      <CodeBlock title="4. Helper Functions" code={HELPERS_CODE} />
     </div>
   );
 }

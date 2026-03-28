@@ -1,58 +1,34 @@
 # IndyaCentral
 
 ## Current State
-- BusinessPage has tabs: My Businesses (from Family Tree), Table Management, Live Orders, Multi-Branch Dashboard, Payment Setup, Delivery Setup, Commission Configuration
-- ShopPage has a cart/checkout flow
-- AdminPanelPage has various configuration tabs
-- No QR code visiting card on Business Page
-- No table QR code showing menu for customers
-- No payment gateway integration (Razorpay, Paytm, PayU, Stripe)
-- No admin panel for configuring payment gateway API keys
+- POS exists as a standalone sidebar page (`POSPage.tsx`)
+- BusinessPage has tabs: Storefront, Table Management, Live Orders, Multi-Branch Dashboard, Payment Setup, Delivery Setup, Commission Config
+- AdminPanelPage has agents 6-23, but Shutdown Post agent does not exist
+- WhatsApp API tab exists in Admin Panel with credentials/templates/broadcast/OTP config
+- Search is basic text-based; no image search
+- Privacy settings exist per user
 
 ## Requested Changes (Diff)
 
 ### Add
-1. **Business Visiting Card QR** on Business Page:
-   - A styled digital visiting card per business showing: business name, owner name, location, online address/website URL, email, contact number
-   - A QR code generated from this vCard data (encode as vCard string or JSON URL)
-   - "Download" and "Share" buttons on the card
-   - Displayed prominently in the business storefront/profile tab
-
-2. **Table QR Code** on Business Page > Table Management:
-   - Each table row gets a QR code button
-   - Clicking shows a QR that encodes a URL like `?business=X&table=Y`
-   - The QR, when scanned by customer, shows: business name, table number, assigned menu items/products, and an order form
-   - A "Customer Table View" component that renders when table+business params are in URL
-
-3. **Payment Gateway Config in Admin Panel** (new tab "Payment Gateways"):
-   - 4 gateways: Razorpay, Paytm, PayU, Stripe
-   - Each gateway card has: toggle (enable/disable), API Key, Secret Key, Merchant ID (where applicable), Test/Live mode toggle
-   - Save button persists to localStorage
-   - Active gateway shown with green badge
-
-4. **Direct Payment Flow** in all modules and shop cart:
-   - PaymentGateway selector component that reads enabled gateways from admin config
-   - When user clicks "Pay Now" anywhere (Shop checkout, Boost Post, Promotions, Ride booking, etc.), show a payment modal with:
-     - Amount displayed
-     - Gateway selection (only enabled ones shown: Razorpay / Paytm / PayU / Stripe)
-     - Simulated payment processing (loading → success/failure)
-   - Replace all "Confirm Payment" / "Pay" buttons across modules with this unified PaymentModal
+- **Shutdown Post Agent (Agent 24)** in Admin Panel: keyword blocklist editor, auto-hide posts matching keywords, optional notify-author, runs on interval every 30s, admin sees flagged posts queue with approve/restore option
+- **WhatsApp Business API Chatbot Script**: a dedicated page/tab showing the complete webhook script (Node.js/Express) for WhatsApp Business API integration -- handles incoming messages, routes to IndyaCentral multi-vendor catalog search, allows buy/sell via webhook response, includes setup instructions, copy-to-clipboard for each code block, env vars template
+- **Image-Based Search**: camera/file upload icon in search bar; simulates visual search by letting user pick a category from uploaded image; respects user privacy settings (private users excluded from results)
+- **POS tab inside Business Page**: full POS functionality embedded as a tab in BusinessPage, linked to the selected business -- products/services/events/promotions all scoped to that business
 
 ### Modify
-- Business Page: Add QR visiting card section to the storefront/profile tab
-- Business Page > Table Management: Add QR code column/button per table
-- AdminPanelPage: Add "Payment Gateways" tab
-- ShopPage checkout: Wire to unified payment modal with gateway selector
-- All paid plan flows (Boost Post, Promotions, Ride booking, etc.): Use unified payment modal
+- **Sidebar**: Remove POS from left navigation menu
+- **BusinessPage**: Add "POS" tab that renders the full POS interface scoped to the selected business
+- **Search bar**: Add image upload/camera button; add privacy filter
+- **Admin Panel**: Add Agent 24 (Shutdown Agent) tab with keyword config, monitoring, flagged posts queue
 
 ### Remove
-- Hardcoded "Payment confirmed" dialogs that don't show gateway selection
+- POS entry from sidebar navigation (App.tsx routing stays, but nav item removed so it's only accessible via Business Page)
 
 ## Implementation Plan
-1. Install `qrcode` npm package (or use `qrcode.react`) for QR generation - use `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ENCODED_DATA` as an img src to avoid npm dependency
-2. Create `PaymentGatewayConfig` in localStorage (keys: razorpay, paytm, payu, stripe each with enabled, apiKey, secretKey, merchantId, mode)
-3. Create reusable `PaymentModal` component
-4. Add QR visiting card to BusinessPage storefront tab
-5. Add table QR codes to Table Management tab
-6. Add Payment Gateways tab to AdminPanelPage
-7. Wire PaymentModal to ShopPage checkout, BoostPostDialog, and other paid flows
+1. In `App.tsx` remove POS from the sidebar nav items; keep the route for direct access
+2. In `BusinessPage.tsx` add a "POS" tab that imports and renders POSPage content (or inline POS component) scoped to business context
+3. In `AdminPanelPage.tsx` add Agent 24 (Shutdown Post Agent): keyword editor, running status badge, live flagged posts log, flagged posts queue with restore/confirm-shutdown actions
+4. Add a `WhatsAppChatbotPage.tsx` (or modal/tab in Admin > WhatsApp API) showing: full Node.js webhook script with WhatsApp Business API, multi-vendor product search handler, buy/sell order flow, env vars, setup guide -- all with copy buttons
+5. Extend search bar (in `SocialFeedPage.tsx` or shared header) with image upload icon; on image select, show category picker; filter results by privacy settings
+6. Validate and deploy

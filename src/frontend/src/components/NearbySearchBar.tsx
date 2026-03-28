@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Ban,
+  Camera,
   MapPin,
   Package,
   Search,
@@ -136,6 +137,12 @@ export default function NearbySearchBar() {
   const [keptPeople, setKeptPeople] = useState<number[]>([]);
   const [softNudgeCount, setSoftNudgeCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [_imageSearchCategory, setImageSearchCategory] = useState<
+    string | null
+  >(null);
+  const [imageName, setImageName] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -166,7 +173,9 @@ export default function NearbySearchBar() {
 
   const filteredPeople = NEARBY_USERS.filter(
     (u) =>
-      !avoidedPeople.includes(u.id) && (!q || u.name.toLowerCase().includes(q)),
+      !avoidedPeople.includes(u.id) &&
+      (!q || u.name.toLowerCase().includes(q)) &&
+      !(u as unknown as Record<string, unknown>).privacyLevel,
   );
 
   function handleAvoidPerson(id: number, name: string) {
@@ -184,6 +193,38 @@ export default function NearbySearchBar() {
     setKeptPeople((prev) => [...prev, id]);
     toast.success(`Connection request sent to ${name}`);
   }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setImageName(file.name);
+    setShowImageModal(true);
+    setExpanded(true);
+    e.target.value = "";
+  };
+
+  const handleImageCategory = (cat: string) => {
+    setImageSearchCategory(cat);
+    setShowImageModal(false);
+    setQuery(cat.toLowerCase());
+    setActiveTab("products");
+    toast.success(`Searching for ${cat} products`);
+  };
+
+  const IMAGE_CATEGORIES = [
+    "Electronics",
+    "Fashion",
+    "Food",
+    "Home",
+    "Healthcare",
+    "Books",
+    "Vehicles",
+    "Services",
+  ];
 
   return (
     <div
@@ -203,7 +244,7 @@ export default function NearbySearchBar() {
         }}
       >
         {/* Search pill */}
-        <div className="flex items-center gap-2 px-4 py-3">
+        <div className="relative flex items-center gap-2 px-4 py-3">
           <MapPin size={14} className="text-primary shrink-0" />
           <Input
             placeholder={
@@ -217,6 +258,24 @@ export default function NearbySearchBar() {
             className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-sm placeholder:text-muted-foreground/60"
             data-ocid="nearby.search_input"
           />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 p-0 shrink-0 text-muted-foreground hover:text-primary"
+            title="Image search"
+            onClick={() => imageInputRef.current?.click()}
+            data-ocid="nearby.upload_button"
+          >
+            <Camera size={13} />
+          </Button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageSelect}
+            data-ocid="nearby.dropzone"
+          />
           {expanded ? (
             <Button
               variant="ghost"
@@ -225,6 +284,7 @@ export default function NearbySearchBar() {
               onClick={() => {
                 setExpanded(false);
                 setQuery("");
+                setImageSearchCategory(null);
               }}
               data-ocid="nearby.close_button"
             >
@@ -232,6 +292,36 @@ export default function NearbySearchBar() {
             </Button>
           ) : (
             <Search size={13} className="text-muted-foreground shrink-0" />
+          )}
+          {/* Image Search Category Modal */}
+          {showImageModal && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-xl shadow-xl p-3 z-50">
+              <p className="text-[11px] font-semibold text-foreground mb-1">
+                📷 {imageName ? `"${imageName.slice(0, 20)}"` : "Image"} — What
+                are you searching for?
+              </p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {IMAGE_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleImageCategory(cat)}
+                    className="text-[10px] px-2 py-1 rounded-full border border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
+                    data-ocid="nearby.toggle"
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImageModal(false)}
+                className="mt-2 text-[10px] text-muted-foreground hover:text-foreground"
+                data-ocid="nearby.close_button"
+              >
+                Cancel
+              </button>
+            </div>
           )}
         </div>
 
