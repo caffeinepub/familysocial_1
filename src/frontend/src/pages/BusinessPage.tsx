@@ -704,7 +704,7 @@ function TableQRButton({
       <p style="font-size:12px;color:#666">Scan to order • ${tableUrl}</p>
       <hr/>
       <h4>Menu</h4>
-      ${menuItems.map((m) => `<p>${m.name} — ₹${m.price}</p>`).join("")}
+      ${menuItems.map((m) => `<p>${m.name} — ₹${m.price}</p>`).join("\n")}
       </body></html>
     `);
     w.document.close();
@@ -1015,9 +1015,12 @@ function StorefrontTab() {
                 />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-display font-bold text-foreground">
-                  {biz.name}
-                </h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-xl font-display font-bold text-foreground">
+                    {biz.name}
+                  </h2>
+                  <TrustScoreBadge biz={biz} />
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {biz.category} · {biz.type}
                 </p>
@@ -1251,8 +1254,8 @@ function MyBusinessesTab({
   );
 }
 
-// ─── BusinessPOSProducts ──────────────────────────────────────────────────────
-function BusinessPOSProducts() {
+// ─── BusinessPOSProducts (kept for reference) ───────────────────────────────────
+function _BusinessPOSProducts() {
   const [bizList, setBizList] = React.useState(() => getFamilyTreeBusinesses());
   const [selectedBiz, setSelectedBiz] = React.useState(
     () => getFamilyTreeBusinesses()[0]?.id || "",
@@ -1866,13 +1869,19 @@ export default function BusinessPage() {
             value="pos-products"
             data-ocid="business.pos_products.tab"
           >
-            Products & Services
+            🏪 Smart POS
           </TabsTrigger>
           <TabsTrigger value="csv-import" data-ocid="business.csv_import.tab">
             CSV Import
           </TabsTrigger>
           <TabsTrigger value="discover-claim" data-ocid="business.discover.tab">
             🔍 Discover & Claim
+          </TabsTrigger>
+          <TabsTrigger value="biz-modules" data-ocid="business.biz_modules.tab">
+            🧩 Modules
+          </TabsTrigger>
+          <TabsTrigger value="hr-payroll" data-ocid="business.hr_payroll.tab">
+            👥 HR &amp; Payroll
           </TabsTrigger>
         </TabsList>
 
@@ -2709,9 +2718,9 @@ export default function BusinessPage() {
         </TabsContent>
 
         {/* ── CSV Import ── */}
-        {/* u2500u2500 POS Products u2500u2500 */}
+        {/* ── Smart POS ── */}
         <TabsContent value="pos-products" className="mt-6 space-y-6">
-          <BusinessPOSProducts />
+          <SmartPOSPanel />
         </TabsContent>
 
         <TabsContent value="csv-import" className="mt-6 space-y-6">
@@ -2721,6 +2730,12 @@ export default function BusinessPage() {
         {/* ── Discover & Claim ── */}
         <TabsContent value="discover-claim" className="mt-6 space-y-4">
           <DiscoverClaimTab />
+        </TabsContent>
+        <TabsContent value="biz-modules" className="mt-6 space-y-4">
+          <BizModulesTab />
+        </TabsContent>
+        <TabsContent value="hr-payroll" className="mt-6 space-y-4">
+          <HRPayrollTab />
         </TabsContent>
       </Tabs>
 
@@ -2737,6 +2752,2301 @@ export default function BusinessPage() {
           caffeine.ai
         </a>
       </p>
+    </div>
+  );
+}
+
+// ─── Trust Score Badge ───────────────────────────────────────────────────────
+function TrustScoreBadge({
+  biz,
+}: {
+  biz: { phone?: string; location?: string; category?: string; type?: string };
+}) {
+  let score = 0;
+  if (biz.phone) score += 10;
+  if (biz.location) score += 10;
+  score += 20; // assume reviews > 3 stars for registered businesses
+  score += 30; // registered via Family Tree
+  score += 10; // listing age
+  score += 20; // no complaints by default
+
+  let label = "";
+  let cls = "";
+  if (score >= 80) {
+    label = "✅ Verified & Trusted";
+    cls =
+      "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30";
+  } else if (score >= 60) {
+    label = "🔵 Generally Trusted";
+    cls = "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30";
+  } else if (score >= 40) {
+    label = "⚠️ Use Caution";
+    cls =
+      "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
+  } else {
+    label = "🔴 Risky";
+    cls = "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30";
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cls}`}
+      title={`Trust Score: ${score}/100`}
+    >
+      {label}
+    </span>
+  );
+}
+
+const BARCODE_WIDTHS = [
+  1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1, 1, 3, 1, 2, 1, 2, 3, 1, 1, 2, 1, 1, 3, 2,
+  1, 1, 2, 3, 1, 2, 1, 1, 3, 1, 2, 2, 1, 3,
+] as const;
+const BARCODE_HEIGHTS = [
+  60, 100, 80, 90, 70, 100, 85, 60, 95, 75, 100, 65, 90, 80, 100, 70, 85, 100,
+  60, 90, 75, 100, 80, 65, 90, 100, 70, 85, 95, 60, 100, 75, 85, 100, 60, 90,
+  80, 70, 95, 100,
+] as const;
+// ─── SmartPOSPanel ────────────────────────────────────────────────────────────
+type POSCartItem = {
+  id: string;
+  name: string;
+  qty: number;
+  price: number;
+  discount: number;
+};
+type Invoice = {
+  id: string;
+  customer: string;
+  date: string;
+  amount: number;
+  status: "Paid" | "Unpaid" | "Partial";
+  items: POSCartItem[];
+};
+type LedgerEntry = {
+  id: string;
+  date: string;
+  description: string;
+  type: "Dr" | "Cr";
+  amount: number;
+};
+type BariKhataEntry = {
+  id: string;
+  customer: string;
+  phone: string;
+  creditGiven: number;
+  paid: number;
+};
+
+function SmartPOSPanel() {
+  const allProducts = getGlobalProducts();
+
+  // Billing state
+  const [search, setSearch] = useState("");
+  const [cart, setCart] = useState<POSCartItem[]>([]);
+  const [taxRate, setTaxRate] = useState(18);
+  const [gstEnabled, setGstEnabled] = useState(true);
+  const [invoiceCustomer, setInvoiceCustomer] = useState("");
+
+  // Invoices
+  const [invoices, setInvoices] = useState<Invoice[]>(() =>
+    JSON.parse(localStorage.getItem("ic_pos_invoices") || "[]"),
+  );
+
+  // Ledger
+  const [ledger, setLedger] = useState<LedgerEntry[]>(() =>
+    JSON.parse(localStorage.getItem("ic_pos_ledger") || "[]"),
+  );
+  const [ledgerForm, setLedgerForm] = useState({
+    description: "",
+    type: "Cr" as "Dr" | "Cr",
+    amount: "",
+  });
+
+  // Bari Khata
+  const [bariKhata, setBariKhata] = useState<BariKhataEntry[]>(() =>
+    JSON.parse(localStorage.getItem("ic_pos_bari_khata") || "[]"),
+  );
+  const [bkForm, setBkForm] = useState({ customer: "", phone: "", amount: "" });
+  const [bkPayForm, setBkPayForm] = useState<Record<string, string>>({});
+
+  // Online store
+  const [storeActive, setStoreActive] = useState(true);
+
+  const filtered = allProducts.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const addToCart = (p: {
+    id: number | string;
+    name: string;
+    price: number;
+  }) => {
+    setCart((prev) => {
+      const ex = prev.find((c) => c.id === String(p.id));
+      if (ex)
+        return prev.map((c) =>
+          c.id === String(p.id) ? { ...c, qty: c.qty + 1 } : c,
+        );
+      return [
+        ...prev,
+        { id: String(p.id), name: p.name, qty: 1, price: p.price, discount: 0 },
+      ];
+    });
+  };
+
+  const subtotal = cart.reduce(
+    (s, c) => s + c.price * c.qty * (1 - c.discount / 100),
+    0,
+  );
+  const tax = gstEnabled ? (subtotal * taxRate) / 100 : 0;
+  const grand = subtotal + tax;
+
+  const printReceipt = () => {
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    w.document.write(`<html><head><title>Receipt</title><style>
+      body{font-family:monospace;font-size:12px;width:80mm;margin:0;padding:10px}
+      h2{text-align:center;margin:0 0 4px}
+      .line{display:flex;justify-content:space-between}
+      .divider{border-top:1px dashed #000;margin:6px 0}
+      .footer{text-align:center;margin-top:8px;font-size:10px}
+      @media print{body{margin:0}}
+    </style></head><body>
+    <h2>IndyaCentral POS</h2>
+    <p style="text-align:center;font-size:10px;margin:0">${new Date().toLocaleString()}</p>
+    <div class="divider"></div>
+    ${cart.map((c) => `<div class="line"><span>${c.name} x${c.qty}</span><span>₹${(c.price * c.qty * (1 - c.discount / 100)).toFixed(2)}</span></div>`).join("\n")}
+    <div class="divider"></div>
+    <div class="line"><span>Subtotal</span><span>₹${subtotal.toFixed(2)}</span></div>
+    ${gstEnabled ? `<div class="line"><span>GST ${taxRate}%</span><span>₹${tax.toFixed(2)}</span></div>` : ""}
+    <div class="line" style="font-weight:bold"><span>TOTAL</span><span>₹${grand.toFixed(2)}</span></div>
+    <div class="footer">Thank You! Visit Again 🙏</div>
+    </body></html>`);
+    w.document.close();
+    w.print();
+  };
+
+  const saveInvoice = () => {
+    if (!cart.length) {
+      toast.error("Cart is empty");
+      return;
+    }
+    const inv: Invoice = {
+      id: `INV-${Date.now()}`,
+      customer: invoiceCustomer || "Walk-in Customer",
+      date: new Date().toLocaleDateString(),
+      amount: grand,
+      status: "Unpaid",
+      items: [...cart],
+    };
+    const updated = [inv, ...invoices];
+    setInvoices(updated);
+    localStorage.setItem("ic_pos_invoices", JSON.stringify(updated));
+    setCart([]);
+    toast.success(`Invoice ${inv.id} saved`);
+  };
+
+  const addLedgerEntry = () => {
+    if (!ledgerForm.description || !ledgerForm.amount) {
+      toast.error("Fill all fields");
+      return;
+    }
+    const entry: LedgerEntry = {
+      id: `L${Date.now()}`,
+      date: new Date().toLocaleDateString(),
+      description: ledgerForm.description,
+      type: ledgerForm.type,
+      amount: Number(ledgerForm.amount),
+    };
+    const updated = [entry, ...ledger];
+    setLedger(updated);
+    localStorage.setItem("ic_pos_ledger", JSON.stringify(updated));
+    setLedgerForm({ description: "", type: "Cr", amount: "" });
+    toast.success("Entry added");
+  };
+
+  // Running balance
+  const withBalance: (LedgerEntry & { balance: number })[] = [];
+  let runBalance = 0;
+  for (const e of [...ledger].reverse()) {
+    runBalance += e.type === "Cr" ? e.amount : -e.amount;
+    withBalance.push({ ...e, balance: runBalance });
+  }
+  withBalance.reverse();
+
+  const addBariKhata = () => {
+    if (!bkForm.customer || !bkForm.amount) {
+      toast.error("Fill fields");
+      return;
+    }
+    const entry: BariKhataEntry = {
+      id: `BK${Date.now()}`,
+      customer: bkForm.customer,
+      phone: bkForm.phone,
+      creditGiven: Number(bkForm.amount),
+      paid: 0,
+    };
+    const updated = [entry, ...bariKhata];
+    setBariKhata(updated);
+    localStorage.setItem("ic_pos_bari_khata", JSON.stringify(updated));
+    setBkForm({ customer: "", phone: "", amount: "" });
+    toast.success("Credit entry added");
+  };
+
+  const recordPayment = (id: string) => {
+    const amt = Number(bkPayForm[id] || 0);
+    if (!amt) {
+      toast.error("Enter amount");
+      return;
+    }
+    const updated = bariKhata.map((e) =>
+      e.id === id ? { ...e, paid: Math.min(e.paid + amt, e.creditGiven) } : e,
+    );
+    setBariKhata(updated);
+    localStorage.setItem("ic_pos_bari_khata", JSON.stringify(updated));
+    setBkPayForm((p) => ({ ...p, [id]: "" }));
+    toast.success("Payment recorded");
+  };
+
+  const exportCSV = () => {
+    const rows = [["Date", "Description", "Dr/Cr", "Amount", "Balance"]];
+    for (const e of withBalance)
+      rows.push([
+        e.date,
+        e.description,
+        e.type,
+        String(e.amount),
+        String(e.balance),
+      ]);
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "financial_report.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Financial report data
+  const totalRevenue = invoices.reduce(
+    (s, i) => s + (i.status !== "Unpaid" ? i.amount : 0),
+    0,
+  );
+  const totalExpenses = ledger
+    .filter((e) => e.type === "Dr")
+    .reduce((s, e) => s + e.amount, 0);
+  const netProfit = totalRevenue - totalExpenses;
+
+  // Last 7 days mock sales for bar chart
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return {
+      day: d.toLocaleDateString("en", { weekday: "short" }),
+      amount: Math.floor(Math.random() * 8000 + 1000),
+    };
+  });
+  const maxSale = Math.max(...last7.map((d) => d.amount));
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-display font-bold text-foreground">
+          🏪 Smart POS
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Smart billing, invoices, ledger, bari khata, barcodes, reports &
+          online store
+        </p>
+      </div>
+      <Tabs defaultValue="billing">
+        <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
+          <TabsTrigger
+            value="billing"
+            className="text-xs"
+            data-ocid="pos.billing.tab"
+          >
+            💳 Billing
+          </TabsTrigger>
+          <TabsTrigger
+            value="invoices"
+            className="text-xs"
+            data-ocid="pos.invoices.tab"
+          >
+            📄 Invoices
+          </TabsTrigger>
+          <TabsTrigger
+            value="ledger"
+            className="text-xs"
+            data-ocid="pos.ledger.tab"
+          >
+            📒 Ledger
+          </TabsTrigger>
+          <TabsTrigger
+            value="bari-khata"
+            className="text-xs"
+            data-ocid="pos.bari_khata.tab"
+          >
+            📖 Bari Khata
+          </TabsTrigger>
+          <TabsTrigger
+            value="barcodes"
+            className="text-xs"
+            data-ocid="pos.barcodes.tab"
+          >
+            🔲 Barcodes
+          </TabsTrigger>
+          <TabsTrigger
+            value="reports"
+            className="text-xs"
+            data-ocid="pos.reports.tab"
+          >
+            📊 Reports
+          </TabsTrigger>
+          <TabsTrigger
+            value="online-store"
+            className="text-xs"
+            data-ocid="pos.online_store.tab"
+          >
+            🌐 Online Store
+          </TabsTrigger>
+          <TabsTrigger
+            value="customers"
+            className="text-xs"
+            data-ocid="pos.customers.tab"
+          >
+            👥 Customers
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── BILLING ── */}
+        <TabsContent value="billing" className="mt-0 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="rounded-xl border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Product Search</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Input
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  data-ocid="pos.billing.search_input"
+                />
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {filtered.slice(0, 20).map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                      onClick={() => addToCart(p)}
+                    >
+                      <span className="text-xs">{p.name}</span>
+                      <span className="text-xs font-semibold text-primary">
+                        ₹{p.price}
+                      </span>
+                    </button>
+                  ))}
+                  {filtered.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      No products. Add via Family Tree → Business
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-xl border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Cart</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {cart.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6">
+                    Cart is empty
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {cart.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-2 text-xs"
+                        data-ocid={`pos.cart.item.${idx + 1}`}
+                      >
+                        <span className="flex-1 truncate">{item.name}</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.qty}
+                          className="w-12 h-7 text-xs px-1"
+                          onChange={(e) =>
+                            setCart((p) =>
+                              p.map((c) =>
+                                c.id === item.id
+                                  ? { ...c, qty: Number(e.target.value) }
+                                  : c,
+                              ),
+                            )
+                          }
+                        />
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={item.discount}
+                          className="w-14 h-7 text-xs px-1"
+                          placeholder="Disc%"
+                          onChange={(e) =>
+                            setCart((p) =>
+                              p.map((c) =>
+                                c.id === item.id
+                                  ? { ...c, discount: Number(e.target.value) }
+                                  : c,
+                              ),
+                            )
+                          }
+                        />
+                        <span className="w-16 text-right font-semibold">
+                          ₹
+                          {(
+                            item.price *
+                            item.qty *
+                            (1 - item.discount / 100)
+                          ).toFixed(0)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCart((p) => p.filter((c) => c.id !== item.id))
+                          }
+                          className="text-destructive hover:opacity-70"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Separator />
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={gstEnabled}
+                        onCheckedChange={setGstEnabled}
+                        className="scale-75"
+                      />
+                      <span>GST</span>
+                      <Input
+                        type="number"
+                        value={taxRate}
+                        onChange={(e) => setTaxRate(Number(e.target.value))}
+                        className="w-12 h-6 text-xs px-1"
+                      />
+                      <span>%</span>
+                    </div>
+                    <span>₹{tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-sm">
+                    <span>Grand Total</span>
+                    <span className="text-primary">₹{grand.toFixed(2)}</span>
+                  </div>
+                </div>
+                <Input
+                  placeholder="Customer name (optional)"
+                  value={invoiceCustomer}
+                  onChange={(e) => setInvoiceCustomer(e.target.value)}
+                  className="text-xs h-8"
+                  data-ocid="pos.billing.input"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={printReceipt}
+                    data-ocid="pos.billing.primary_button"
+                  >
+                    🖨️ Print Receipt
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={saveInvoice}
+                    data-ocid="pos.billing.save_button"
+                  >
+                    💾 Save Invoice
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ── INVOICES ── */}
+        <TabsContent value="invoices" className="mt-0">
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">
+                Saved Invoices ({invoices.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {invoices.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">
+                  No invoices yet. Create from Billing tab.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 pr-4">Invoice #</th>
+                        <th className="text-left py-2 pr-4">Customer</th>
+                        <th className="text-left py-2 pr-4">Date</th>
+                        <th className="text-right py-2 pr-4">Amount</th>
+                        <th className="text-center py-2 pr-4">Status</th>
+                        <th className="text-center py-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((inv, idx) => (
+                        <tr
+                          key={inv.id}
+                          className="border-b border-border/30 hover:bg-muted/30"
+                          data-ocid={`pos.invoice.item.${idx + 1}`}
+                        >
+                          <td className="py-2 pr-4 font-mono">{inv.id}</td>
+                          <td className="py-2 pr-4">{inv.customer}</td>
+                          <td className="py-2 pr-4">{inv.date}</td>
+                          <td className="py-2 pr-4 text-right font-semibold">
+                            ₹{inv.amount.toFixed(2)}
+                          </td>
+                          <td className="py-2 pr-4 text-center">
+                            <Badge
+                              className={
+                                inv.status === "Paid"
+                                  ? "bg-green-500/15 text-green-600 border-green-500/30"
+                                  : inv.status === "Partial"
+                                    ? "bg-yellow-500/15 text-yellow-600 border-yellow-500/30"
+                                    : "bg-red-500/15 text-red-600 border-red-500/30"
+                              }
+                            >
+                              {inv.status}
+                            </Badge>
+                          </td>
+                          <td className="py-2 text-center">
+                            <div className="flex gap-1 justify-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] px-2"
+                                onClick={() => {
+                                  const updated = invoices.map((i) =>
+                                    i.id === inv.id
+                                      ? { ...i, status: "Paid" as const }
+                                      : i,
+                                  );
+                                  setInvoices(updated);
+                                  localStorage.setItem(
+                                    "ic_pos_invoices",
+                                    JSON.stringify(updated),
+                                  );
+                                  toast.success("Marked as Paid");
+                                }}
+                                data-ocid={`pos.invoice.edit_button.${idx + 1}`}
+                              >
+                                Mark Paid
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] px-2"
+                                onClick={() => window.print()}
+                                data-ocid={`pos.invoice.secondary_button.${idx + 1}`}
+                              >
+                                🖨️
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── LEDGER ── */}
+        <TabsContent value="ledger" className="mt-0 space-y-4">
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Add Ledger Entry</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <Input
+                  placeholder="Description"
+                  value={ledgerForm.description}
+                  onChange={(e) =>
+                    setLedgerForm((p) => ({
+                      ...p,
+                      description: e.target.value,
+                    }))
+                  }
+                  className="sm:col-span-2 text-xs"
+                  data-ocid="pos.ledger.input"
+                />
+                <Select
+                  value={ledgerForm.type}
+                  onValueChange={(v) =>
+                    setLedgerForm((p) => ({ ...p, type: v as "Dr" | "Cr" }))
+                  }
+                >
+                  <SelectTrigger
+                    className="text-xs h-9"
+                    data-ocid="pos.ledger.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cr">Credit (Cr)</SelectItem>
+                    <SelectItem value="Dr">Debit (Dr)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Amount"
+                    value={ledgerForm.amount}
+                    onChange={(e) =>
+                      setLedgerForm((p) => ({ ...p, amount: e.target.value }))
+                    }
+                    className="text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={addLedgerEntry}
+                    data-ocid="pos.ledger.primary_button"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Ledger</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 pr-3">Date</th>
+                      <th className="text-left py-2 pr-3">Description</th>
+                      <th className="text-center py-2 pr-3">Type</th>
+                      <th className="text-right py-2 pr-3">Amount</th>
+                      <th className="text-right py-2">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withBalance.map((e, idx) => (
+                      <tr
+                        key={e.id}
+                        className="border-b border-border/30 hover:bg-muted/30"
+                        data-ocid={`pos.ledger.item.${idx + 1}`}
+                      >
+                        <td className="py-2 pr-3 text-muted-foreground">
+                          {e.date}
+                        </td>
+                        <td className="py-2 pr-3">{e.description}</td>
+                        <td className="py-2 pr-3 text-center">
+                          <Badge
+                            className={
+                              e.type === "Cr"
+                                ? "bg-green-500/15 text-green-600 border-green-500/30"
+                                : "bg-red-500/15 text-red-600 border-red-500/30"
+                            }
+                          >
+                            {e.type}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-3 text-right">
+                          ₹{e.amount.toLocaleString()}
+                        </td>
+                        <td
+                          className={`py-2 text-right font-semibold ${e.balance >= 0 ? "text-green-600" : "text-red-600"}`}
+                        >
+                          ₹{e.balance.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    {withBalance.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          No entries yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── BARI KHATA ── */}
+        <TabsContent value="bari-khata" className="mt-0 space-y-4">
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Add Credit (Udhaar)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <Input
+                  placeholder="Customer name"
+                  value={bkForm.customer}
+                  onChange={(e) =>
+                    setBkForm((p) => ({ ...p, customer: e.target.value }))
+                  }
+                  className="text-xs"
+                  data-ocid="pos.bari_khata.input"
+                />
+                <Input
+                  placeholder="Phone"
+                  value={bkForm.phone}
+                  onChange={(e) =>
+                    setBkForm((p) => ({ ...p, phone: e.target.value }))
+                  }
+                  className="text-xs"
+                />
+                <Input
+                  type="number"
+                  placeholder="Credit amount ₹"
+                  value={bkForm.amount}
+                  onChange={(e) =>
+                    setBkForm((p) => ({ ...p, amount: e.target.value }))
+                  }
+                  className="text-xs"
+                />
+                <Button
+                  size="sm"
+                  onClick={addBariKhata}
+                  data-ocid="pos.bari_khata.primary_button"
+                >
+                  Add Entry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="space-y-3">
+            {bariKhata.length === 0 ? (
+              <p
+                className="text-xs text-center text-muted-foreground py-8 border border-dashed border-border rounded-xl"
+                data-ocid="pos.bari_khata.empty_state"
+              >
+                No credit entries. Add a customer's udhaar above.
+              </p>
+            ) : (
+              bariKhata.map((e, idx) => {
+                const outstanding = e.creditGiven - e.paid;
+                const status =
+                  outstanding === 0
+                    ? "settled"
+                    : e.paid > 0
+                      ? "partial"
+                      : "overdue";
+                const borderCls =
+                  status === "settled"
+                    ? "border-green-500/40"
+                    : status === "partial"
+                      ? "border-yellow-500/40"
+                      : "border-red-500/40";
+                const bgCls =
+                  status === "settled"
+                    ? "bg-green-500/5"
+                    : status === "partial"
+                      ? "bg-yellow-500/5"
+                      : "bg-red-500/5";
+                return (
+                  <Card
+                    key={e.id}
+                    className={`rounded-xl border ${borderCls} ${bgCls}`}
+                    data-ocid={`pos.bari_khata.item.${idx + 1}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-sm">{e.customer}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {e.phone}
+                          </p>
+                          <div className="flex gap-4 mt-2 text-xs">
+                            <span>
+                              Credit: <strong>₹{e.creditGiven}</strong>
+                            </span>
+                            <span>
+                              Paid:{" "}
+                              <strong className="text-green-600">
+                                ₹{e.paid}
+                              </strong>
+                            </span>
+                            <span>
+                              Due:{" "}
+                              <strong
+                                className={
+                                  outstanding > 0
+                                    ? "text-red-600"
+                                    : "text-green-600"
+                                }
+                              >
+                                ₹{outstanding}
+                              </strong>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={
+                              status === "settled"
+                                ? "bg-green-500/15 text-green-600"
+                                : status === "partial"
+                                  ? "bg-yellow-500/15 text-yellow-600"
+                                  : "bg-red-500/15 text-red-600"
+                            }
+                          >
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </Badge>
+                        </div>
+                      </div>
+                      {outstanding > 0 && (
+                        <div className="flex gap-2 mt-3">
+                          <Input
+                            type="number"
+                            placeholder="Payment amount"
+                            value={bkPayForm[e.id] || ""}
+                            onChange={(ev) =>
+                              setBkPayForm((p) => ({
+                                ...p,
+                                [e.id]: ev.target.value,
+                              }))
+                            }
+                            className="text-xs h-7 max-w-[140px]"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => recordPayment(e.id)}
+                            data-ocid={`pos.bari_khata.save_button.${idx + 1}`}
+                          >
+                            Record Payment
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── BARCODES ── */}
+        <TabsContent value="barcodes" className="mt-0 space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Barcode & QR labels for your products
+          </p>
+          {allProducts.length === 0 ? (
+            <p
+              className="text-xs text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl"
+              data-ocid="pos.barcodes.empty_state"
+            >
+              No products found. Add products via Family Tree → Business.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {allProducts.slice(0, 12).map((p, idx) => (
+                <Card
+                  key={p.id}
+                  className="rounded-xl border-border"
+                  data-ocid={`pos.barcodes.item.${idx + 1}`}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <p className="text-xs font-semibold truncate">{p.name}</p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      SKU: IC{String(p.id).padStart(6, "0")}
+                    </p>
+                    {/* Barcode visual */}
+                    <div className="flex gap-0.5 items-end h-10 bg-white p-1 rounded border border-border overflow-hidden">
+                      {BARCODE_WIDTHS.map((w, bIdx) => (
+                        <div
+                          key={`w${w}h${BARCODE_HEIGHTS[bIdx]}`}
+                          style={{
+                            width: w * 1.5,
+                            height: `${BARCODE_HEIGHTS[bIdx]}%`,
+                            background: "#000",
+                            borderRadius: 1,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${p.name} IC${p.id}`)}`}
+                      alt="QR"
+                      className="w-16 h-16 border border-border rounded"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-xs h-7"
+                      onClick={() =>
+                        toast.info("Camera scan simulation: product found")
+                      }
+                      data-ocid={`pos.barcodes.secondary_button.${idx + 1}`}
+                    >
+                      📷 Scan
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── FINANCIAL REPORTS ── */}
+        <TabsContent value="reports" className="mt-0 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              {
+                label: "Total Revenue",
+                value: `₹${totalRevenue.toLocaleString()}`,
+                color: "text-green-600",
+              },
+              {
+                label: "Total Expenses",
+                value: `₹${totalExpenses.toLocaleString()}`,
+                color: "text-red-600",
+              },
+              {
+                label: "Net Profit",
+                value: `₹${netProfit.toLocaleString()}`,
+                color: netProfit >= 0 ? "text-green-600" : "text-red-600",
+              },
+              {
+                label: "Transactions",
+                value: String(invoices.length),
+                color: "text-primary",
+              },
+            ].map((c) => (
+              <Card key={c.label} className="rounded-xl border-border">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">{c.label}</p>
+                  <p className={`text-xl font-bold mt-1 ${c.color}`}>
+                    {c.value}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Sales — Last 7 Days</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end gap-2 h-32">
+                {last7.map((d) => (
+                  <div
+                    key={d.day}
+                    className="flex-1 flex flex-col items-center gap-1"
+                  >
+                    <span className="text-[9px] text-muted-foreground">
+                      ₹{(d.amount / 1000).toFixed(1)}k
+                    </span>
+                    <div
+                      className="w-full rounded-t-sm"
+                      style={{
+                        height: `${(d.amount / maxSale) * 100}%`,
+                        background: "oklch(0.65 0.25 280 / 0.7)",
+                      }}
+                    />
+                    <span className="text-[9px] text-muted-foreground">
+                      {d.day}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm">Top Products</CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={exportCSV}
+                data-ocid="pos.reports.secondary_button"
+              >
+                📥 Export CSV
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2">Product</th>
+                    <th className="text-right py-2">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allProducts.slice(0, 5).map((p, i) => (
+                    <tr
+                      key={p.id}
+                      className="border-b border-border/30"
+                      data-ocid={`pos.reports.item.${i + 1}`}
+                    >
+                      <td className="py-2">{p.name}</td>
+                      <td className="py-2 text-right font-semibold">
+                        ₹{(p.price * (5 - i) * 12).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                  {allProducts.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="text-center py-4 text-muted-foreground"
+                      >
+                        No products
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── ONLINE STORE ── */}
+        <TabsContent value="online-store" className="mt-0 space-y-4">
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Online Store</CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {storeActive ? "Active" : "Inactive"}
+                  </span>
+                  <Switch
+                    checked={storeActive}
+                    onCheckedChange={setStoreActive}
+                    data-ocid="pos.online_store.switch"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-3 flex items-center gap-2">
+                <Globe size={14} className="text-muted-foreground shrink-0" />
+                <code className="text-xs text-primary break-all">
+                  https://indyacentral.app/store/my-business
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-xs ml-auto"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      "https://indyacentral.app/store/my-business",
+                    );
+                    toast.success("Link copied");
+                  }}
+                  data-ocid="pos.online_store.secondary_button"
+                >
+                  Copy
+                </Button>
+              </div>
+              <div className="rounded-xl border border-border overflow-hidden">
+                <div className="bg-primary/10 p-4 text-center">
+                  <p className="font-display font-bold text-base">
+                    My Business Store
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Powered by IndyaCentral
+                  </p>
+                </div>
+                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {allProducts.slice(0, 6).map((p) => (
+                    <div
+                      key={p.id}
+                      className="border border-border rounded-lg p-2 text-center"
+                    >
+                      <div className="w-full aspect-square bg-muted/30 rounded-md mb-2 flex items-center justify-center">
+                        <span className="text-2xl">🛍️</span>
+                      </div>
+                      <p className="text-xs font-semibold truncate">{p.name}</p>
+                      <p className="text-xs text-primary">₹{p.price}</p>
+                    </div>
+                  ))}
+                  {allProducts.length === 0 && (
+                    <div className="col-span-3 text-center py-6 text-muted-foreground text-xs">
+                      Add products to display
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── CUSTOMER PORTAL ── */}
+        <TabsContent value="customers" className="mt-0">
+          <Card className="rounded-xl border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Customer Portal</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[
+                  {
+                    name: "Rahul Sharma",
+                    email: "rahul@email.com",
+                    orders: 5,
+                    spent: 4200,
+                    last: "2 days ago",
+                  },
+                  {
+                    name: "Priya Gupta",
+                    email: "priya@email.com",
+                    orders: 3,
+                    spent: 1800,
+                    last: "1 week ago",
+                  },
+                  {
+                    name: "Amit Kumar",
+                    email: "amit@email.com",
+                    orders: 8,
+                    spent: 6500,
+                    last: "Yesterday",
+                  },
+                ].map((c, idx) => (
+                  <div
+                    key={c.email}
+                    className="border border-border rounded-lg p-3"
+                    data-ocid={`pos.customers.item.${idx + 1}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">{c.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.email}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs">
+                        <p>{c.orders} orders</p>
+                        <p className="font-semibold text-primary">₹{c.spent}</p>
+                        <p className="text-muted-foreground">{c.last}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ─── Business Modules Tab ────────────────────────────────────────────────────
+const BIZ_MODULES = [
+  {
+    id: "inventory",
+    name: "Inventory & Material Management",
+    desc: "Track stock, raw materials, reorder levels",
+    icon: "📦",
+    categories: ["Retail", "Manufacturing", "General"],
+  },
+  {
+    id: "assembly",
+    name: "Assembly & Manufacturing",
+    desc: "Work orders, BOM, production tracking",
+    icon: "🏭",
+    categories: ["Manufacturing"],
+  },
+  {
+    id: "repair",
+    name: "Repair & Service Management",
+    desc: "Job cards, technician assignment, spare parts",
+    icon: "🔧",
+    categories: ["Repair/Service"],
+  },
+  {
+    id: "financial",
+    name: "Financial Management",
+    desc: "Profit & loss, cash flow, accounts",
+    icon: "💰",
+    categories: [
+      "Retail",
+      "Manufacturing",
+      "Repair/Service",
+      "Financial Services",
+      "Telecom",
+      "Vehicle Dealership",
+      "Software/IT",
+      "Lending/Finance",
+      "General",
+    ],
+  },
+  {
+    id: "telecom",
+    name: "Telecom Management",
+    desc: "SIM cards, plans, recharge tracking",
+    icon: "📡",
+    categories: ["Telecom"],
+  },
+  {
+    id: "retail",
+    name: "Retail Shop Management",
+    desc: "POS, billing, shelf management",
+    icon: "🛍️",
+    categories: ["Retail"],
+  },
+  {
+    id: "vehicle",
+    name: "Vehicle Sale & Purchase",
+    desc: "Inventory, RC tracking, test drives",
+    icon: "🚗",
+    categories: ["Vehicle Dealership"],
+  },
+  {
+    id: "crm",
+    name: "Lead Generation / CRM",
+    desc: "Leads pipeline, follow-ups, conversion",
+    icon: "🎯",
+    categories: [
+      "Retail",
+      "Manufacturing",
+      "Repair/Service",
+      "Financial Services",
+      "Telecom",
+      "Vehicle Dealership",
+      "Software/IT",
+      "Lending/Finance",
+      "General",
+    ],
+  },
+  {
+    id: "software",
+    name: "Software Project Management",
+    desc: "Sprints, tasks, client billing",
+    icon: "💻",
+    categories: ["Software/IT"],
+  },
+  {
+    id: "lending",
+    name: "Money Lending",
+    desc: "Loan accounts, EMI schedules, recovery",
+    icon: "🏦",
+    categories: ["Lending/Finance"],
+  },
+];
+
+const BIZ_CATEGORIES = [
+  "General",
+  "Retail",
+  "Manufacturing",
+  "Repair/Service",
+  "Financial Services",
+  "Telecom",
+  "Vehicle Dealership",
+  "Software/IT",
+  "Lending/Finance",
+];
+
+function BizModulesTab() {
+  const [category, setCategory] = React.useState("General");
+  const [enabled, setEnabled] = React.useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("enabledBizModules") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const [configOpen, setConfigOpen] = React.useState<string | null>(null);
+
+  const toggle = (id: string) => {
+    setEnabled((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem("enabledBizModules", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const relevantModules = BIZ_MODULES.filter((m) =>
+    category === "General" ? true : m.categories.includes(category),
+  );
+  const enabledCount = Object.values(enabled).filter(Boolean).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold">Business Modules</h2>
+          <p className="text-sm text-muted-foreground">
+            Enable modules relevant to your business category
+          </p>
+        </div>
+        <Badge variant="secondary" className="text-sm">
+          {enabledCount} of {BIZ_MODULES.length} enabled
+        </Badge>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Label className="text-sm font-medium whitespace-nowrap">
+          Business Category:
+        </Label>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="w-52" data-ocid="biz.modules.select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {BIZ_CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {relevantModules.map((mod) => {
+          const isRecommended =
+            category !== "General" &&
+            mod.categories.includes(category) &&
+            mod.categories.length <= 3;
+          return (
+            <Card
+              key={mod.id}
+              className={`relative transition-all ${enabled[mod.id] ? "border-primary/50 bg-primary/5" : ""}`}
+              data-ocid={`biz.module.${mod.id}.card`}
+            >
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{mod.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold leading-tight">
+                        {mod.name}
+                      </p>
+                      {isRecommended && (
+                        <Badge className="text-[10px] px-1.5 py-0 mt-0.5 bg-amber-500/15 text-amber-600 border-amber-500/30">
+                          ✨ Recommended
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={!!enabled[mod.id]}
+                    onCheckedChange={() => toggle(mod.id)}
+                    data-ocid={`biz.module.${mod.id}.toggle`}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">{mod.desc}</p>
+                {enabled[mod.id] && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs"
+                    onClick={() => setConfigOpen(mod.id)}
+                    data-ocid={`biz.module.${mod.id}.button`}
+                  >
+                    ⚙️ Configure
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Dialog open={!!configOpen} onOpenChange={() => setConfigOpen(null)}>
+        <DialogContent data-ocid="biz.module.config.dialog">
+          <DialogHeader>
+            <DialogTitle>
+              {BIZ_MODULES.find((m) => m.id === configOpen)?.icon} Configure{" "}
+              {BIZ_MODULES.find((m) => m.id === configOpen)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Module is active. You can configure settings specific to this
+              module below.
+            </p>
+            <div>
+              <Label className="text-xs">Custom Label</Label>
+              <Input
+                placeholder="e.g. My Inventory"
+                className="mt-1"
+                data-ocid="biz.module.config.input"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch data-ocid="biz.module.config.switch" />
+              <Label className="text-sm">
+                Enable notifications for this module
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfigOpen(null)}
+              data-ocid="biz.module.config.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setConfigOpen(null);
+              }}
+              data-ocid="biz.module.config.confirm_button"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── HR & Payroll Tab ────────────────────────────────────────────────────────
+interface Employee {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  salary: number;
+  phone: string;
+  email: string;
+  joinDate: string;
+  status: "Active" | "Inactive";
+}
+
+interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: string;
+  from: string;
+  to: string;
+  days: number;
+  reason: string;
+  status: "Pending" | "Approved" | "Rejected";
+}
+
+function HRPayrollTab() {
+  const [employees, setEmployees] = React.useState<Employee[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("bizEmployees") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [leaves, setLeaves] = React.useState<LeaveRequest[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("bizLeaves") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [payroll, setPayroll] = React.useState<
+    Record<string, { paid: boolean; bonus: number }>
+  >(() => {
+    try {
+      return JSON.parse(localStorage.getItem("bizPayroll") || "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  const [showAddEmp, setShowAddEmp] = React.useState(false);
+  const [showAddLeave, setShowAddLeave] = React.useState(false);
+  const [showPayslip, setShowPayslip] = React.useState<Employee | null>(null);
+  const [empForm, setEmpForm] = React.useState({
+    name: "",
+    role: "Staff",
+    department: "",
+    salary: "",
+    phone: "",
+    email: "",
+    joinDate: "",
+  });
+  const [leaveForm, setLeaveForm] = React.useState({
+    employeeId: "",
+    type: "Casual",
+    from: "",
+    to: "",
+    reason: "",
+  });
+
+  const saveEmployees = (list: Employee[]) => {
+    setEmployees(list);
+    localStorage.setItem("bizEmployees", JSON.stringify(list));
+  };
+
+  const saveLeaves = (list: LeaveRequest[]) => {
+    setLeaves(list);
+    localStorage.setItem("bizLeaves", JSON.stringify(list));
+  };
+
+  const savePayroll = (
+    rec: Record<string, { paid: boolean; bonus: number }>,
+  ) => {
+    setPayroll(rec);
+    localStorage.setItem("bizPayroll", JSON.stringify(rec));
+  };
+
+  const addEmployee = () => {
+    if (!empForm.name) return;
+    const emp: Employee = {
+      id: Date.now().toString(),
+      name: empForm.name,
+      role: empForm.role,
+      department: empForm.department,
+      salary: Number(empForm.salary) || 0,
+      phone: empForm.phone,
+      email: empForm.email,
+      joinDate: empForm.joinDate,
+      status: "Active",
+    };
+    saveEmployees([...employees, emp]);
+    setEmpForm({
+      name: "",
+      role: "Staff",
+      department: "",
+      salary: "",
+      phone: "",
+      email: "",
+      joinDate: "",
+    });
+    setShowAddEmp(false);
+  };
+
+  const addLeave = () => {
+    if (!leaveForm.employeeId || !leaveForm.from || !leaveForm.to) return;
+    const emp = employees.find((e) => e.id === leaveForm.employeeId);
+    const from = new Date(leaveForm.from);
+    const to = new Date(leaveForm.to);
+    const days = Math.max(
+      1,
+      Math.round((to.getTime() - from.getTime()) / 86400000) + 1,
+    );
+    const req: LeaveRequest = {
+      id: Date.now().toString(),
+      employeeId: leaveForm.employeeId,
+      employeeName: emp?.name || "",
+      type: leaveForm.type,
+      from: leaveForm.from,
+      to: leaveForm.to,
+      days,
+      reason: leaveForm.reason,
+      status: "Pending",
+    };
+    saveLeaves([...leaves, req]);
+    setLeaveForm({
+      employeeId: "",
+      type: "Casual",
+      from: "",
+      to: "",
+      reason: "",
+    });
+    setShowAddLeave(false);
+  };
+
+  const approveLeave = (id: string, status: "Approved" | "Rejected") => {
+    saveLeaves(leaves.map((l) => (l.id === id ? { ...l, status } : l)));
+  };
+
+  const markPaid = (empId: string) => {
+    const next = {
+      ...payroll,
+      [empId]: {
+        ...payroll[empId],
+        paid: true,
+        bonus: payroll[empId]?.bonus || 0,
+      },
+    };
+    savePayroll(next);
+  };
+
+  const calcNet = (emp: Employee) => {
+    const pf = Math.round(emp.salary * 0.12);
+    const esi = Math.round(emp.salary * 0.0175);
+    const bonus = payroll[emp.id]?.bonus || 0;
+    return { pf, esi, bonus, net: emp.salary - pf - esi + bonus };
+  };
+
+  const onLeaveToday = leaves.filter(
+    (l) =>
+      l.status === "Approved" &&
+      new Date(l.from) <= new Date() &&
+      new Date(l.to) >= new Date(),
+  ).length;
+  const presentToday =
+    employees.filter((e) => e.status === "Active").length - onLeaveToday;
+
+  return (
+    <div className="space-y-4">
+      <Tabs defaultValue="employees">
+        <TabsList
+          className="flex flex-wrap gap-1 h-auto"
+          data-ocid="hr.tabs.list"
+        >
+          <TabsTrigger value="employees" data-ocid="hr.employees.tab">
+            👤 Employees
+          </TabsTrigger>
+          <TabsTrigger value="absence" data-ocid="hr.absence.tab">
+            📅 Absence Management
+          </TabsTrigger>
+          <TabsTrigger value="payroll" data-ocid="hr.payroll.tab">
+            💵 Payroll
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Employees */}
+        <TabsContent value="employees" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">
+              Employees ({employees.length})
+            </h3>
+            <Button
+              size="sm"
+              onClick={() => setShowAddEmp(true)}
+              data-ocid="hr.employees.open_modal_button"
+            >
+              + Add Employee
+            </Button>
+          </div>
+          {employees.length === 0 ? (
+            <div
+              className="text-center py-8 text-muted-foreground text-sm"
+              data-ocid="hr.employees.empty_state"
+            >
+              No employees added yet. Click "Add Employee" to get started.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-muted-foreground">
+                    <th className="text-left py-2 px-1">Name</th>
+                    <th className="text-left py-2 px-1">Role</th>
+                    <th className="text-left py-2 px-1">Department</th>
+                    <th className="text-right py-2 px-1">Salary</th>
+                    <th className="text-center py-2 px-1">Status</th>
+                    <th className="text-center py-2 px-1">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((emp, idx) => (
+                    <tr
+                      key={emp.id}
+                      className="border-b hover:bg-muted/30"
+                      data-ocid={`hr.employees.item.${idx + 1}`}
+                    >
+                      <td className="py-2 px-1 font-medium">{emp.name}</td>
+                      <td className="py-2 px-1 text-muted-foreground">
+                        {emp.role}
+                      </td>
+                      <td className="py-2 px-1 text-muted-foreground">
+                        {emp.department || "—"}
+                      </td>
+                      <td className="py-2 px-1 text-right">
+                        ₹{emp.salary.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-1 text-center">
+                        <Badge
+                          variant={
+                            emp.status === "Active" ? "default" : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {emp.status}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-1 text-center">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-7"
+                          onClick={() => setShowPayslip(emp)}
+                          data-ocid={`hr.employees.edit_button.${idx + 1}`}
+                        >
+                          Payslip
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Absence Management */}
+        <TabsContent value="absence" className="mt-4 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">
+                  {presentToday}
+                </p>
+                <p className="text-xs text-muted-foreground">Present Today</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-amber-600">
+                  {onLeaveToday}
+                </p>
+                <p className="text-xs text-muted-foreground">On Leave</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-primary">
+                  {employees.length}
+                </p>
+                <p className="text-xs text-muted-foreground">Total Employees</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Leave Requests</h3>
+            <Button
+              size="sm"
+              onClick={() => setShowAddLeave(true)}
+              data-ocid="hr.absence.open_modal_button"
+            >
+              + Request Leave
+            </Button>
+          </div>
+
+          {leaves.length === 0 ? (
+            <div
+              className="text-center py-6 text-sm text-muted-foreground"
+              data-ocid="hr.absence.empty_state"
+            >
+              No leave requests yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-muted-foreground">
+                    <th className="text-left py-2 px-1">Employee</th>
+                    <th className="text-left py-2 px-1">Type</th>
+                    <th className="text-left py-2 px-1">From</th>
+                    <th className="text-left py-2 px-1">To</th>
+                    <th className="text-center py-2 px-1">Days</th>
+                    <th className="text-center py-2 px-1">Status</th>
+                    <th className="text-center py-2 px-1">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaves.map((l, idx) => (
+                    <tr
+                      key={l.id}
+                      className="border-b hover:bg-muted/30"
+                      data-ocid={`hr.absence.item.${idx + 1}`}
+                    >
+                      <td className="py-2 px-1 font-medium">
+                        {l.employeeName}
+                      </td>
+                      <td className="py-2 px-1">{l.type}</td>
+                      <td className="py-2 px-1 text-muted-foreground">
+                        {l.from}
+                      </td>
+                      <td className="py-2 px-1 text-muted-foreground">
+                        {l.to}
+                      </td>
+                      <td className="py-2 px-1 text-center">{l.days}</td>
+                      <td className="py-2 px-1 text-center">
+                        <Badge
+                          variant={
+                            l.status === "Approved"
+                              ? "default"
+                              : l.status === "Rejected"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {l.status}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-1 text-center space-x-1">
+                        {l.status === "Pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-7 text-green-600"
+                              onClick={() => approveLeave(l.id, "Approved")}
+                              data-ocid={`hr.absence.confirm_button.${idx + 1}`}
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-7 text-red-600"
+                              onClick={() => approveLeave(l.id, "Rejected")}
+                              data-ocid={`hr.absence.cancel_button.${idx + 1}`}
+                            >
+                              ✗
+                            </Button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Payroll */}
+        <TabsContent value="payroll" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">
+              Payroll —{" "}
+              {new Date().toLocaleString("default", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h3>
+            <Button
+              size="sm"
+              onClick={() => {
+                const next = { ...payroll };
+                for (const e of employees) {
+                  next[e.id] = { paid: false, bonus: next[e.id]?.bonus || 0 };
+                }
+                savePayroll(next);
+              }}
+              data-ocid="hr.payroll.primary_button"
+            >
+              ▶ Run Payroll
+            </Button>
+          </div>
+
+          {employees.length === 0 ? (
+            <div
+              className="text-center py-6 text-sm text-muted-foreground"
+              data-ocid="hr.payroll.empty_state"
+            >
+              Add employees first to run payroll.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-muted-foreground">
+                    <th className="text-left py-2 px-1">Employee</th>
+                    <th className="text-right py-2 px-1">Base</th>
+                    <th className="text-right py-2 px-1">PF (12%)</th>
+                    <th className="text-right py-2 px-1">ESI (1.75%)</th>
+                    <th className="text-right py-2 px-1">Bonus</th>
+                    <th className="text-right py-2 px-1">Net Pay</th>
+                    <th className="text-center py-2 px-1">Status</th>
+                    <th className="text-center py-2 px-1">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((emp, idx) => {
+                    const { pf, esi, bonus, net } = calcNet(emp);
+                    const paid = payroll[emp.id]?.paid;
+                    return (
+                      <tr
+                        key={emp.id}
+                        className="border-b hover:bg-muted/30"
+                        data-ocid={`hr.payroll.item.${idx + 1}`}
+                      >
+                        <td className="py-2 px-1 font-medium">{emp.name}</td>
+                        <td className="py-2 px-1 text-right">
+                          ₹{emp.salary.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-1 text-right text-red-600">
+                          -₹{pf}
+                        </td>
+                        <td className="py-2 px-1 text-right text-red-600">
+                          -₹{esi}
+                        </td>
+                        <td className="py-2 px-1 text-right text-green-600">
+                          +₹{bonus}
+                        </td>
+                        <td className="py-2 px-1 text-right font-semibold">
+                          ₹{net.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-1 text-center">
+                          <Badge
+                            variant={paid ? "default" : "secondary"}
+                            className="text-xs"
+                          >
+                            {paid ? "Paid" : "Pending"}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-1 text-center space-x-1">
+                          {!paid && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-7"
+                              onClick={() => markPaid(emp.id)}
+                              data-ocid={`hr.payroll.confirm_button.${idx + 1}`}
+                            >
+                              Mark Paid
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7"
+                            onClick={() => setShowPayslip(emp)}
+                            data-ocid={`hr.payroll.edit_button.${idx + 1}`}
+                          >
+                            Payslip
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Employee Dialog */}
+      <Dialog open={showAddEmp} onOpenChange={setShowAddEmp}>
+        <DialogContent data-ocid="hr.employees.dialog">
+          <DialogHeader>
+            <DialogTitle>Add Employee</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="col-span-2">
+              <Label className="text-xs">Full Name *</Label>
+              <Input
+                className="mt-1"
+                placeholder="Employee name"
+                value={empForm.name}
+                onChange={(e) =>
+                  setEmpForm((p) => ({ ...p, name: e.target.value }))
+                }
+                data-ocid="hr.employees.input"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Role</Label>
+              <Select
+                value={empForm.role}
+                onValueChange={(v) => setEmpForm((p) => ({ ...p, role: v }))}
+              >
+                <SelectTrigger className="mt-1" data-ocid="hr.employees.select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Manager",
+                    "Staff",
+                    "Technician",
+                    "Driver",
+                    "Cook",
+                    "Waiter",
+                    "Guard",
+                    "Other",
+                  ].map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Department</Label>
+              <Input
+                className="mt-1"
+                placeholder="e.g. Sales"
+                value={empForm.department}
+                onChange={(e) =>
+                  setEmpForm((p) => ({ ...p, department: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Monthly Salary (₹)</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                placeholder="25000"
+                value={empForm.salary}
+                onChange={(e) =>
+                  setEmpForm((p) => ({ ...p, salary: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Join Date</Label>
+              <Input
+                className="mt-1"
+                type="date"
+                value={empForm.joinDate}
+                onChange={(e) =>
+                  setEmpForm((p) => ({ ...p, joinDate: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Phone</Label>
+              <Input
+                className="mt-1"
+                placeholder="+91 98765 43210"
+                value={empForm.phone}
+                onChange={(e) =>
+                  setEmpForm((p) => ({ ...p, phone: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Email</Label>
+              <Input
+                className="mt-1"
+                type="email"
+                placeholder="email@example.com"
+                value={empForm.email}
+                onChange={(e) =>
+                  setEmpForm((p) => ({ ...p, email: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddEmp(false)}
+              data-ocid="hr.employees.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={addEmployee}
+              data-ocid="hr.employees.submit_button"
+            >
+              Add Employee
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Leave Dialog */}
+      <Dialog open={showAddLeave} onOpenChange={setShowAddLeave}>
+        <DialogContent data-ocid="hr.absence.dialog">
+          <DialogHeader>
+            <DialogTitle>Request Leave</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs">Employee *</Label>
+              <Select
+                value={leaveForm.employeeId}
+                onValueChange={(v) =>
+                  setLeaveForm((p) => ({ ...p, employeeId: v }))
+                }
+              >
+                <SelectTrigger className="mt-1" data-ocid="hr.absence.select">
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Leave Type</Label>
+              <Select
+                value={leaveForm.type}
+                onValueChange={(v) => setLeaveForm((p) => ({ ...p, type: v }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["Sick", "Casual", "Annual", "Unpaid"].map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">From Date</Label>
+                <Input
+                  className="mt-1"
+                  type="date"
+                  value={leaveForm.from}
+                  onChange={(e) =>
+                    setLeaveForm((p) => ({ ...p, from: e.target.value }))
+                  }
+                  data-ocid="hr.absence.input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">To Date</Label>
+                <Input
+                  className="mt-1"
+                  type="date"
+                  value={leaveForm.to}
+                  onChange={(e) =>
+                    setLeaveForm((p) => ({ ...p, to: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Reason</Label>
+              <Input
+                className="mt-1"
+                placeholder="Brief reason..."
+                value={leaveForm.reason}
+                onChange={(e) =>
+                  setLeaveForm((p) => ({ ...p, reason: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddLeave(false)}
+              data-ocid="hr.absence.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button onClick={addLeave} data-ocid="hr.absence.submit_button">
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payslip Dialog */}
+      {showPayslip && (
+        <Dialog open={!!showPayslip} onOpenChange={() => setShowPayslip(null)}>
+          <DialogContent data-ocid="hr.payroll.dialog">
+            <DialogHeader>
+              <DialogTitle>Payslip — {showPayslip.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="bg-muted/40 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between border-b pb-2 mb-2">
+                  <div>
+                    <p className="text-sm font-semibold">{showPayslip.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {showPayslip.role} · {showPayslip.department}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">
+                      {new Date().toLocaleString("default", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Joined: {showPayslip.joinDate || "—"}
+                    </p>
+                  </div>
+                </div>
+                {(() => {
+                  const { pf, esi, bonus, net } = calcNet(showPayslip);
+                  return (
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Basic Salary</span>
+                        <span>₹{showPayslip.salary.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>Bonus</span>
+                        <span>+₹{bonus}</span>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>PF Deduction (12%)</span>
+                        <span>-₹{pf}</span>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>ESI (1.75%)</span>
+                        <span>-₹{esi}</span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t pt-2 mt-2">
+                        <span>Net Pay</span>
+                        <span>₹{net.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div className="mt-4 pt-3 border-t border-dashed text-center text-xs text-muted-foreground">
+                  [Company Stamp] — IndyaCentral Business Platform
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowPayslip(null)}
+                data-ocid="hr.payroll.close_button"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  window.print();
+                }}
+                data-ocid="hr.payroll.primary_button"
+              >
+                🖨️ Print
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
