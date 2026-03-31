@@ -39,8 +39,17 @@ const STATS: StatCard[] = [
   },
   {
     label: "Active Orders",
-    value: "12",
-    change: "+3",
+    value: String(
+      (() => {
+        try {
+          return JSON.parse(localStorage.getItem("ic_user_orders") || "[]")
+            .length;
+        } catch {
+          return 0;
+        }
+      })(),
+    ),
+    change: "+recent",
     positive: true,
     icon: ShoppingBag,
     color: "oklch(0.65 0.14 50)",
@@ -480,6 +489,20 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function DashboardPage() {
   const { formatCurrency } = useCurrency();
+  const userOrders: Array<{
+    id: string;
+    date: string;
+    items: Array<{ name: string; qty: number; price: number }>;
+    total: number;
+    status: string;
+    billing?: unknown;
+  }> = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("ic_user_orders") || "[]");
+    } catch {
+      return [];
+    }
+  })();
   const maxVal = Math.max(...MONTHLY_DATA.map((d) => d.value));
   const maxAffVal = Math.max(...AFFILIATE_MONTHLY.map((d) => d.value));
 
@@ -749,116 +772,119 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Last 5 deliveries table */}
-          <div className="bg-card border border-border rounded-xl shadow-card mb-8">
+          {/* My Orders table */}
+          <div
+            className="bg-card border border-border rounded-xl shadow-card mb-8"
+            data-ocid="dashboard.orders.table"
+          >
             <div className="p-5 border-b border-border">
               <h2 className="font-label font-semibold text-foreground">
-                Recent Deliveries
+                My Orders
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Last 5 completed deliveries
+                Orders placed from Shop
               </p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/30">
-                    <th className="text-left px-5 py-3 text-xs font-label font-semibold text-muted-foreground">
-                      Order #
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                      Date
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                      Platform
-                    </th>
-                    <th className="text-right px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                      Amount
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {[
-                    {
-                      order: "QE-2290",
-                      date: "Mar 1, 2026",
-                      platform: "QuickEats",
-                      amount: 700,
-                      status: "Paid",
-                    },
-                    {
-                      order: "QE-2245",
-                      date: "Feb 28, 2026",
-                      platform: "QuickEats",
-                      amount: 650,
-                      status: "Paid",
-                    },
-                    {
-                      order: "QE-2201",
-                      date: "Feb 28, 2026",
-                      platform: "QuickEats",
-                      amount: 700,
-                      status: "Pending",
-                    },
-                    {
-                      order: "QE-2188",
-                      date: "Feb 27, 2026",
-                      platform: "QuickEats",
-                      amount: 750,
-                      status: "Paid",
-                    },
-                    {
-                      order: "QE-2150",
-                      date: "Feb 26, 2026",
-                      platform: "QuickEats",
-                      amount: 700,
-                      status: "Paid",
-                    },
-                  ].map((row) => (
-                    <tr
-                      key={row.order}
-                      className="hover:bg-secondary/20 transition-colors"
-                    >
-                      <td className="px-5 py-3 text-xs font-label font-mono text-foreground">
-                        {row.order}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {row.date}
-                      </td>
-                      <td className="px-4 py-3 text-xs font-label text-foreground">
-                        {row.platform}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-xs font-label font-semibold text-right"
-                        style={{ color: "oklch(0.52 0.14 155)" }}
-                      >
-                        {row.amount}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span
-                          className="text-[10px] font-label font-semibold px-2 py-0.5 rounded-full"
-                          style={
-                            row.status === "Paid"
-                              ? {
-                                  background: "oklch(0.52 0.14 155 / 0.12)",
-                                  color: "oklch(0.32 0.085 155)",
-                                }
-                              : {
-                                  background: "oklch(0.72 0.17 85 / 0.15)",
-                                  color: "oklch(0.55 0.14 65)",
-                                }
-                          }
-                        >
-                          {row.status}
-                        </span>
-                      </td>
+              {userOrders.length === 0 ? (
+                <div
+                  className="p-8 text-center"
+                  data-ocid="dashboard.orders.empty_state"
+                >
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    No orders yet
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Start shopping to see your orders here!
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/30">
+                      <th className="text-left px-5 py-3 text-xs font-label font-semibold text-muted-foreground">
+                        Order #
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
+                        Date
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
+                        Items
+                      </th>
+                      <th className="text-right px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
+                        Total
+                      </th>
+                      <th className="text-center px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
+                        Status
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {userOrders.slice(0, 10).map((order, idx) => (
+                      <tr
+                        key={order.id}
+                        className="hover:bg-secondary/20 transition-colors"
+                        data-ocid={`dashboard.orders.item.${idx + 1}`}
+                      >
+                        <td className="px-5 py-3 text-xs font-label font-mono text-foreground">
+                          {order.id}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {new Date(order.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-label text-foreground">
+                          {order.items
+                            ?.slice(0, 2)
+                            .map((it) => it.name)
+                            .join(", ")}
+                          {(order.items?.length ?? 0) > 2 &&
+                            ` +${(order.items?.length ?? 0) - 2} more`}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-xs font-label font-semibold text-right"
+                          style={{ color: "oklch(0.52 0.14 155)" }}
+                        >
+                          ₹{order.total?.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className="text-[10px] font-label font-semibold px-2 py-0.5 rounded-full"
+                            style={
+                              order.status === "Delivered"
+                                ? {
+                                    background: "oklch(0.52 0.14 155 / 0.12)",
+                                    color: "oklch(0.32 0.085 155)",
+                                  }
+                                : order.status === "Shipped"
+                                  ? {
+                                      background: "oklch(0.55 0.22 280 / 0.12)",
+                                      color: "oklch(0.45 0.18 280)",
+                                    }
+                                  : order.status === "Confirmed"
+                                    ? {
+                                        background:
+                                          "oklch(0.72 0.17 85 / 0.15)",
+                                        color: "oklch(0.55 0.14 65)",
+                                      }
+                                    : {
+                                        background:
+                                          "oklch(0.62 0.2 230 / 0.12)",
+                                        color: "oklch(0.45 0.15 230)",
+                                      }
+                            }
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
 

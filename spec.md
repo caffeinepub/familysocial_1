@@ -1,44 +1,34 @@
 # IndyaCentral
 
 ## Current State
-- BusinessPage has tabs: My Businesses, Storefront, Tables, Orders, Branches, Payments, Delivery Setup, Commission, AI Marketing, POS Products
-- AdminPanel WhatsApp API section has internal tabs: Credentials, Templates, Broadcast, OTP Config, Chatbot Script — but the Chatbot Script tab may not be visible due to tab overflow/rendering issues
-- Evolution A4 Agent exists but chatbot script regeneration is not clearly triggering on module changes
-- No business category-based module system in BusinessPage
-- No Employee Management, Absence Management, or Payroll module
+The app builds successfully (typecheck, lint, build all pass). Runtime crashes occur after v79 changes. User reports:
+1. Live data (add/edit/save) not working -- forms submit but data doesn't persist or UI doesn't update
+2. V79 changes are causing crashes -- specifically: Agent22ModuleTester, EvolutionA4Agent (Astro Advice), NearbySearchBar FaceSearch, and shop checkout order saving
+
+Key data flows:
+- Products: `globalProductsState.ts` via localStorage key `ic_global_products`
+- Family businesses: `familyTreeState.ts` via localStorage key `ic_family_businesses`
+- Admin status: `useAdminStatus.ts` via localStorage key `ic-admin-claimed`
+- All state dispatches custom DOM events (`globalProductsUpdated`, `familyBusinessUpdated`) to sync across components
 
 ## Requested Changes (Diff)
 
 ### Add
-- Business page: category-based module enablement system — modules available based on business type:
-  - Inventory & Material Management
-  - Assembly / Manufacturing
-  - Repair & Service Management
-  - Financial Management
-  - Telecom Management
-  - Retail Shop Management
-  - Vehicle Sale & Purchase
-  - Lead Generation / CRM
-  - Software Project Management
-  - Money Lending / Finance
-- Employee Management module (add employees, roles, departments)
-- Absence Management module (leave requests, approvals, attendance tracking)
-- Payroll Management module (salary setup, payslips, deductions, disbursement)
-- Fix WhatsApp chatbot Script tab visibility in Admin Panel
-- Agent 4 (Evolution A4) auto-detects new modules/features and regenerates chatbot script with updated commands
+- Nothing new -- purely fixes
 
 ### Modify
-- WhatsApp API internal tabs: ensure Chatbot Script tab is always visible and scrollable
-- Evolution A4 Agent: add module change detection + auto-regeneration of chatbot script
-- BusinessPage: add a "Modules" tab to enable/disable modules per business based on category
+- Fix runtime crashes from v79 changes (AdminPanelPage Agent22, AstroAdvice tabs, NearbySearchBar FaceSearch)
+- Ensure all add/edit/save flows actually persist to localStorage and refresh the UI
+- Ensure POSPage product add form saves correctly and product list re-renders
+- Ensure FamilyTreePage business save dispatches `familyBusinessUpdated` and BusinessPage picks it up
+- Ensure ShopPage cart checkout saves to `ic_user_orders` localStorage and Dashboard shows orders
+- Ensure AdminPanelPage tabs (WhatsApp, Rider Management, Promotions, Social Queue, Agent 19/20) are not nested inside wrong TabsContent blocks
 
 ### Remove
-- Nothing removed
+- Any code that could cause runtime undefined/null crashes (e.g. missing .length checks, accessing props on undefined)
 
 ## Implementation Plan
-1. Fix WhatsApp chatbot Script tab — ensure tablist wraps properly and chatbot tab is visible
-2. Update Evolution A4 agent to monitor module list and auto-regenerate chatbot Node.js script with new commands
-3. Add BusinessPage "Modules" tab: show module cards with enable/disable toggle; filter suggested modules by business category
-4. Add Employee Management tab in BusinessPage: employee list, add employee form (name, role, department, salary, contact)
-5. Add Absence Management tab: leave request form, approval queue, calendar view
-6. Add Payroll Management tab: salary config per employee, generate payslip, disbursement log
+1. Run a detailed review of v79 changed files: AdminPanelPage.tsx (Agent22, AstroAdvice, BizAnalytics), NearbySearchBar.tsx (FaceSearch), ShopPage.tsx (checkout), DashboardPage.tsx (orders)
+2. Fix any runtime issues found -- guard undefined accesses, fix useEffect cleanup, fix any missing state initialization
+3. Ensure all data entry forms (POS add product, Business Page add branch, Family Tree add business) trigger proper localStorage saves and event dispatches
+4. Validate the fix with build

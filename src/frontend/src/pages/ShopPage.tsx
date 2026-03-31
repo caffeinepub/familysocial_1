@@ -882,6 +882,29 @@ function CheckoutDialog({
     setOrderId(id);
     setStep("confirmation");
     toast.success("Order placed successfully!");
+    // Save order to localStorage for Dashboard
+    const newOrder = {
+      id,
+      date: new Date().toISOString(),
+      items: cartItems.map((item) => ({
+        name: item.name,
+        qty: item.qty,
+        price: item.unitPrice,
+      })),
+      total: cartItems.reduce((s, i) => s + i.qty * i.unitPrice, 0),
+      status: "Placed",
+      billing: billingForm,
+    };
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem("ic_user_orders") || "[]",
+      );
+      existing.unshift(newOrder);
+      localStorage.setItem(
+        "ic_user_orders",
+        JSON.stringify(existing.slice(0, 50)),
+      );
+    } catch {}
   };
 
   const handleClose = () => {

@@ -8,6 +8,7 @@ import {
   MapPin,
   Package,
   Search,
+  ShieldCheck,
   Store,
   User,
   UserCheck,
@@ -143,6 +144,26 @@ export default function NearbySearchBar() {
   >(null);
   const [imageName, setImageName] = useState<string | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [faceSearchFile, setFaceSearchFile] = useState<string | null>(null);
+  const [faceSearching, setFaceSearching] = useState(false);
+  const [faceResults, setFaceResults] = useState<Array<{
+    id: number;
+    name: string;
+    similarity: number;
+    isPublic: boolean;
+    avatar: string;
+  }> | null>(null);
+  const faceInputRef = useRef<HTMLInputElement>(null);
+  const faceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const faceObjectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (faceTimeoutRef.current) clearTimeout(faceTimeoutRef.current);
+      if (faceObjectUrlRef.current)
+        URL.revokeObjectURL(faceObjectUrlRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -213,6 +234,60 @@ export default function NearbySearchBar() {
     setQuery(cat.toLowerCase());
     setActiveTab("products");
     toast.success(`Searching for ${cat} products`);
+  };
+
+  const FACE_RESULTS_DATA = [
+    {
+      id: 1,
+      name: "Amit Sharma",
+      similarity: 94,
+      isPublic: true,
+      avatar: "AS",
+    },
+    {
+      id: 2,
+      name: "Priya Mehta",
+      similarity: 89,
+      isPublic: true,
+      avatar: "PM",
+    },
+    {
+      id: 3,
+      name: "Rajesh Kumar",
+      similarity: 86,
+      isPublic: false,
+      avatar: "RK",
+    },
+    {
+      id: 4,
+      name: "Sunita Verma",
+      similarity: 82,
+      isPublic: true,
+      avatar: "SV",
+    },
+  ];
+
+  const handleFaceSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image");
+      return;
+    }
+    if (faceObjectUrlRef.current) URL.revokeObjectURL(faceObjectUrlRef.current);
+    const objectUrl = URL.createObjectURL(file);
+    faceObjectUrlRef.current = objectUrl;
+    setFaceSearchFile(objectUrl);
+    setFaceSearching(true);
+    setFaceResults(null);
+    setActiveTab("face");
+    setExpanded(true);
+    if (faceTimeoutRef.current) clearTimeout(faceTimeoutRef.current);
+    faceTimeoutRef.current = setTimeout(() => {
+      setFaceSearching(false);
+      setFaceResults(FACE_RESULTS_DATA);
+    }, 2000);
+    e.target.value = "";
   };
 
   const IMAGE_CATEGORIES = [
@@ -393,6 +468,13 @@ export default function NearbySearchBar() {
                     </Badge>
                   )}
                 </TabsTrigger>
+                <TabsTrigger
+                  value="face"
+                  className="flex-1 text-[11px] h-7 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded"
+                  data-ocid="nearby.face.tab"
+                >
+                  👤 Face
+                </TabsTrigger>
               </TabsList>
 
               {/* Products/Services Tab */}
@@ -564,6 +646,110 @@ export default function NearbySearchBar() {
                       </p>
                     )}
                   </div>
+                </div>
+              </TabsContent>
+              {/* Face Search Tab */}
+              <TabsContent value="face" className="m-0">
+                <div className="px-4 py-3 max-h-64 overflow-y-auto space-y-3">
+                  <button
+                    type="button"
+                    className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                    onClick={() => faceInputRef.current?.click()}
+                    data-ocid="nearby.upload_button"
+                  >
+                    <p className="text-xs font-semibold text-foreground">
+                      📷 Upload a photo to find similar faces
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Respects user privacy settings
+                    </p>
+                    <input
+                      ref={faceInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFaceSearch}
+                    />
+                  </button>
+                  {faceSearchFile && (
+                    <img
+                      src={faceSearchFile}
+                      alt="Search face"
+                      className="w-16 h-16 rounded-full object-cover mx-auto border-2 border-primary/40"
+                    />
+                  )}
+                  {faceSearching && (
+                    <div
+                      className="flex items-center justify-center gap-2 py-3"
+                      data-ocid="nearby.face.loading_state"
+                    >
+                      <span className="text-xs text-muted-foreground animate-pulse">
+                        🔍 Searching faces...
+                      </span>
+                    </div>
+                  )}
+                  {faceResults && !faceSearching && (
+                    <div
+                      className="space-y-2"
+                      data-ocid="nearby.face.success_state"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <ShieldCheck size={9} /> Matched Profiles
+                        (privacy-filtered)
+                      </p>
+                      {faceResults.map((r) => (
+                        <div key={r.id} className="flex items-center gap-2.5">
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                            style={{
+                              background: "oklch(0.55 0.22 280 / 0.12)",
+                              color: "oklch(0.55 0.22 280)",
+                            }}
+                          >
+                            {r.avatar}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {r.isPublic ? (
+                              <>
+                                <p className="text-xs font-semibold text-foreground">
+                                  {r.name}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {r.similarity}% match · Public profile
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-xs font-semibold text-foreground">
+                                  {r.name.split(" ")[0]} ••••
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {r.similarity}% match · Private profile
+                                </p>
+                              </>
+                            )}
+                          </div>
+                          {!r.isPublic && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                              Private
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      <p className="text-[9px] text-muted-foreground border-t border-border pt-2 mt-1">
+                        ⚠️ Face search only shows public profiles. Admin users
+                        see full results.
+                      </p>
+                    </div>
+                  )}
+                  {!faceSearchFile && !faceSearching && !faceResults && (
+                    <p
+                      className="text-xs text-muted-foreground text-center py-2"
+                      data-ocid="nearby.face.empty_state"
+                    >
+                      Upload a photo to search for similar faces in the platform
+                    </p>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

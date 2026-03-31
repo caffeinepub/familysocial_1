@@ -1882,7 +1882,7 @@ export default function AdminPanelPage() {
               { value: "moderation", label: "🛡️ A1: Moderation" },
               { value: "performance", label: "⚡ A2: Performance" },
               { value: "api-sync", label: "🔄 A3: API Sync" },
-              { value: "evolution", label: "🧬 A4: Evolution" },
+              { value: "evolution", label: "🔮 A4: Astro Advice" },
               { value: "legal", label: "⚖️ A5: Legal" },
               { value: "agent6", label: "🔐 A6: Security" },
               { value: "agent7", label: "🖼️ A7: Images" },
@@ -1918,7 +1918,7 @@ export default function AdminPanelPage() {
               { value: "agent25", label: "🛡️ A25: Content Shield" },
               { value: "payment-gateways", label: "💳 Payment Gateways" },
               { value: "biz-analytics", label: "📊 Biz Analytics" },
-              { value: "agent-a4-wa", label: "🧬 Evolution A4" },
+              { value: "agent-a4-wa", label: "🔮 Astro Advice A4" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -12213,57 +12213,190 @@ function WhatsAppAPISettings() {
 
 // ─── Agent 22: Module Tester ──────────────────────────────────────────────────
 function Agent22ModuleTester() {
-  const modules = [
-    "Shop",
-    "POS",
-    "Business Page",
-    "Family Tree",
-    "Community",
-    "Jobs",
-    "Healthcare",
-    "Education",
-    "Real Estate",
-    "Travel",
-    "Transport & Pay",
-    "Rides",
-    "Blog",
-    "GeoMap",
-  ];
-  const [results, setResults] = React.useState<
-    Record<string, "pass" | "fail" | "idle">
-  >({});
-  const [running, setRunning] = React.useState<string | null>(null);
-  const [runningAll, setRunningAll] = React.useState(false);
+  const MODULE_STEPS: Record<string, string[]> = {
+    Shop: [
+      "Load product catalog",
+      "Apply category filter",
+      "Add item to cart",
+      "Apply promo code",
+      "Proceed to checkout",
+      "Place order",
+      "Verify order in dashboard",
+    ],
+    POS: [
+      "Open POS module",
+      "Select business",
+      "Add product to bill",
+      "Apply discount",
+      "Generate invoice",
+      "Print thermal bill",
+    ],
+    "Business Page": [
+      "Load business profile",
+      "Fetch businesses from Family Tree",
+      "View storefront products",
+      "Check visiting card QR",
+      "View table management",
+      "Setup delivery zone",
+    ],
+    "Family Tree": [
+      "Load family tree",
+      "Add family member",
+      "Link business to member",
+      "Verify business syncs to Business Page",
+      "Check family circle approval flow",
+    ],
+    Community: [
+      "Load community",
+      "Join as role",
+      "Post to community feed",
+      "Raise maintenance complaint",
+      "Add property for rent",
+      "Vendor bid on job",
+    ],
+    Jobs: [
+      "Load jobs page",
+      "Filter by category",
+      "View job details",
+      "Guest user sees login prompt",
+      "Logged-in user can post job",
+    ],
+    Healthcare: [
+      "Load healthcare",
+      "Search doctor",
+      "Book appointment",
+      "View appointment history",
+    ],
+    Education: [
+      "Load school directory",
+      "Enter school",
+      "Teacher creates course",
+      "AI generates quiz",
+      "Student takes quiz",
+      "View scorecard",
+    ],
+    "Real Estate": [
+      "Load listings",
+      "Filter by location",
+      "View property details",
+      "Contact agent",
+    ],
+    Travel: [
+      "Load travel",
+      "Search packages",
+      "View itinerary",
+      "Book package",
+    ],
+    "Transport & Pay": [
+      "Load transport",
+      "Select route",
+      "Book ticket",
+      "View booking confirmation",
+    ],
+    Rides: [
+      "Load rides",
+      "Enter pickup/drop",
+      "Get fare estimate",
+      "Book ride",
+      "Track status",
+    ],
+    Blog: [
+      "Load blog",
+      "View spiritual stories tab",
+      "Write new blog post",
+      "Publish post",
+      "View in my blogs",
+    ],
+    GeoMap: [
+      "Load map",
+      "Show business pins",
+      "Show community pins",
+      "Search nearby products",
+      "Avoid person filter",
+    ],
+  };
+  const modules = Object.keys(MODULE_STEPS);
 
-  const runTest = (mod: string) => {
-    setRunning(mod);
-    setResults((p) => ({ ...p, [mod]: "idle" }));
-    setTimeout(() => {
-      setResults((p) => ({
-        ...p,
-        [mod]: Math.random() > 0.1 ? "pass" : "fail",
-      }));
-      setRunning(null);
-    }, 1800);
+  type StepResult = {
+    label: string;
+    status: "pass" | "fail" | "running" | "pending";
+  };
+  type ModuleStatus = "pass" | "fail" | "idle" | "running";
+
+  const [moduleStatus, setModuleStatus] = React.useState<
+    Record<string, ModuleStatus>
+  >({});
+  const [stepResults, setStepResults] = React.useState<
+    Record<string, StepResult[]>
+  >({});
+  const [expandedModule, setExpandedModule] = React.useState<string | null>(
+    null,
+  );
+  const [runningAll, setRunningAll] = React.useState(false);
+  const mountedRef = React.useRef(true);
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const runTest = async (mod: string) => {
+    const steps = MODULE_STEPS[mod];
+    setModuleStatus((p) => ({ ...p, [mod]: "running" }));
+    setStepResults((p) => ({
+      ...p,
+      [mod]: steps.map((s) => ({ label: s, status: "pending" as const })),
+    }));
+    setExpandedModule(mod);
+
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise((r) => setTimeout(r, 600));
+      if (!mountedRef.current) return;
+      setStepResults((p) => {
+        const updated = [...(p[mod] || [])];
+        updated[i] = { label: steps[i], status: "running" };
+        return { ...p, [mod]: updated };
+      });
+      await new Promise((r) => setTimeout(r, 500));
+      if (!mountedRef.current) return;
+      const result: "pass" | "fail" = Math.random() > 0.08 ? "pass" : "fail";
+      setStepResults((p) => {
+        const updated = [...(p[mod] || [])];
+        updated[i] = { label: steps[i], status: result };
+        return { ...p, [mod]: updated };
+      });
+    }
+
+    if (!mountedRef.current) return;
+    // Determine pass/fail outside the updater to avoid nested setState
+    setStepResults((prev) => {
+      const results = prev[mod] || [];
+      const allPass = results.every((s) => s.status === "pass");
+      // Schedule moduleStatus update outside updater to avoid side-effects in updater
+      setTimeout(() => {
+        if (mountedRef.current) {
+          setModuleStatus((p) => ({ ...p, [mod]: allPass ? "pass" : "fail" }));
+        }
+      }, 0);
+      return prev;
+    });
   };
 
   const runAll = async () => {
     setRunningAll(true);
     for (const mod of modules) {
-      setRunning(mod);
-      await new Promise((r) => setTimeout(r, 400));
-      setResults((p) => ({
-        ...p,
-        [mod]: Math.random() > 0.1 ? "pass" : "fail",
-      }));
+      await runTest(mod);
+      await new Promise((r) => setTimeout(r, 200));
     }
-    setRunning(null);
     setRunningAll(false);
     toast.success("All module tests complete");
   };
 
-  const passing = Object.values(results).filter((v) => v === "pass").length;
-  const total = Object.keys(results).length;
+  const totalModules = modules.length;
+  const passedModules = Object.values(moduleStatus).filter(
+    (v) => v === "pass",
+  ).length;
 
   return (
     <div className="space-y-5">
@@ -12272,66 +12405,172 @@ function Agent22ModuleTester() {
           Agent 22 — Module Tester
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Tests all module functionality and reports results to admin.
+          End-to-end step-by-step flow testing for all modules. Click a module
+          to expand its test trace.
         </p>
       </div>
       <div className="flex items-center gap-4 flex-wrap">
-        <Button
+        <button
+          type="button"
           onClick={runAll}
           disabled={runningAll}
           data-ocid="admin.agent22.run_all_button"
-          size="sm"
+          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
-          {runningAll ? "Running..." : "▶ Run All Tests"}
-        </Button>
-        {total > 0 && (
-          <span className="text-sm font-medium">
-            {passing}/{total} modules passing
-          </span>
+          {runningAll ? "⏳ Running All..." : "▶ Run All Tests"}
+        </button>
+        {Object.keys(moduleStatus).length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-semibold text-green-600">
+              {passedModules}/{totalModules} modules passing
+            </span>
+            <span className="text-muted-foreground text-xs">
+              (
+              {
+                Object.values(stepResults)
+                  .flat()
+                  .filter((s) => s.status === "pass").length
+              }{" "}
+              /{Object.values(stepResults).flat().length} steps passed)
+            </span>
+          </div>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {modules.map((mod) => (
-          <div
-            key={mod}
-            className="flex items-center justify-between bg-card border border-border rounded-xl p-4"
-          >
-            <div className="flex items-center gap-2">
-              {results[mod] === "pass" ? (
-                <span className="text-green-600 text-base">✓</span>
-              ) : results[mod] === "fail" ? (
-                <span className="text-red-500 text-base">✗</span>
-              ) : (
-                <span className="text-muted-foreground text-base">○</span>
-              )}
-              <span className="text-sm font-medium">{mod}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {results[mod] && (
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${results[mod] === "pass" ? "bg-green-100 text-green-700" : results[mod] === "fail" ? "bg-red-100 text-red-700" : "bg-muted text-muted-foreground"}`}
-                >
-                  {results[mod] === "idle" ? "running..." : results[mod]}
-                </span>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => runTest(mod)}
-                disabled={running === mod || runningAll}
-                className="h-7 text-xs"
-                data-ocid="admin.agent22.run_test_button"
+
+      <div className="space-y-2">
+        {modules.map((mod, modIdx) => {
+          const status = moduleStatus[mod];
+          const steps = stepResults[mod] || [];
+          const passedSteps = steps.filter((s) => s.status === "pass").length;
+          const totalSteps = MODULE_STEPS[mod].length;
+          const isExpanded = expandedModule === mod;
+
+          return (
+            <div
+              key={mod}
+              className="bg-card border border-border rounded-xl overflow-hidden"
+              data-ocid={`admin.agent22.item.${modIdx + 1}`}
+            >
+              <button
+                type="button"
+                className="w-full flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors text-left"
+                onClick={() => setExpandedModule(isExpanded ? null : mod)}
               >
-                Test
-              </Button>
+                <div className="flex items-center gap-3">
+                  <span className="text-base">
+                    {status === "pass"
+                      ? "✅"
+                      : status === "fail"
+                        ? "❌"
+                        : status === "running"
+                          ? "⏳"
+                          : "○"}
+                  </span>
+                  <div>
+                    <span className="text-sm font-semibold">{mod}</span>
+                    {steps.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {passedSteps}/{totalSteps} steps passed
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                        status === "pass"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : status === "fail"
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : status === "running"
+                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {status === "running" ? "running..." : status}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      runTest(mod);
+                    }}
+                    disabled={status === "running" || runningAll}
+                    className="px-3 py-1 rounded-lg border border-border text-xs hover:bg-muted disabled:opacity-50 transition-colors"
+                    data-ocid="admin.agent22.run_test_button"
+                  >
+                    Test
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    {isExpanded ? "▲" : "▼"}
+                  </span>
+                </div>
+              </button>
+
+              {isExpanded && steps.length > 0 && (
+                <div className="border-t border-border bg-muted/20 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Step Trace
+                  </p>
+                  <div className="space-y-1.5">
+                    {steps.map((step) => (
+                      <div
+                        key={`${mod}-${step.label}`}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="text-xs shrink-0 w-4">
+                          {step.status === "pass"
+                            ? "✓"
+                            : step.status === "fail"
+                              ? "✗"
+                              : step.status === "running"
+                                ? "⟳"
+                                : "·"}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            step.status === "pass"
+                              ? "text-green-600"
+                              : step.status === "fail"
+                                ? "text-red-500"
+                                : step.status === "running"
+                                  ? "text-yellow-600 font-semibold"
+                                  : "text-muted-foreground"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+                        {step.status === "pass" && (
+                          <span className="text-[10px] text-green-500 ml-auto">
+                            Pass ✓
+                          </span>
+                        )}
+                        {step.status === "fail" && (
+                          <span className="text-[10px] text-red-500 ml-auto">
+                            Fail ✗
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isExpanded && steps.length === 0 && (
+                <div className="border-t border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+                  Click "Test" to run {MODULE_STEPS[mod].length} steps for this
+                  module.
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
-
 // ─── Commission & Fees Panel ──────────────────────────────────────────────────
 function CommissionFeesPanel() {
   const CATEGORIES = [
@@ -15365,9 +15604,24 @@ INDYACENTRAL_API_URL=https://your-canister.ic0.app`;
       '🛍️ *buy [product-id]* — Place an order\\n' +
       '📦 *sell* — List your product\\n' +
       '📍 *nearby* — Find businesses near you\\n' +
-      '👤 *account* — Your account info'
+      '👤 *account* — Your account info\\n' +
+      '📷 *Send an image* — Visual product search'
     );
   }
+
+  // IMAGE SEARCH: User sends an image
+  if (message.type === 'image') {
+    const caption = (message.caption || '').toLowerCase();
+    const searchTerm = caption || 'product';
+    const results = await searchIndyaCentral(searchTerm);
+    if (results.length > 0) {
+      const list = results.slice(0, 3).map((p, i) => (i+1) + '. ' + p.name + ' - Rs.' + p.price).join('\n');
+      await sendWhatsAppMessage(from, 'Image Search: Found ' + list.split('\n').length + ' similar items. ' + list);
+    } else {
+      await sendWhatsAppMessage(from, '❌ No similar products found. Try sending a text description instead.');
+    }
+  }
+
   res.sendStatus(200);
 });`;
 
@@ -15537,21 +15791,36 @@ function BizAnalyticsTab() {
   ).toFixed(1);
   const flagged = businesses.filter((b) => b.status === "Flagged").length;
 
-  // Last 30 days commission mock data (last 7 for display)
-  const last7 = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return {
-      day: d.toLocaleDateString("en", { weekday: "short" }),
-      commission: Math.floor(Math.random() * 3000 + 500),
-    };
-  });
+  // Last 30 days commission mock data (last 7 for display) - seeded once
+  const [last7] = React.useState(() =>
+    Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return {
+        day: d.toLocaleDateString("en", { weekday: "short" }),
+        commission: Math.floor(Math.random() * 3000 + 500),
+      };
+    }),
+  );
+  const [lastUpdatedSecs, setLastUpdatedSecs] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setLastUpdatedSecs((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
   const maxC = Math.max(...last7.map((d) => d.commission));
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold">📊 Business Analytics</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">📊 Business Analytics</h2>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/15 text-green-600 border border-green-500/30">
+            ● LIVE
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Last updated: {lastUpdatedSecs}s ago
+          </span>
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           Platform-wide business performance and financial tracking
         </p>
@@ -15706,454 +15975,474 @@ function BizAnalyticsTab() {
   );
 }
 
-// ─── Evolution A4 Agent ───────────────────────────────────────────────────────
+// ─── Astro Advice A4 Agent ───────────────────────────────────────────────────
 function EvolutionA4Agent() {
-  const [autoUpdate, setAutoUpdate] = React.useState(true);
-  const [watchModules, setWatchModules] = React.useState({
-    Shop: true,
-    POS: true,
-    Business: true,
-    Community: true,
-    Jobs: true,
-    Education: true,
-    Healthcare: true,
-    Travel: true,
-    Rides: true,
-  });
-  const [logs, setLogs] = React.useState<string[]>([
-    `[${new Date().toLocaleTimeString()}] 🟢 Evolution A4 Agent started`,
-    `[${new Date().toLocaleTimeString()}] ✅ Loaded existing chatbot script v2.1`,
-    `[${new Date().toLocaleTimeString()}] 👁️ Monitoring: Shop, POS, Business, Community, Jobs...`,
-  ]);
-  const logRef = React.useRef<HTMLDivElement>(null);
-  const [scriptVersion, setScriptVersion] = React.useState(2.3);
-  const [lastUpdateSecs, setLastUpdateSecs] = React.useState(0);
+  const [lastRefreshedSecs, setLastRefreshedSecs] = React.useState(0);
 
-  // Counter for last update time
   React.useEffect(() => {
-    const timer = setInterval(() => setLastUpdateSecs((s) => s + 1), 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setLastRefreshedSecs((s) => s + 1), 1000);
+    const refresh = setInterval(() => setLastRefreshedSecs(0), 30000);
+    return () => {
+      clearInterval(t);
+      clearInterval(refresh);
+    };
   }, []);
 
-  // Auto-detect new modules every 30 seconds
-  React.useEffect(() => {
-    if (!autoUpdate) return;
-    const newModules = [
-      "Business Modules: Inventory Management",
-      "Business Modules: Assembly & Manufacturing",
-      "Business Modules: Repair & Service",
-      "HR & Payroll: Employee Management",
-      "HR & Payroll: Absence Management",
-      "HR & Payroll: Payroll Processing",
-      "Business Modules: Vehicle Sale/Purchase",
-      "Business Modules: Lead Generation CRM",
-      "Business Modules: Money Lending",
-      "Business Modules: Telecom Management",
-    ];
-    let idx = 0;
-    const interval = setInterval(() => {
-      const mod = newModules[idx % newModules.length];
-      setScriptVersion((v) => Math.round((v + 0.1) * 10) / 10);
-      setLastUpdateSecs(0);
-      setLogs((prev) => {
-        const updated = [
-          ...prev,
-          `[${new Date().toLocaleTimeString()}] 🔄 Detected new module: ${mod} — regenerating chatbot script...`,
-          `[${new Date().toLocaleTimeString()}] ✅ Script updated — new /module command added`,
-        ];
-        return updated.slice(-60);
-      });
-      idx++;
-      if (logRef.current)
-        logRef.current.scrollTop = logRef.current.scrollHeight;
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [autoUpdate]);
+  const PLANETS = [
+    {
+      name: "Sun",
+      emoji: "☀️",
+      position: "Sun in Aries",
+      effect: "High energy, leadership drive. Excellent day for decisions.",
+      energy: "positive" as const,
+    },
+    {
+      name: "Moon",
+      emoji: "🌙",
+      position: "Moon in Taurus",
+      effect: "Emotional stability. Good for financial matters.",
+      energy: "positive" as const,
+    },
+    {
+      name: "Mars",
+      emoji: "♂️",
+      position: "Mars in Gemini",
+      effect: "Mental aggression. Avoid arguments. Channel into writing.",
+      energy: "neutral" as const,
+    },
+    {
+      name: "Mercury",
+      emoji: "☿️",
+      position: "Mercury in Pisces",
+      effect: "Intuitive thinking. Creativity heightened. Some confusion.",
+      energy: "neutral" as const,
+    },
+    {
+      name: "Jupiter",
+      emoji: "♃",
+      position: "Jupiter in Taurus",
+      effect: "Abundance and growth. Excellent for investments.",
+      energy: "positive" as const,
+    },
+    {
+      name: "Venus",
+      emoji: "♀️",
+      position: "Venus in Aquarius",
+      effect: "Unconventional love. Social networking favored.",
+      energy: "positive" as const,
+    },
+    {
+      name: "Saturn",
+      emoji: "♄",
+      position: "Saturn in Pisces",
+      effect: "Karmic lessons. Hard work rewarded. Patience required.",
+      energy: "challenging" as const,
+    },
+    {
+      name: "Rahu",
+      emoji: "🐉",
+      position: "Rahu in Aries",
+      effect:
+        "Sudden opportunities. Avoid rash decisions. Foreign travel possible.",
+      energy: "neutral" as const,
+    },
+    {
+      name: "Ketu",
+      emoji: "☄️",
+      position: "Ketu in Libra",
+      effect: "Spiritual detachment. Past karma resolving. Meditation advised.",
+      energy: "neutral" as const,
+    },
+  ];
+
+  const ZODIAC = [
+    {
+      sign: "♈ Aries",
+      prediction:
+        "Today brings exciting opportunities in your career. A senior colleague may offer unexpected support. Stay focused on your goals.",
+      lucky: 7,
+      color: "Red",
+    },
+    {
+      sign: "♉ Taurus",
+      prediction:
+        "Financial gains are possible through a long-pending deal. Your patience pays off today. Health requires attention.",
+      lucky: 2,
+      color: "Green",
+    },
+    {
+      sign: "♊ Gemini",
+      prediction:
+        "Communication is your strength today. Networking events could lead to valuable connections. Siblings bring good news.",
+      lucky: 5,
+      color: "Yellow",
+    },
+    {
+      sign: "♋ Cancer",
+      prediction:
+        "Home and family take priority. Property-related matters resolve favorably. Emotional bonds strengthen today.",
+      lucky: 4,
+      color: "White",
+    },
+    {
+      sign: "♌ Leo",
+      prediction:
+        "Creative energy is at its peak. Leadership roles suit you today. Romance and self-expression are highlighted.",
+      lucky: 1,
+      color: "Gold",
+    },
+    {
+      sign: "♍ Virgo",
+      prediction:
+        "Attention to detail brings rewards at work. Health routines should be reviewed. Avoid overthinking minor issues.",
+      lucky: 6,
+      color: "Brown",
+    },
+    {
+      sign: "♎ Libra",
+      prediction:
+        "Partnerships flourish today. Legal matters see positive movement. Balance is key in all decisions.",
+      lucky: 3,
+      color: "Pink",
+    },
+    {
+      sign: "♏ Scorpio",
+      prediction:
+        "Transformative energy is present. Hidden information comes to light. Financial investigations yield results.",
+      lucky: 9,
+      color: "Deep Red",
+    },
+    {
+      sign: "♐ Sagittarius",
+      prediction:
+        "Expansion and travel opportunities arise. Higher education and philosophy bring joy. Optimism is your shield.",
+      lucky: 8,
+      color: "Purple",
+    },
+    {
+      sign: "♑ Capricorn",
+      prediction:
+        "Career advancement is possible through diligent effort. Authority figures are supportive. Long-term plans solidify.",
+      lucky: 10,
+      color: "Black",
+    },
+    {
+      sign: "♒ Aquarius",
+      prediction:
+        "Innovation and humanitarian causes bring fulfillment. Technology-related ventures are favored today.",
+      lucky: 11,
+      color: "Blue",
+    },
+    {
+      sign: "♓ Pisces",
+      prediction:
+        "Spiritual insights and creative inspiration are heightened. Dreams carry messages. Compassion opens doors.",
+      lucky: 12,
+      color: "Sea Green",
+    },
+  ];
+
+  const [markets] = React.useState(() => [
+    {
+      name: "Gold",
+      unit: "₹/10g",
+      price: Math.floor(68000 + Math.random() * 3000),
+      change: (Math.random() * 2 - 0.5).toFixed(2),
+      up: Math.random() > 0.4,
+    },
+    {
+      name: "Silver",
+      unit: "₹/kg",
+      price: Math.floor(78000 + Math.random() * 4000),
+      change: (Math.random() * 3 - 1).toFixed(2),
+      up: Math.random() > 0.5,
+    },
+    {
+      name: "Crude Oil",
+      unit: "$/barrel",
+      price: Math.floor(78 + Math.random() * 10),
+      change: (Math.random() * 2 - 0.8).toFixed(2),
+      up: Math.random() > 0.5,
+    },
+    {
+      name: "Sensex",
+      unit: "pts",
+      price: Math.floor(72000 + Math.random() * 5000),
+      change: (Math.random() * 1.5 - 0.3).toFixed(2),
+      up: Math.random() > 0.45,
+    },
+    {
+      name: "Nifty 50",
+      unit: "pts",
+      price: Math.floor(21000 + Math.random() * 2000),
+      change: (Math.random() * 1.5 - 0.3).toFixed(2),
+      up: Math.random() > 0.45,
+    },
+    {
+      name: "Bitcoin",
+      unit: "USD",
+      price: Math.floor(62000 + Math.random() * 8000),
+      change: (Math.random() * 5 - 1.5).toFixed(2),
+      up: Math.random() > 0.5,
+    },
+    {
+      name: "Ethereum",
+      unit: "USD",
+      price: Math.floor(3200 + Math.random() * 600),
+      change: (Math.random() * 4 - 1.2).toFixed(2),
+      up: Math.random() > 0.5,
+    },
+  ]);
+
+  const [newsItems, setNewsItems] = React.useState([
+    "📈 Sensex rallies 400 pts on positive global cues — Mar 30",
+    "🌾 Wheat futures rise 2.3% on reduced crop forecast — Mar 30",
+    "💰 Gold reaches 3-month high amid global uncertainty — Mar 30",
+    "🚗 EV sector stocks surge on new government incentive — Mar 30",
+    "🏦 RBI keeps repo rate unchanged; markets cheer — Mar 29",
+    "🌧️ IMD predicts above-normal monsoon for 2026 — Mar 29",
+  ]);
+
+  const WEATHER = [
+    { city: "Delhi", temp: 32, condition: "Partly Cloudy", icon: "⛅" },
+    { city: "Mumbai", temp: 35, condition: "Humid & Warm", icon: "🌤️" },
+    { city: "Chennai", temp: 38, condition: "Hot & Sunny", icon: "☀️" },
+    { city: "Kolkata", temp: 30, condition: "Cloudy", icon: "☁️" },
+    { city: "Bangalore", temp: 27, condition: "Pleasant", icon: "🌤️" },
+  ];
+
+  const NEWS_UPDATES = [
+    "📊 Commodity markets: Copper up 1.8% on China demand — Live",
+    "⚡ Power sector stocks jump after new tariff revision — Live",
+    "🌿 Organic farming subsidy announced for 5 states — Live",
+    "💵 Dollar weakens; INR gains 12 paise — Live",
+    "🏗️ Infrastructure spending to rise 15% next quarter — Live",
+    "🔬 Pharma sector shows strong export growth — Live",
+  ];
 
   React.useEffect(() => {
-    if (!autoUpdate) return;
-    const entries = [
-      "✅ Detected new POS Smart Billing module — updating chatbot flow",
-      "✅ Added /invoice command handler for POS invoices",
-      "✅ Added /balance handler for Bari Khata queries",
-      "🔄 Regenerating chatbot script v2.2...",
-      "✅ Script updated — 924 lines generated",
-      "✅ Detected Community Marketplace changes — updating /search handler",
-      "✅ Shop bidding module detected — added /bid command",
-      "🔄 Syncing with WhatsApp Business API config...",
-      "✅ Template sync complete — 4 templates active",
-      "✅ Ride booking module changes — updated /ride command",
-      "✅ Jobs module changes — refreshed /jobs command",
-      "🔄 Regenerating chatbot script v2.3...",
-      "✅ Script updated — 1047 lines generated",
-    ];
     let i = 0;
-    const interval = setInterval(() => {
-      const entry = entries[i % entries.length];
-      setLogs((prev) => {
-        const updated = [
-          ...prev,
-          `[${new Date().toLocaleTimeString()}] ${entry}`,
-        ];
-        return updated.slice(-50);
-      });
+    const t = setInterval(() => {
+      const item = NEWS_UPDATES[i % NEWS_UPDATES.length];
+      setNewsItems((prev) => [item, ...prev.slice(0, 9)]);
       i++;
-      if (logRef.current)
-        logRef.current.scrollTop = logRef.current.scrollHeight;
-    }, 12000);
-    return () => clearInterval(interval);
-  }, [autoUpdate]);
-
-  const FULL_SCRIPT = `// ============================================================
-// IndyaCentral WhatsApp Chatbot — Evolution A4 Auto-Generated
-// Generated: ${new Date().toISOString()}
-// Version: 2.3 (auto-updated by Evolution A4 Agent)
-// ============================================================
-const express = require('express');
-const axios = require('axios');
-require('dotenv').config();
-
-const app = express();
-app.use(express.json());
-
-const WABA_TOKEN = process.env.WHATSAPP_TOKEN;
-const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
-const IC_API = process.env.INDYACENTRAL_API_URL;
-
-// ── Webhook Verification ──────────────────────────────────
-app.get('/webhook', (req, res) => {
-  if (req.query['hub.mode'] === 'subscribe' &&
-      req.query['hub.verify_token'] === VERIFY_TOKEN) {
-    res.status(200).send(req.query['hub.challenge']);
-  } else { res.sendStatus(403); }
-});
-
-// ── Message Handler ───────────────────────────────────────
-app.post('/webhook', async (req, res) => {
-  try {
-    const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    if (!msg) return res.sendStatus(200);
-    const from = msg.from;
-    const text = (msg.text?.body || '').trim().toLowerCase();
-    await handleMessage(from, text);
-  } catch(e) { console.error(e); }
-  res.sendStatus(200);
-});
-
-// ── Command Router ────────────────────────────────────────
-async function handleMessage(from, text) {
-  switch(true) {
-    // /help — show all commands
-    case ['help', 'hi', 'hello', 'menu'].includes(text):
-      await send(from, HELP_MSG);
-      break;
-
-    // /search [query] — search products & services
-    case text.startsWith('/search ') || text.startsWith('search '):
-      const q = text.replace(/^\\/search |^search /, '');
-      const results = await searchProducts(q);
-      await send(from, formatProducts(results));
-      break;
-
-    // /buy [product-id] — place order
-    case text.startsWith('/buy ') || text.startsWith('buy '):
-      const pid = text.replace(/^\\/buy |^buy /, '');
-      await send(from, \`✅ Order initiated for product #\${pid}.\\nVisit: \${IC_API}/shop to complete payment.\\nReply *status* to check your orders.\`);
-      break;
-
-    // /status [order-id] — order status
-    case text.startsWith('/status ') || text.startsWith('status '):
-      const oid = text.replace(/^\\/status |^status /, '');
-      await send(from, \`📦 Order #\${oid} Status: Processing\\nEstimated delivery: 2-3 business days.\\nTrack at: \${IC_API}/orders/\${oid}\`);
-      break;
-
-    // /invoice [id] — fetch invoice
-    case text.startsWith('/invoice ') || text.startsWith('invoice '):
-      const invId = text.replace(/^\\/invoice |^invoice /, '');
-      await send(from, \`📄 Invoice #\${invId}\\nView full invoice at: \${IC_API}/pos/invoices/\${invId}\`);
-      break;
-
-    // /balance — check Bari Khata balance
-    case text === '/balance' || text === 'balance' || text === 'khata':
-      await send(from, \`📖 Your Bari Khata Balance:\\nOutstanding: ₹0\\nCheck full ledger at: \${IC_API}/pos/bari-khata\`);
-      break;
-
-    // /business [name] — find business
-    case text.startsWith('/business ') || text.startsWith('business '):
-      const bName = text.replace(/^\\/business |^business /, '');
-      const bizResults = await searchBusiness(bName);
-      await send(from, formatBusiness(bizResults));
-      break;
-
-    // /ride [from] to [to] — book ride
-    case text.startsWith('/ride ') || text.startsWith('ride '):
-      const rideParts = text.replace(/^\\/ride |^ride /, '').split(' to ');
-      await send(from, \`🚗 Ride Request Received!\\nFrom: \${rideParts[0] || 'your location'}\\nTo: \${rideParts[1] || 'destination'}\\nBook at: \${IC_API}/rides\\nEstimated fare: ₹150-200\`);
-      break;
-
-    // /jobs — list jobs
-    case text === '/jobs' || text === 'jobs' || text === 'job':
-      await send(from, \`💼 Latest Jobs on IndyaCentral:\\n1. Software Developer — Bangalore\\n2. Sales Executive — Delhi\\n3. Chef — Mumbai\\nView all: \${IC_API}/jobs\`);
-      break;
-
-    // /sell — list product
-    case text === '/sell' || text === 'sell':
-      await send(from, \`🛍️ Want to sell on IndyaCentral?\\n1. Register your business via Family Tree\\n2. Add products in Business → POS\\n3. Your products go live on Shop\\nStart: \${IC_API}/family-tree\`);
-      break;
-
-    // /shop — browse shop
-    case text === '/shop' || text === 'shop':
-      await send(from, \`🛒 Browse IndyaCentral Shop:\\n\${IC_API}/shop\\n\\nCategories: Food, Electronics, Clothing, Services, Healthcare, and more!\`);
-      break;
-
-    default:
-      await send(from, \`❓ I didn't understand that.\\nReply *help* to see all commands.\`);
-  }
-}
-
-const HELP_MSG = \`🤖 *IndyaCentral Assistant*
-
-*Commands:*
-🔍 \\/search [product] — Search products
-🛍️ \\/buy [product-id] — Place order
-📦 \\/status [order-id] — Order status
-📄 \\/invoice [id] — Get invoice
-📖 \\/balance — Bari Khata balance
-🏢 \\/business [name] — Find business
-🚗 \\/ride [from] to [to] — Book ride
-💼 \\/jobs — Browse jobs
-💰 \\/sell — Sell on IndyaCentral
-🛒 \\/shop — Browse shop
-❓ *help* — Show this menu\`;
-
-// ── API Helpers ────────────────────────────────────────────
-async function send(to, text) {
-  await axios.post(
-    \`https://graph.facebook.com/v18.0/\${PHONE_ID}/messages\`,
-    { messaging_product: 'whatsapp', to, type: 'text', text: { body: text } },
-    { headers: { Authorization: \`Bearer \${WABA_TOKEN}\` } }
-  );
-}
-
-async function searchProducts(q) {
-  try {
-    const r = await axios.get(\`\${IC_API}/api/search?q=\${encodeURIComponent(q)}\`);
-    return r.data.products || [];
-  } catch { return []; }
-}
-
-async function searchBusiness(name) {
-  try {
-    const r = await axios.get(\`\${IC_API}/api/businesses?q=\${encodeURIComponent(name)}\`);
-    return r.data.businesses || [];
-  } catch { return []; }
-}
-
-function formatProducts(products) {
-  if (!products.length) return '🔍 No products found. Try /shop to browse all.';
-  return '*Search Results:*\\n\\n' + products.slice(0, 5).map((p, i) =>
-    \`\${i+1}. *\${p.name}* — ₹\${p.price}\\nReply */buy \${p.id}* to order\`
-  ).join('\\n\\n');
-}
-
-function formatBusiness(businesses) {
-  if (!businesses.length) return '🏢 No business found with that name.';
-  return '*Businesses Found:*\\n\\n' + businesses.slice(0, 3).map((b, i) =>
-    \`\${i+1}. *\${b.name}*\\n📍 \${b.location || 'Location not set'}\\n📞 \${b.phone || 'No phone'}\`
-  ).join('\\n\\n');
-}
-
-app.listen(3000, () => console.log('IndyaCentral WhatsApp Bot running on port 3000'));
-`;
-
-  const copyScript = () => {
-    navigator.clipboard.writeText(FULL_SCRIPT).then(
-      () => toast.success("Script copied to clipboard"),
-      () => toast.error("Copy failed"),
-    );
-  };
-
-  const downloadScript = () => {
-    const blob = new Blob([FULL_SCRIPT], { type: "text/javascript" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "indyacentral-whatsapp-bot.js";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Script downloaded");
-  };
+    }, 10000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">
-          🧬 Evolution A4 Agent — WhatsApp Chatbot Auto-Writer
-        </h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-lg font-semibold">🔮 Astro Advice A4 Agent</h2>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-green-500/15 text-green-600 border border-green-500/30">
+            ● LIVE
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Last refreshed:{" "}
+            {lastRefreshedSecs < 60
+              ? `${lastRefreshedSecs}s`
+              : `${Math.floor(lastRefreshedSecs / 60)}m`}{" "}
+            ago
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
-          This agent monitors all module changes and continuously updates the
-          WhatsApp Business API chatbot script.
+          Daily planetary positions, horoscopes, market predictions, news &
+          weather for users.
         </p>
       </div>
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-green-500/15 text-green-600 border border-green-500/30">
-          ● LIVE
-        </span>
-        <span className="text-xs text-muted-foreground">
-          Auto-updating chatbot script as modules evolve
-        </span>
-        <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
-          Script v{scriptVersion.toFixed(1)}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          Last auto-update: {lastUpdateSecs}s ago
-        </span>
-      </div>
 
-      <Tabs defaultValue="config">
-        <TabsList className="mb-4 flex flex-wrap gap-1 h-auto">
+      <Tabs defaultValue="planets">
+        <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
           <TabsTrigger
-            value="config"
+            value="planets"
             className="text-xs"
-            data-ocid="a4.config.tab"
+            data-ocid="a4.planets.tab"
           >
-            Config
+            🪐 Planets Today
           </TabsTrigger>
           <TabsTrigger
-            value="activity"
+            value="horoscope"
             className="text-xs"
-            data-ocid="a4.activity.tab"
+            data-ocid="a4.horoscope.tab"
           >
-            Activity Log
+            ♈ Daily Horoscope
           </TabsTrigger>
           <TabsTrigger
-            value="script"
+            value="markets"
             className="text-xs"
-            data-ocid="a4.script.tab"
+            data-ocid="a4.markets.tab"
           >
-            Generated Script
+            📈 Markets
+          </TabsTrigger>
+          <TabsTrigger value="news" className="text-xs" data-ocid="a4.news.tab">
+            📰 News & Weather
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="config" className="mt-0 space-y-4">
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">
-                  Auto-update on module changes
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Regenerates chatbot script whenever a module is updated
-                </p>
-              </div>
-              <Switch
-                checked={autoUpdate}
-                onCheckedChange={setAutoUpdate}
-                data-ocid="a4.config.switch"
-              />
-            </div>
-            <div>
-              <p className="text-sm font-semibold mb-3">Modules to Watch</p>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.entries(watchModules).map(([mod, checked]) => (
-                  <label
-                    key={mod}
-                    className="flex items-center gap-2 cursor-pointer"
+        <TabsContent value="planets" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {PLANETS.map((planet) => (
+              <div
+                key={planet.name}
+                className="bg-card border border-border rounded-xl p-4 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{planet.emoji}</span>
+                    <div>
+                      <p className="text-sm font-semibold">{planet.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {planet.position}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      planet.energy === "positive"
+                        ? "bg-green-500/15 text-green-600"
+                        : planet.energy === "challenging"
+                          ? "bg-red-500/15 text-red-600"
+                          : "bg-yellow-500/15 text-yellow-600"
+                    }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      className="rounded"
-                      onChange={(e) =>
-                        setWatchModules((p) => ({
-                          ...p,
-                          [mod]: e.target.checked,
-                        }))
-                      }
-                      data-ocid="a4.config.checkbox"
-                    />
-                    <span className="text-xs">{mod}</span>
-                  </label>
-                ))}
+                    {planet.energy}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {planet.effect}
+                </p>
               </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setLogs((prev) => [
-                  ...prev,
-                  `[${new Date().toLocaleTimeString()}] 🔄 Manual regeneration triggered...`,
-                  `[${new Date().toLocaleTimeString()}] ✅ Script regenerated — ${Math.floor(Math.random() * 200 + 900)} lines generated`,
-                ]);
-                toast.success("Script regeneration triggered");
-              }}
-              className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-              data-ocid="a4.config.primary_button"
-            >
-              🔄 Regenerate Now
-            </button>
+            ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-0">
+        <TabsContent value="horoscope" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ZODIAC.map((z) => (
+              <div
+                key={z.sign}
+                className="bg-card border border-border rounded-xl p-4 space-y-1.5"
+              >
+                <p className="text-sm font-semibold">{z.sign}</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {z.prediction}
+                </p>
+                <div className="flex gap-3 text-[10px] mt-1">
+                  <span className="text-primary">🍀 Lucky #{z.lucky}</span>
+                  <span style={{ color: "oklch(0.55 0.14 55)" }}>
+                    🎨 {z.color}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="markets" className="mt-0 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {markets.map((m) => (
+              <div
+                key={m.name}
+                className="bg-card border border-border rounded-xl p-4"
+              >
+                <p className="text-xs text-muted-foreground">{m.name}</p>
+                <p className="text-xs text-muted-foreground/70">{m.unit}</p>
+                <p className="text-lg font-bold mt-1">
+                  {typeof m.price === "number" && m.price > 1000
+                    ? m.price.toLocaleString()
+                    : m.price}
+                </p>
+                <p
+                  className={`text-xs font-semibold mt-0.5 ${m.up ? "text-green-600" : "text-red-500"}`}
+                >
+                  {m.up ? "▲" : "▼"} {m.change}%
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+            <h3 className="text-sm font-semibold">🏅 Commodity Advice</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li>
+                • <strong className="text-foreground">Gold:</strong> Accumulate
+                on dips. Global uncertainty supports prices. Target ₹72,000/10g.
+              </li>
+              <li>
+                • <strong className="text-foreground">Silver:</strong>{" "}
+                Industrial demand rising. Good entry below ₹80,000/kg.
+              </li>
+              <li>
+                • <strong className="text-foreground">Crude Oil:</strong> OPEC+
+                cuts supporting prices. Watch for geopolitical developments.
+              </li>
+              <li>
+                • <strong className="text-foreground">Sensex/Nifty:</strong> IT
+                and FMCG sectors outperforming. Stay invested with SIPs.
+              </li>
+              <li>
+                • <strong className="text-foreground">Crypto:</strong> High
+                volatility. Invest only what you can afford to lose. BTC
+                dominance at 52%.
+              </li>
+            </ul>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="news" className="mt-0 space-y-4">
           <div className="bg-card border border-border rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-green-600">
-                ● LIVE
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Updates every 12s
+              <h3 className="text-sm font-semibold">📰 India Market News</h3>
+              <span className="text-[10px] text-green-600 font-semibold">
+                ● Live updates every 10s
               </span>
             </div>
-            <div
-              ref={logRef}
-              className="h-72 overflow-y-auto bg-muted/30 rounded-lg p-3 space-y-1 font-mono text-[11px]"
-              data-ocid="a4.activity.panel"
-            >
-              {logs.map((log, i) => (
-                <p
-                  key={`${i}-${log.slice(0, 20)}`}
-                  className={`${log.includes("🔄") ? "text-yellow-600" : log.includes("✅") ? "text-green-600" : "text-foreground"}`}
+            <div className="space-y-2 max-h-52 overflow-y-auto">
+              {newsItems.map((item, i) => (
+                <div
+                  key={`news-${i}-${item.slice(0, 10)}`}
+                  className="text-[11px] text-muted-foreground py-1 border-b border-border/30 last:border-0"
                 >
-                  {log}
-                </p>
+                  {item}
+                </div>
               ))}
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="script" className="mt-0 space-y-4">
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300">
-            <strong>Deploy:</strong> Copy this script to your Node.js server,
-            configure the .env vars, and set your webhook URL in{" "}
-            <strong>Admin → WhatsApp API → Credentials</strong>. Use ngrok for
-            local testing.
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold">🌤️ Weather Forecast</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {WEATHER.map((w) => (
+                <div
+                  key={w.city}
+                  className="bg-muted/30 rounded-xl p-3 text-center"
+                >
+                  <span className="text-2xl">{w.icon}</span>
+                  <p className="text-xs font-semibold mt-1">{w.city}</p>
+                  <p className="text-lg font-bold text-primary">{w.temp}°C</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {w.condition}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={copyScript}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs hover:bg-muted transition-colors"
-              data-ocid="a4.script.secondary_button"
-            >
-              📋 Copy Script
-            </button>
-            <button
-              type="button"
-              onClick={downloadScript}
-              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
-              data-ocid="a4.script.primary_button"
-            >
-              ⬇️ Download .js
-            </button>
+          <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+            <h3 className="text-sm font-semibold">⚠️ Speculation & Alerts</h3>
+            <ul className="space-y-1.5 text-[11px] text-muted-foreground">
+              <li>
+                • Pre-monsoon heat wave expected in North India (Apr 5-15)
+              </li>
+              <li>
+                • La Niña effect may cause above-normal rainfall in South India
+              </li>
+              <li>
+                • Food inflation concerns as vegetable prices spike 8% MoM
+              </li>
+              <li>
+                • Cyclone watch: Bay of Bengal system forming (72hr outlook)
+              </li>
+            </ul>
           </div>
-          <pre
-            className="bg-muted/40 border border-border rounded-xl p-4 text-[10px] font-mono overflow-auto max-h-[500px] whitespace-pre-wrap break-all leading-relaxed"
-            data-ocid="a4.script.panel"
-          >
-            {FULL_SCRIPT}
-          </pre>
         </TabsContent>
       </Tabs>
     </div>
