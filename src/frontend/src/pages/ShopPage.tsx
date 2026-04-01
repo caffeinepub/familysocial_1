@@ -904,6 +904,7 @@ function CheckoutDialog({
         "ic_user_orders",
         JSON.stringify(existing.slice(0, 50)),
       );
+      window.dispatchEvent(new Event("orderPlaced"));
     } catch {}
   };
 

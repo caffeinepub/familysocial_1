@@ -10,7 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -28,10 +34,12 @@ import {
   CheckCircle2,
   ChefHat,
   Clock,
+  Copy,
   CreditCard,
   Download,
   GitBranch,
   Globe,
+  Lock,
   Mail,
   MapPin,
   Phone,
@@ -1818,13 +1826,24 @@ export default function BusinessPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6" data-ocid="business.page">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">
-          Business Dashboard
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your storefront, tables, orders and payments
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-display font-bold text-foreground">
+              Business Dashboard
+            </h1>
+            <BusinessPrivacyBadge storageKey="ic_business_privacy" />
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your storefront, tables, orders and payments
+          </p>
+        </div>
+        <SharePageButton
+          url={`${typeof window !== "undefined" ? window.location.origin : ""}?page=business`}
+          label="Business Page"
+          storageKey="ic_business_privacy"
+          data-ocid="business.share.button"
+        />
       </div>
 
       <Tabs defaultValue="my-businesses">
@@ -2807,6 +2826,522 @@ const BARCODE_HEIGHTS = [
   60, 90, 75, 100, 80, 65, 90, 100, 70, 85, 95, 60, 100, 75, 85, 100, 60, 90,
   80, 70, 95, 100,
 ] as const;
+// ─── SharePageButton & PrivacyBadge ─────────────────────────────────────────
+
+type PrivacyLevel = "Public" | "Restricted" | "Private";
+
+function BusinessPrivacyBadge({ storageKey }: { storageKey: string }) {
+  const privacy =
+    (localStorage.getItem(storageKey) as PrivacyLevel) || "Private";
+  const colors: Record<PrivacyLevel, string> = {
+    Public: "bg-green-500/15 text-green-600 border-green-500/30",
+    Restricted: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+    Private: "bg-muted text-muted-foreground border-border",
+  };
+  return (
+    <Badge className={`text-[10px] font-label gap-1 ${colors[privacy]}`}>
+      <Lock size={9} />
+      {privacy}
+    </Badge>
+  );
+}
+
+function SharePageButton({
+  url,
+  label,
+  storageKey,
+}: {
+  url: string;
+  label: string;
+  storageKey: string;
+}) {
+  const [privacy, setPrivacy] = useState<PrivacyLevel>(
+    () => (localStorage.getItem(storageKey) as PrivacyLevel) || "Private",
+  );
+  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handlePrivacyChange = (val: PrivacyLevel) => {
+    setPrivacy(val);
+    localStorage.setItem(storageKey, val);
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 font-label"
+          data-ocid="business.share.button"
+        >
+          <Share2 size={14} />
+          Share
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-80 p-4 space-y-4"
+        align="end"
+        data-ocid="business.share.popover"
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">Share {label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Share this link to let others view your {label}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Page URL</Label>
+          <div className="flex gap-2">
+            <Input value={url} readOnly className="text-xs h-8 flex-1" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-2"
+              onClick={copyLink}
+            >
+              {copied ? (
+                <CheckCircle2 size={13} className="text-green-500" />
+              ) : (
+                <Copy size={13} />
+              )}
+            </Button>
+          </div>
+          {copied && <p className="text-xs text-green-600">Copied!</p>}
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Visibility</Label>
+          <RadioGroup
+            value={privacy}
+            onValueChange={(v) => handlePrivacyChange(v as PrivacyLevel)}
+            className="space-y-1"
+          >
+            {(["Public", "Restricted", "Private"] as PrivacyLevel[]).map(
+              (opt) => (
+                <div key={opt} className="flex items-center gap-2">
+                  <RadioGroupItem value={opt} id={`biz-privacy-${opt}`} />
+                  <Label
+                    htmlFor={`biz-privacy-${opt}`}
+                    className="text-xs cursor-pointer"
+                  >
+                    {opt === "Public"
+                      ? "🌍 Public — anyone with the link can view"
+                      : opt === "Restricted"
+                        ? "🔒 Restricted — only approved members"
+                        : "🔐 Private — only you"}
+                  </Label>
+                </div>
+              ),
+            )}
+          </RadioGroup>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── POSProductsTab ──────────────────────────────────────────────────────────
+
+const POS_CATEGORIES = [
+  "Food & Beverages",
+  "Electronics",
+  "Fashion",
+  "Home Services",
+  "Healthcare",
+  "Books & Media",
+  "Sports",
+  "Beauty & Personal Care",
+  "Automotive",
+  "Agriculture",
+  "Other",
+];
+
+const VARIANT_PRESETS: Record<string, string[]> = {
+  Fashion: ["XS", "S", "M", "L", "XL", "XXL"],
+  Electronics: ["64GB", "128GB", "256GB"],
+  "Food & Beverages": ["Small", "Medium", "Large"],
+  Healthcare: ["30 Tabs", "60 Tabs", "90 Tabs"],
+  "Home Services": ["Basic", "Standard", "Premium"],
+};
+
+function POSProductsTab() {
+  const [products, setProducts] = useState(() => getGlobalProducts());
+  const [showForm, setShowForm] = useState<"product" | "service" | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    category: "Food & Beverages",
+    price: "",
+    stock: "",
+    description: "",
+    videoUrl: "",
+  });
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [variants, setVariants] = useState<
+    { label: string; price: string; stock: string }[]
+  >([]);
+
+  // Refresh when products change
+  useState(() => {
+    const handler = () => setProducts(getGlobalProducts());
+    window.addEventListener("globalProductsUpdated", handler);
+    return () => window.removeEventListener("globalProductsUpdated", handler);
+  });
+
+  const detectVariants = (category: string) => {
+    const presets = VARIANT_PRESETS[category] || [];
+    setVariants(
+      presets.map((label) => ({ label, price: form.price, stock: "10" })),
+    );
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = () => {
+    if (!form.name.trim() || !form.price) {
+      toast.error("Name and price are required");
+      return;
+    }
+    addGlobalProduct({
+      name: form.name,
+      description: form.description,
+      price: Number.parseFloat(form.price) || 0,
+      category: form.category,
+      module: "POS",
+      imageUrl: imagePreview || undefined,
+      videoUrl: form.videoUrl || undefined,
+      variantDetails: variants.map((v) => ({
+        label: v.label,
+        price: Number.parseFloat(v.price) || Number.parseFloat(form.price) || 0,
+        stock: Number.parseInt(v.stock) || 0,
+      })),
+      isService: showForm === "service",
+      status: "active",
+    });
+    toast.success(
+      `${showForm === "service" ? "Service" : "Product"} "${form.name}" added to Shop`,
+    );
+    setForm({
+      name: "",
+      category: "Food & Beverages",
+      price: "",
+      stock: "",
+      description: "",
+      videoUrl: "",
+    });
+    setImagePreview("");
+    setVariants([]);
+    setShowForm(null);
+    setProducts(getGlobalProducts());
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          className="gap-1.5 font-label"
+          onClick={() => setShowForm("product")}
+          data-ocid="pos.add_product.button"
+        >
+          <Plus size={14} /> Add Product
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 font-label"
+          onClick={() => setShowForm("service")}
+          data-ocid="pos.add_service.button"
+        >
+          <Plus size={14} /> Add Service
+        </Button>
+      </div>
+
+      {showForm && (
+        <Card className="rounded-xl border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">
+              {showForm === "product" ? "New Product" : "New Service"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Name *</Label>
+                <Input
+                  placeholder="Product name"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  data-ocid="pos.product.name_input"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Category</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => {
+                    setForm((p) => ({ ...p, category: v }));
+                    detectVariants(v);
+                  }}
+                >
+                  <SelectTrigger
+                    className="text-xs h-8"
+                    data-ocid="pos.product.category_select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {POS_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c} className="text-xs">
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Price (₹) *</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={form.price}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, price: e.target.value }))
+                  }
+                  data-ocid="pos.product.price_input"
+                />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Description</Label>
+                <Textarea
+                  placeholder="Product description..."
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, description: e.target.value }))
+                  }
+                  className="text-xs h-20 resize-none"
+                  data-ocid="pos.product.description_input"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Image</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="pos-img-upload"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-8"
+                    onClick={() =>
+                      document.getElementById("pos-img-upload")?.click()
+                    }
+                    data-ocid="pos.product.upload_button"
+                  >
+                    <Upload size={12} /> Upload
+                  </Button>
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="preview"
+                      className="h-8 w-8 rounded object-cover"
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Video Link</Label>
+                <Input
+                  placeholder="YouTube / Vimeo URL"
+                  value={form.videoUrl}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, videoUrl: e.target.value }))
+                  }
+                  className="text-xs h-8"
+                />
+              </div>
+            </div>
+
+            {variants.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Variants (auto-detected)</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() =>
+                      setVariants((v) => [
+                        ...v,
+                        { label: "", price: form.price, stock: "10" },
+                      ])
+                    }
+                  >
+                    + Add
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  {variants.map((v, i) => (
+                    <div
+                      key={`variant-${i}-${v.label}`}
+                      className="flex gap-2 items-center"
+                    >
+                      <Input
+                        value={v.label}
+                        onChange={(e) =>
+                          setVariants((prev) =>
+                            prev.map((x, j) =>
+                              j === i ? { ...x, label: e.target.value } : x,
+                            ),
+                          )
+                        }
+                        placeholder="Label"
+                        className="text-xs h-7 flex-1"
+                      />
+                      <Input
+                        value={v.price}
+                        onChange={(e) =>
+                          setVariants((prev) =>
+                            prev.map((x, j) =>
+                              j === i ? { ...x, price: e.target.value } : x,
+                            ),
+                          )
+                        }
+                        placeholder="₹"
+                        type="number"
+                        className="text-xs h-7 w-20"
+                      />
+                      <Input
+                        value={v.stock}
+                        onChange={(e) =>
+                          setVariants((prev) =>
+                            prev.map((x, j) =>
+                              j === i ? { ...x, stock: e.target.value } : x,
+                            ),
+                          )
+                        }
+                        placeholder="Qty"
+                        type="number"
+                        className="text-xs h-7 w-16"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive"
+                        onClick={() =>
+                          setVariants((prev) => prev.filter((_, j) => j !== i))
+                        }
+                      >
+                        <X size={12} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                size="sm"
+                className="font-label"
+                onClick={handleSave}
+                data-ocid="pos.product.save_button"
+              >
+                Save & Add to Shop
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setShowForm(null);
+                  setImagePreview("");
+                  setVariants([]);
+                }}
+                data-ocid="pos.product.cancel_button"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Product List */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">
+          {products.length} products in your store
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {products.slice(0, 12).map((p, i) => (
+            <Card
+              key={p.id}
+              className="rounded-xl border-border"
+              data-ocid={`pos.products.item.${i + 1}`}
+            >
+              <CardContent className="p-3 flex gap-3">
+                {p.imageUrl ? (
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={16} className="text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.category}</p>
+                  <p className="text-xs font-semibold text-primary mt-0.5">
+                    ₹{p.price}
+                  </p>
+                  {p.isService && (
+                    <Badge className="text-[9px] mt-1 bg-violet-500/15 text-violet-600 border-violet-500/30">
+                      Service
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {products.length === 0 && (
+          <div
+            className="text-center py-8 text-muted-foreground text-sm"
+            data-ocid="pos.products.empty_state"
+          >
+            No products yet. Click "Add Product" to get started.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── SmartPOSPanel ────────────────────────────────────────────────────────────
 type POSCartItem = {
   id: string;
@@ -3061,8 +3596,15 @@ function SmartPOSPanel() {
           online store
         </p>
       </div>
-      <Tabs defaultValue="billing">
+      <Tabs defaultValue="products">
         <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
+          <TabsTrigger
+            value="products"
+            className="text-xs"
+            data-ocid="pos.products.tab"
+          >
+            📦 Products
+          </TabsTrigger>
           <TabsTrigger
             value="billing"
             className="text-xs"
@@ -3120,6 +3662,11 @@ function SmartPOSPanel() {
             👥 Customers
           </TabsTrigger>
         </TabsList>
+
+        {/* ── PRODUCTS ── */}
+        <TabsContent value="products" className="mt-0 space-y-4">
+          <POSProductsTab />
+        </TabsContent>
 
         {/* ── BILLING ── */}
         <TabsContent value="billing" className="mt-0 space-y-4">

@@ -1882,7 +1882,7 @@ export default function AdminPanelPage() {
               { value: "moderation", label: "🛡️ A1: Moderation" },
               { value: "performance", label: "⚡ A2: Performance" },
               { value: "api-sync", label: "🔄 A3: API Sync" },
-              { value: "evolution", label: "🔮 A4: Astro Advice" },
+              { value: "evolution", label: "🗺️ App Roadmap" },
               { value: "legal", label: "⚖️ A5: Legal" },
               { value: "agent6", label: "🔐 A6: Security" },
               { value: "agent7", label: "🖼️ A7: Images" },
@@ -1918,7 +1918,7 @@ export default function AdminPanelPage() {
               { value: "agent25", label: "🛡️ A25: Content Shield" },
               { value: "payment-gateways", label: "💳 Payment Gateways" },
               { value: "biz-analytics", label: "📊 Biz Analytics" },
-              { value: "agent-a4-wa", label: "🔮 Astro Advice A4" },
+              { value: "agent-a4-wa", label: "🔮 A4: Astro Advice" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -5454,6 +5454,16 @@ export default function AdminPanelPage() {
         {/* ── PAYMENT GATEWAYS ── */}
         <TabsContent value="payment-gateways" className="mt-0">
           <PaymentGatewaysPanel />
+        </TabsContent>
+
+        {/* ── BIZ ANALYTICS ── */}
+        <TabsContent value="biz-analytics" className="mt-0 space-y-5">
+          <BizAnalyticsTab />
+        </TabsContent>
+
+        {/* ── ASTRO ADVICE A4 ── */}
+        <TabsContent value="agent-a4-wa" className="mt-0 space-y-5">
+          <EvolutionA4Agent />
         </TabsContent>
       </Tabs>
 
@@ -15528,16 +15538,6 @@ function Agent25ContentShield() {
               </tbody>
             </table>
           </div>
-        </TabsContent>
-
-        {/* ── BIZ ANALYTICS ── */}
-        <TabsContent value="biz-analytics" className="mt-0 space-y-5">
-          <BizAnalyticsTab />
-        </TabsContent>
-
-        {/* ── EVOLUTION A4 ── */}
-        <TabsContent value="agent-a4-wa" className="mt-0 space-y-5">
-          <EvolutionA4Agent />
         </TabsContent>
       </Tabs>
     </div>

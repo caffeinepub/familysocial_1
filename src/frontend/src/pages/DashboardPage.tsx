@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Truck,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useCurrency } from "../contexts/CurrencyContext";
 
 interface StatCard {
@@ -489,20 +490,40 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function DashboardPage() {
   const { formatCurrency } = useCurrency();
-  const userOrders: Array<{
-    id: string;
-    date: string;
-    items: Array<{ name: string; qty: number; price: number }>;
-    total: number;
-    status: string;
-    billing?: unknown;
-  }> = (() => {
+  const [userOrders, setUserOrders] = useState<
+    Array<{
+      id: string;
+      date: string;
+      items: Array<{ name: string; qty: number; price: number }>;
+      total: number;
+      status: string;
+      billing?: unknown;
+    }>
+  >(() => {
     try {
       return JSON.parse(localStorage.getItem("ic_user_orders") || "[]");
     } catch {
       return [];
     }
-  })();
+  });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        setUserOrders(
+          JSON.parse(localStorage.getItem("ic_user_orders") || "[]"),
+        );
+      } catch {}
+    };
+    window.addEventListener("storage", refresh);
+    window.addEventListener("orderPlaced", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("orderPlaced", refresh);
+    };
+  }, []);
   const maxVal = Math.max(...MONTHLY_DATA.map((d) => d.value));
   const maxAffVal = Math.max(...AFFILIATE_MONTHLY.map((d) => d.value));
 
@@ -518,10 +539,21 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="animate-fade-up">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="animate-fade-up"
+      >
         <TabsList className="mb-6 h-10">
           <TabsTrigger value="overview" className="font-label text-sm">
             📊 Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="orders"
+            className="font-label text-sm"
+            data-ocid="dashboard.orders.tab"
+          >
+            🛍️ My Orders
           </TabsTrigger>
           <TabsTrigger value="delivery" className="font-label text-sm">
             🚚 Delivery Income
@@ -664,6 +696,47 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Orders Summary Card */}
+          <div className="bg-card border border-border rounded-xl shadow-card p-5 mb-6 animate-fade-up">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                  style={{ background: "oklch(0.55 0.22 280 / 0.12)" }}
+                >
+                  🛍️
+                </div>
+                <div>
+                  <p className="font-label font-semibold text-foreground">
+                    {userOrders.length} order
+                    {userOrders.length !== 1 ? "s" : ""} placed
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {
+                      userOrders.filter(
+                        (o) =>
+                          o.status === "Placed" || o.status === "Confirmed",
+                      ).length
+                    }{" "}
+                    active
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("orders")}
+                className="text-xs font-label font-semibold px-3 py-1.5 rounded-lg transition-colors hover:opacity-80"
+                style={{
+                  background: "oklch(0.55 0.22 280 / 0.12)",
+                  color: "oklch(0.45 0.18 280)",
+                }}
+                data-ocid="dashboard.orders.button"
+              >
+                View Orders →
+              </button>
+            </div>
+          </div>
+
           {/* Transactions */}
           <div className="bg-card border border-border rounded-xl shadow-card animate-fade-up animate-fade-up-3">
             <div className="p-5 border-b border-border">
@@ -722,6 +795,153 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
 
+        {/* ── MY ORDERS TAB ──────────────────────────────────────── */}
+        <TabsContent value="orders" className="mt-0">
+          <div
+            className="bg-card border border-border rounded-xl shadow-card"
+            data-ocid="dashboard.orders.table"
+          >
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="font-label font-semibold text-foreground">
+                  My Orders
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Orders placed from Shop
+                </p>
+              </div>
+              <span className="text-xs font-label text-muted-foreground">
+                {userOrders.length} order{userOrders.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            {userOrders.length === 0 ? (
+              <div
+                className="p-12 text-center"
+                data-ocid="dashboard.orders.empty_state"
+              >
+                <p className="text-4xl mb-3">🛍️</p>
+                <p className="text-sm font-semibold text-foreground">
+                  No orders yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Start shopping to see your orders here!
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {userOrders.map((order, idx) => {
+                  const isExpanded = expandedOrder === order.id;
+                  const statusStyle =
+                    order.status === "Delivered"
+                      ? {
+                          bg: "oklch(0.52 0.14 155 / 0.12)",
+                          text: "oklch(0.32 0.085 155)",
+                        }
+                      : order.status === "Shipped"
+                        ? {
+                            bg: "oklch(0.72 0.17 55 / 0.15)",
+                            text: "oklch(0.48 0.14 55)",
+                          }
+                        : order.status === "Confirmed"
+                          ? {
+                              bg: "oklch(0.85 0.12 85 / 0.3)",
+                              text: "oklch(0.45 0.14 65)",
+                            }
+                          : order.status === "Cancelled"
+                            ? {
+                                bg: "oklch(0.55 0.22 25 / 0.12)",
+                                text: "oklch(0.45 0.18 25)",
+                              }
+                            : {
+                                bg: "oklch(0.62 0.2 230 / 0.12)",
+                                text: "oklch(0.45 0.15 230)",
+                              };
+                  return (
+                    <div
+                      key={order.id}
+                      data-ocid={`dashboard.orders.item.${idx + 1}`}
+                    >
+                      <button
+                        type="button"
+                        className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-secondary/20 transition-colors w-full text-left"
+                        onClick={() =>
+                          setExpandedOrder(isExpanded ? null : order.id)
+                        }
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-label font-mono font-semibold text-foreground">
+                              {order.id}
+                            </span>
+                            <span
+                              className="text-[10px] font-label font-semibold px-2 py-0.5 rounded-full"
+                              style={{
+                                background: statusStyle.bg,
+                                color: statusStyle.text,
+                              }}
+                            >
+                              {order.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(order.date).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                            {" · "}
+                            {order.items?.length ?? 0} item
+                            {(order.items?.length ?? 0) !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p
+                            className="text-sm font-label font-semibold"
+                            style={{ color: "oklch(0.52 0.14 155)" }}
+                          >
+                            ₹{order.total?.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {isExpanded ? "▲ hide" : "▼ details"}
+                          </p>
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="px-5 pb-4 bg-secondary/10 border-t border-border">
+                          <div className="pt-3 space-y-2">
+                            <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
+                              Items
+                            </p>
+                            {order.items?.map((item) => (
+                              <div
+                                key={item.name}
+                                className="flex items-center justify-between text-xs"
+                              >
+                                <span className="text-foreground">
+                                  {item.name} × {item.qty}
+                                </span>
+                                <span className="font-label font-semibold text-foreground">
+                                  ₹{(item.price * item.qty).toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                            <div className="flex items-center justify-between text-sm font-label font-bold pt-1 border-t border-border">
+                              <span>Total</span>
+                              <span style={{ color: "oklch(0.52 0.14 155)" }}>
+                                ₹{order.total?.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         {/* ── DELIVERY INCOME TAB ──────────────────────────────────── */}
         <TabsContent value="delivery" className="mt-0">
           {/* Delivery summary cards */}
@@ -770,122 +990,6 @@ export default function DashboardPage() {
                 </p>
               </div>
             ))}
-          </div>
-
-          {/* My Orders table */}
-          <div
-            className="bg-card border border-border rounded-xl shadow-card mb-8"
-            data-ocid="dashboard.orders.table"
-          >
-            <div className="p-5 border-b border-border">
-              <h2 className="font-label font-semibold text-foreground">
-                My Orders
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Orders placed from Shop
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              {userOrders.length === 0 ? (
-                <div
-                  className="p-8 text-center"
-                  data-ocid="dashboard.orders.empty_state"
-                >
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    No orders yet
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Start shopping to see your orders here!
-                  </p>
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-secondary/30">
-                      <th className="text-left px-5 py-3 text-xs font-label font-semibold text-muted-foreground">
-                        Order #
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                        Date
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                        Items
-                      </th>
-                      <th className="text-right px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                        Total
-                      </th>
-                      <th className="text-center px-4 py-3 text-xs font-label font-semibold text-muted-foreground">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {userOrders.slice(0, 10).map((order, idx) => (
-                      <tr
-                        key={order.id}
-                        className="hover:bg-secondary/20 transition-colors"
-                        data-ocid={`dashboard.orders.item.${idx + 1}`}
-                      >
-                        <td className="px-5 py-3 text-xs font-label font-mono text-foreground">
-                          {order.id}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {new Date(order.date).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </td>
-                        <td className="px-4 py-3 text-xs font-label text-foreground">
-                          {order.items
-                            ?.slice(0, 2)
-                            .map((it) => it.name)
-                            .join(", ")}
-                          {(order.items?.length ?? 0) > 2 &&
-                            ` +${(order.items?.length ?? 0) - 2} more`}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs font-label font-semibold text-right"
-                          style={{ color: "oklch(0.52 0.14 155)" }}
-                        >
-                          ₹{order.total?.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span
-                            className="text-[10px] font-label font-semibold px-2 py-0.5 rounded-full"
-                            style={
-                              order.status === "Delivered"
-                                ? {
-                                    background: "oklch(0.52 0.14 155 / 0.12)",
-                                    color: "oklch(0.32 0.085 155)",
-                                  }
-                                : order.status === "Shipped"
-                                  ? {
-                                      background: "oklch(0.55 0.22 280 / 0.12)",
-                                      color: "oklch(0.45 0.18 280)",
-                                    }
-                                  : order.status === "Confirmed"
-                                    ? {
-                                        background:
-                                          "oklch(0.72 0.17 85 / 0.15)",
-                                        color: "oklch(0.55 0.14 65)",
-                                      }
-                                    : {
-                                        background:
-                                          "oklch(0.62 0.2 230 / 0.12)",
-                                        color: "oklch(0.45 0.15 230)",
-                                      }
-                            }
-                          >
-                            {order.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
           </div>
 
           {/* Monthly delivery bar chart */}

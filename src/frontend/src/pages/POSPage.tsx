@@ -2099,6 +2099,16 @@ export default function POSPage() {
     price: number;
     description: string;
     stock: number;
+    category: string;
+    images: string[];
+    videoUrl: string;
+    supplierName: string;
+    supplierType: string;
+    purchasePrice: number;
+    variants: { label: string; price: string; stock: string }[];
+    addons: { name: string; price: string }[];
+    moderationStatus: string;
+    isService: boolean;
   }>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [boostTarget, setBoostTarget] = useState<string | null>(null);
@@ -2809,6 +2819,30 @@ export default function POSPage() {
                             price: p.price,
                             description: p.description,
                             stock: p.stock ?? 0,
+                            category: p.category ?? "Electronics",
+                            images: p.imageUrl ? [p.imageUrl] : [],
+                            videoUrl: p.videoUrl ?? "",
+                            supplierName: p.supplier ?? "",
+                            supplierType: "Manufacturer",
+                            purchasePrice: p.purchasePrice ?? 0,
+                            variants: (p.variantDetails ?? []).map((v) => ({
+                              label: v.label ?? "",
+                              price: String(v.price ?? "0"),
+                              stock: String(v.stock ?? "0"),
+                            })),
+                            addons: (p.addons ?? []).map(
+                              (a: { name?: string; price?: number }) => ({
+                                name: a.name ?? "",
+                                price: String(a.price ?? "0"),
+                              }),
+                            ),
+                            moderationStatus:
+                              p.status === "moderated"
+                                ? "Moderated"
+                                : p.status === "pending"
+                                  ? "Pending Review"
+                                  : "Approved",
+                            isService: p.isService ?? false,
                           });
                           setEditOpen(true);
                         }}
@@ -2860,13 +2894,24 @@ export default function POSPage() {
           )}
           {editOpen && editProduct && (
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent data-ocid="pos.edit_product.dialog">
+              <DialogContent
+                className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+                data-ocid="pos.edit_product.dialog"
+              >
                 <DialogHeader>
-                  <DialogTitle>Edit Product</DialogTitle>
+                  <DialogTitle className="font-display flex items-center gap-2">
+                    {editProduct.isService ? (
+                      <Wrench size={16} className="text-primary" />
+                    ) : (
+                      <Package size={16} className="text-primary" />
+                    )}
+                    Edit {editProduct.isService ? "Service" : "Product"}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3 py-2">
-                  <div>
-                    <Label className="text-xs">Name</Label>
+                  {/* Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Name *</Label>
                     <Input
                       value={editProduct.name}
                       onChange={(e) =>
@@ -2874,34 +2919,393 @@ export default function POSPage() {
                           p ? { ...p, name: e.target.value } : p,
                         )
                       }
+                      className="h-9"
+                      data-ocid="pos.edit_product.input"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs">Price (₹)</Label>
+
+                  {/* Images */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Images</Label>
+                    <label
+                      className="flex items-center gap-2 border-2 border-dashed border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors"
+                      data-ocid="pos.edit_product.dropzone"
+                    >
+                      <Upload size={14} className="text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        Upload images
+                      </span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          for (const f of files) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              if (ev.target?.result) {
+                                setEditProduct((p) =>
+                                  p
+                                    ? {
+                                        ...p,
+                                        images: [
+                                          ...p.images,
+                                          ev.target!.result as string,
+                                        ],
+                                      }
+                                    : p,
+                                );
+                              }
+                            };
+                            reader.readAsDataURL(f);
+                          }
+                        }}
+                      />
+                    </label>
+                    {editProduct.images.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {editProduct.images.map((url, i) => (
+                          <div key={url} className="relative">
+                            <img
+                              src={url}
+                              alt=""
+                              className="w-14 h-14 object-cover rounded-lg border border-border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditProduct((p) =>
+                                  p
+                                    ? {
+                                        ...p,
+                                        images: p.images.filter(
+                                          (_, j) => j !== i,
+                                        ),
+                                      }
+                                    : p,
+                                )
+                              }
+                              className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Video */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs flex items-center gap-1">
+                      <Video size={12} /> Video Link
+                    </Label>
                     <Input
-                      type="number"
-                      value={editProduct.price}
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={editProduct.videoUrl}
                       onChange={(e) =>
                         setEditProduct((p) =>
-                          p ? { ...p, price: Number(e.target.value) } : p,
+                          p ? { ...p, videoUrl: e.target.value } : p,
                         )
                       }
+                      className="h-9"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs">Stock</Label>
-                    <Input
-                      type="number"
-                      value={editProduct.stock}
-                      onChange={(e) =>
+
+                  {/* Category */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Category</Label>
+                    <Select
+                      value={editProduct.category}
+                      onValueChange={(v) =>
+                        setEditProduct((p) => (p ? { ...p, category: v } : p))
+                      }
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "Electronics",
+                          "Fashion",
+                          "Food & Beverages",
+                          "Healthcare",
+                          "Home Services",
+                          "Books",
+                          "Automotive",
+                          "Sports",
+                          "Real Estate",
+                          "Travel",
+                          "Beauty",
+                          "Toys",
+                          "Furniture",
+                          "Other",
+                        ].map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Price & Stock */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Price (₹) *</Label>
+                      <Input
+                        type="number"
+                        value={editProduct.price}
+                        onChange={(e) =>
+                          setEditProduct((p) =>
+                            p ? { ...p, price: Number(e.target.value) } : p,
+                          )
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Stock</Label>
+                      <Input
+                        type="number"
+                        value={editProduct.stock}
+                        onChange={(e) =>
+                          setEditProduct((p) =>
+                            p ? { ...p, stock: Number(e.target.value) } : p,
+                          )
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Supplier */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Supplier Name</Label>
+                      <Input
+                        value={editProduct.supplierName}
+                        onChange={(e) =>
+                          setEditProduct((p) =>
+                            p ? { ...p, supplierName: e.target.value } : p,
+                          )
+                        }
+                        className="h-9"
+                        placeholder="Supplier name"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Purchase Price (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editProduct.purchasePrice}
+                        onChange={(e) =>
+                          setEditProduct((p) =>
+                            p
+                              ? { ...p, purchasePrice: Number(e.target.value) }
+                              : p,
+                          )
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Variants */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Variants</Label>
+                    {editProduct.variants.map((v, i) => (
+                      <div
+                        key={`v-${v.label}-${v.price}`}
+                        className="flex gap-2 items-center"
+                      >
+                        <Input
+                          value={v.label}
+                          onChange={(e) =>
+                            setEditProduct((p) => {
+                              if (!p) return p;
+                              const vs = [...p.variants];
+                              vs[i] = { ...vs[i], label: e.target.value };
+                              return { ...p, variants: vs };
+                            })
+                          }
+                          placeholder="Name"
+                          className="h-8 text-xs flex-1"
+                        />
+                        <Input
+                          type="number"
+                          value={v.price}
+                          onChange={(e) =>
+                            setEditProduct((p) => {
+                              if (!p) return p;
+                              const vs = [...p.variants];
+                              vs[i] = { ...vs[i], price: e.target.value };
+                              return { ...p, variants: vs };
+                            })
+                          }
+                          placeholder="₹"
+                          className="h-8 text-xs w-20"
+                        />
+                        <Input
+                          type="number"
+                          value={v.stock}
+                          onChange={(e) =>
+                            setEditProduct((p) => {
+                              if (!p) return p;
+                              const vs = [...p.variants];
+                              vs[i] = { ...vs[i], stock: e.target.value };
+                              return { ...p, variants: vs };
+                            })
+                          }
+                          placeholder="Qty"
+                          className="h-8 text-xs w-20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditProduct((p) =>
+                              p
+                                ? {
+                                    ...p,
+                                    variants: p.variants.filter(
+                                      (_, j) => j !== i,
+                                    ),
+                                  }
+                                : p,
+                            )
+                          }
+                          className="text-destructive"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={() =>
                         setEditProduct((p) =>
-                          p ? { ...p, stock: Number(e.target.value) } : p,
+                          p
+                            ? {
+                                ...p,
+                                variants: [
+                                  ...p.variants,
+                                  {
+                                    label: "",
+                                    price: String(p.price),
+                                    stock: "10",
+                                  },
+                                ],
+                              }
+                            : p,
                         )
                       }
-                    />
+                    >
+                      <Plus size={12} /> Add Variant
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="text-xs">Description</Label>
+
+                  {/* Addons */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Add-ons</Label>
+                    {editProduct.addons.map((a, i) => (
+                      <div
+                        key={`a-${a.name}-${a.price}`}
+                        className="flex gap-2 items-center"
+                      >
+                        <Input
+                          value={a.name}
+                          onChange={(e) =>
+                            setEditProduct((p) => {
+                              if (!p) return p;
+                              const ads = [...p.addons];
+                              ads[i] = { ...ads[i], name: e.target.value };
+                              return { ...p, addons: ads };
+                            })
+                          }
+                          placeholder="Add-on name"
+                          className="h-8 text-xs flex-1"
+                        />
+                        <Input
+                          type="number"
+                          value={a.price}
+                          onChange={(e) =>
+                            setEditProduct((p) => {
+                              if (!p) return p;
+                              const ads = [...p.addons];
+                              ads[i] = { ...ads[i], price: e.target.value };
+                              return { ...p, addons: ads };
+                            })
+                          }
+                          placeholder="₹"
+                          className="h-8 text-xs w-24"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditProduct((p) =>
+                              p
+                                ? {
+                                    ...p,
+                                    addons: p.addons.filter((_, j) => j !== i),
+                                  }
+                                : p,
+                            )
+                          }
+                          className="text-destructive"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={() =>
+                        setEditProduct((p) =>
+                          p
+                            ? {
+                                ...p,
+                                addons: [...p.addons, { name: "", price: "" }],
+                              }
+                            : p,
+                        )
+                      }
+                    >
+                      <Plus size={12} /> Add Add-on
+                    </Button>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Description</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs gap-1 px-2"
+                        onClick={() => {
+                          if (!editProduct.name) {
+                            toast.error("Add a name first");
+                            return;
+                          }
+                          const desc = `${editProduct.name} — Premium quality ${editProduct.isService ? "service" : "product"} in the ${editProduct.category} category. Available with multiple variants and add-on options to suit every preference.`;
+                          setEditProduct((p) =>
+                            p ? { ...p, description: desc } : p,
+                          );
+                          toast.success("AI description generated");
+                        }}
+                      >
+                        <Wand2 size={11} /> AI Generate
+                      </Button>
+                    </div>
                     <Textarea
                       value={editProduct.description}
                       onChange={(e) =>
@@ -2910,7 +3314,30 @@ export default function POSPage() {
                         )
                       }
                       rows={2}
+                      className="text-xs"
                     />
+                  </div>
+
+                  {/* Moderation status */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Moderation:
+                    </Label>
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full font-label"
+                      style={{
+                        background:
+                          editProduct.moderationStatus === "Approved"
+                            ? "oklch(0.52 0.14 155 / 0.15)"
+                            : "oklch(0.72 0.17 55 / 0.15)",
+                        color:
+                          editProduct.moderationStatus === "Approved"
+                            ? "oklch(0.42 0.14 155)"
+                            : "oklch(0.55 0.17 55)",
+                      }}
+                    >
+                      {editProduct.moderationStatus}
+                    </span>
                   </div>
                 </div>
                 <DialogFooter>
@@ -2934,7 +3361,31 @@ export default function POSPage() {
                             price: editProduct.price,
                             description: editProduct.description,
                             stock: editProduct.stock,
+                            category: editProduct.category,
+                            imageUrl:
+                              editProduct.images[0] ?? existing.imageUrl,
+                            videoUrl: editProduct.videoUrl,
+                            supplier: editProduct.supplierName,
+                            purchasePrice: editProduct.purchasePrice,
+                            variantDetails: editProduct.variants.map((v) => ({
+                              label: v.label,
+                              price: Number(v.price) || 0,
+                              stock: Number(v.stock) || 0,
+                            })),
+                            addons: editProduct.addons.map((a) => ({
+                              name: a.name,
+                              price: Number(a.price) || 0,
+                            })),
+                            status: (editProduct.moderationStatus === "Approved"
+                              ? "active"
+                              : editProduct.moderationStatus === "Moderated"
+                                ? "moderated"
+                                : "pending") as
+                              | "active"
+                              | "pending"
+                              | "moderated",
                           });
+                        toast.success("Product updated");
                       }
                       setEditOpen(false);
                     }}

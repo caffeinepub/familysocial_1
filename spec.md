@@ -1,34 +1,30 @@
 # IndyaCentral
 
 ## Current State
-The app builds successfully (typecheck, lint, build all pass). Runtime crashes occur after v79 changes. User reports:
-1. Live data (add/edit/save) not working -- forms submit but data doesn't persist or UI doesn't update
-2. V79 changes are causing crashes -- specifically: Agent22ModuleTester, EvolutionA4Agent (Astro Advice), NearbySearchBar FaceSearch, and shop checkout order saving
-
-Key data flows:
-- Products: `globalProductsState.ts` via localStorage key `ic_global_products`
-- Family businesses: `familyTreeState.ts` via localStorage key `ic_family_businesses`
-- Admin status: `useAdminStatus.ts` via localStorage key `ic-admin-claimed`
-- All state dispatches custom DOM events (`globalProductsUpdated`, `familyBusinessUpdated`) to sync across components
+- POS add product form has full fields (image, video, variants, addons, AI description, supplier). But edit dialog is minimal: only name, price, stock, description -- no image, variants, addons, category, etc.
+- No separate global 'Add Service' form in POS; services fall back to the same add product dialog without service-specific fields.
+- Dashboard reads `ic_user_orders` from localStorage once on component mount (not reactive). Orders placed in shop don't appear until user navigates away and back.
+- Dashboard has no 'My Orders' dedicated tab; orders are buried inside the Overview tab.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Nothing new -- purely fixes
+- Full edit dialog for products in POS: same fields as add dialog (images, video, variants with editable names/price/stock, addons, supplier, purchase price, AI description, category, moderation status)
+- Full edit dialog for services in POS: service name, category, description, price, images, duration, service areas, addons
+- `Add Service` button and dialog in POS with service-specific fields: name, category (Repair, Consulting, Cleaning, Healthcare, etc.), price, duration, service area/pincode, images, video link, description, addons
+- Dashboard `My Orders` dedicated tab that listens to localStorage `storage` event and updates reactively
+- Order detail expand/collapse in dashboard showing items, billing address, delivery status
+- Order status badge with color coding: Placed (blue), Confirmed (yellow), Shipped (orange), Delivered (green), Cancelled (red)
 
 ### Modify
-- Fix runtime crashes from v79 changes (AdminPanelPage Agent22, AstroAdvice tabs, NearbySearchBar FaceSearch)
-- Ensure all add/edit/save flows actually persist to localStorage and refresh the UI
-- Ensure POSPage product add form saves correctly and product list re-renders
-- Ensure FamilyTreePage business save dispatches `familyBusinessUpdated` and BusinessPage picks it up
-- Ensure ShopPage cart checkout saves to `ic_user_orders` localStorage and Dashboard shows orders
-- Ensure AdminPanelPage tabs (WhatsApp, Rider Management, Promotions, Social Queue, Agent 19/20) are not nested inside wrong TabsContent blocks
+- POS edit product button should open a full-featured edit dialog (not the current minimal one)
+- Dashboard tab list: add `My Orders` tab alongside Overview, Delivery Income, Affiliate
+- DashboardPage: move orders table from Overview tab to the new My Orders tab; make it reactive with `useState` + `useEffect` with storage listener
 
 ### Remove
-- Any code that could cause runtime undefined/null crashes (e.g. missing .length checks, accessing props on undefined)
+- The minimal edit dialog (4-field only) for products in POS -- replace with full edit dialog
 
 ## Implementation Plan
-1. Run a detailed review of v79 changed files: AdminPanelPage.tsx (Agent22, AstroAdvice, BizAnalytics), NearbySearchBar.tsx (FaceSearch), ShopPage.tsx (checkout), DashboardPage.tsx (orders)
-2. Fix any runtime issues found -- guard undefined accesses, fix useEffect cleanup, fix any missing state initialization
-3. Ensure all data entry forms (POS add product, Business Page add branch, Family Tree add business) trigger proper localStorage saves and event dispatches
-4. Validate the fix with build
+1. In `POSPage.tsx`: expand the edit product dialog to have same fields as add product dialog; add a separate Add Service dialog with service fields; add Edit button for services too
+2. In `DashboardPage.tsx`: add `My Orders` TabsTrigger and TabsContent; move orders table there; use `useState` initialized from localStorage + `useEffect` with `window.addEventListener('storage', ...)` and also a custom `orderPlaced` event listener so it updates immediately after checkout
+3. In `ShopPage.tsx`: after `doPlaceOrder`, dispatch `window.dispatchEvent(new Event('orderPlaced'))` so Dashboard can catch it in the same session

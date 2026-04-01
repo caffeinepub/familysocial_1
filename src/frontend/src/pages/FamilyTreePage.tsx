@@ -10,6 +10,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +37,8 @@ import {
   ArrowRight,
   Briefcase,
   Building2,
+  CheckCircle2,
+  Copy,
   Droplets,
   Eye,
   EyeOff,
@@ -38,9 +46,11 @@ import {
   Heart,
   Link,
   Loader2,
+  Lock,
   Pencil,
   Phone,
   Plus,
+  Share2,
   Shield,
   Trash2,
   TreePine,
@@ -1047,6 +1057,126 @@ function BusinessCard({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+// ─── FamilyTree Share & Privacy ─────────────────────────────────────────────
+
+type FTPrivacyLevel = "Public" | "Restricted" | "Private";
+
+const FT_PRIVACY_KEY = "ic_familytree_privacy";
+
+function FamilyTreePrivacyBadge() {
+  const [privacy] = useState<FTPrivacyLevel>(
+    () => (localStorage.getItem(FT_PRIVACY_KEY) as FTPrivacyLevel) || "Private",
+  );
+  const colors: Record<FTPrivacyLevel, string> = {
+    Public: "bg-green-500/15 text-green-600 border-green-500/30",
+    Restricted: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+    Private: "bg-muted text-muted-foreground border-border",
+  };
+  return (
+    <Badge className={`text-[10px] font-label gap-1 ${colors[privacy]}`}>
+      <Lock size={9} />
+      {privacy}
+    </Badge>
+  );
+}
+
+function FamilyTreeShareButton() {
+  const [privacy, setPrivacy] = useState<FTPrivacyLevel>(
+    () => (localStorage.getItem(FT_PRIVACY_KEY) as FTPrivacyLevel) || "Private",
+  );
+  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const url = `${typeof window !== "undefined" ? window.location.origin : ""}?page=family-tree`;
+
+  const handlePrivacyChange = (val: FTPrivacyLevel) => {
+    setPrivacy(val);
+    localStorage.setItem(FT_PRIVACY_KEY, val);
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 font-label"
+          data-ocid="familytree.share.button"
+        >
+          <Share2 size={14} />
+          Share
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-80 p-4 space-y-4"
+        align="end"
+        data-ocid="familytree.share.popover"
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            Share Family Tree
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Share this link to let others view your Family Tree
+          </p>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Page URL</Label>
+          <div className="flex gap-2">
+            <Input value={url} readOnly className="text-xs h-8 flex-1" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-2"
+              onClick={copyLink}
+            >
+              {copied ? (
+                <CheckCircle2 size={13} className="text-green-500" />
+              ) : (
+                <Copy size={13} />
+              )}
+            </Button>
+          </div>
+          {copied && <p className="text-xs text-green-600">Copied!</p>}
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Visibility</Label>
+          <RadioGroup
+            value={privacy}
+            onValueChange={(v) => handlePrivacyChange(v as FTPrivacyLevel)}
+            className="space-y-1"
+          >
+            {(["Public", "Restricted", "Private"] as FTPrivacyLevel[]).map(
+              (opt) => (
+                <div key={opt} className="flex items-center gap-2">
+                  <RadioGroupItem value={opt} id={`ft-privacy-${opt}`} />
+                  <Label
+                    htmlFor={`ft-privacy-${opt}`}
+                    className="text-xs cursor-pointer"
+                  >
+                    {opt === "Public"
+                      ? "🌍 Public — anyone with the link can view"
+                      : opt === "Restricted"
+                        ? "🔒 Restricted — only family circle members"
+                        : "🔐 Private — only you"}
+                  </Label>
+                </div>
+              ),
+            )}
+          </RadioGroup>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface Props {
   userProfile: UserProfile | null | undefined;
   onNavigate?: (page: string) => void;
@@ -1389,268 +1519,274 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
             </p>
           </div>
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 font-label">
-                <Plus size={16} />
-                Add Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="font-display">
-                  Add Family Member
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddSubmit} className="space-y-4 mt-2">
-                <div className="space-y-2">
-                  <Label>
-                    Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    placeholder="Full name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, name: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <FamilyTreePrivacyBadge />
+            <FamilyTreeShareButton />
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 font-label">
+                  <Plus size={16} />
+                  Add Member
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-display">
+                    Add Family Member
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddSubmit} className="space-y-4 mt-2">
                   <div className="space-y-2">
-                    <Label>Relationship</Label>
-                    <Select
-                      value={form.relationship}
-                      onValueChange={(v) =>
-                        setForm((p) => ({ ...p, relationship: v }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="parent">Parent</SelectItem>
-                        <SelectItem value="child">Child</SelectItem>
-                        <SelectItem value="sibling">Sibling</SelectItem>
-                        <SelectItem value="spouse">Spouse</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Blood Type</Label>
-                    <Select
-                      value={form.bloodType}
-                      onValueChange={(v) =>
-                        setForm((p) => ({ ...p, bloodType: v }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BLOOD_TYPES.map((bt) => (
-                          <SelectItem key={bt} value={bt}>
-                            {bt}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {form.relationship === "other" && (
-                  <div className="space-y-2">
-                    <Label>Specify Relationship</Label>
+                    <Label>
+                      Name <span className="text-destructive">*</span>
+                    </Label>
                     <Input
-                      placeholder="e.g. Uncle, Aunt, Cousin"
-                      value={form.otherRelationship}
+                      placeholder="Full name"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, name: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Relationship</Label>
+                      <Select
+                        value={form.relationship}
+                        onValueChange={(v) =>
+                          setForm((p) => ({ ...p, relationship: v }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="parent">Parent</SelectItem>
+                          <SelectItem value="child">Child</SelectItem>
+                          <SelectItem value="sibling">Sibling</SelectItem>
+                          <SelectItem value="spouse">Spouse</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Blood Type</Label>
+                      <Select
+                        value={form.bloodType}
+                        onValueChange={(v) =>
+                          setForm((p) => ({ ...p, bloodType: v }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BLOOD_TYPES.map((bt) => (
+                            <SelectItem key={bt} value={bt}>
+                              {bt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {form.relationship === "other" && (
+                    <div className="space-y-2">
+                      <Label>Specify Relationship</Label>
+                      <Input
+                        placeholder="e.g. Uncle, Aunt, Cousin"
+                        value={form.otherRelationship}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            otherRelationship: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Occupation</Label>
+                    <Input
+                      placeholder="e.g. Teacher, Engineer, Student"
+                      value={form.occupation}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, occupation: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Medical Conditions</Label>
+                    <Input
+                      placeholder="Comma-separated, e.g. Diabetes, Hypertension"
+                      value={form.medicalConditions}
                       onChange={(e) =>
                         setForm((p) => ({
                           ...p,
-                          otherRelationship: e.target.value,
+                          medicalConditions: e.target.value,
                         }))
                       }
                     />
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label>Occupation</Label>
-                  <Input
-                    placeholder="e.g. Teacher, Engineer, Student"
-                    value={form.occupation}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, occupation: e.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Medical Conditions</Label>
-                  <Input
-                    placeholder="Comma-separated, e.g. Diabetes, Hypertension"
-                    value={form.medicalConditions}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        medicalConditions: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg bg-secondary/60 p-3">
-                  <div>
-                    <p className="text-sm font-semibold">Make Public</p>
-                    <p className="text-xs text-muted-foreground">
-                      Show this member to community members
-                    </p>
+                  <div className="flex items-center justify-between rounded-lg bg-secondary/60 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Make Public</p>
+                      <p className="text-xs text-muted-foreground">
+                        Show this member to community members
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.isPublic}
+                      onCheckedChange={(v) =>
+                        setForm((p) => ({ ...p, isPublic: v }))
+                      }
+                    />
                   </div>
-                  <Switch
-                    checked={form.isPublic}
-                    onCheckedChange={(v) =>
-                      setForm((p) => ({ ...p, isPublic: v }))
-                    }
-                  />
-                </div>
 
-                {/* Business & Services Section */}
-                <div className="space-y-3 rounded-xl border border-border bg-secondary/20 p-3">
-                  <p className="text-xs font-semibold text-foreground">
-                    Business &amp; Services
-                  </p>
-                  <Select
-                    value={form.bizCategory ?? ""}
-                    onValueChange={(v) =>
-                      setForm((p) => ({
-                        ...p,
-                        bizCategory: v,
-                        bizMode: p.bizMode ?? "none",
-                      }))
-                    }
-                  >
-                    <SelectTrigger
-                      className="h-8 text-xs"
-                      data-ocid="family.member.biz.select"
-                    >
-                      <SelectValue placeholder="Select category (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="retail">Retail</SelectItem>
-                      <SelectItem value="food">Food &amp; Beverage</SelectItem>
-                      <SelectItem value="healthcare">Healthcare</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="realestate">Real Estate</SelectItem>
-                      <SelectItem value="travel">Travel</SelectItem>
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
-                      <SelectItem value="manufacturing">
-                        Manufacturing
-                      </SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {form.bizCategory && (
-                    <div className="flex gap-2">
-                      {(["none", "add", "link"] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${(form.bizMode ?? "none") === mode ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
-                          onClick={() =>
-                            setForm((p) => ({ ...p, bizMode: mode }))
-                          }
-                          data-ocid={`family.member.biz.${mode}.toggle`}
-                        >
-                          {mode === "none"
-                            ? "Skip"
-                            : mode === "add"
-                              ? "Add New"
-                              : "Link Existing"}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {form.bizMode === "add" && form.bizCategory && (
-                    <div className="space-y-2">
-                      <input
-                        className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Business name"
-                        value={form.bizName ?? ""}
-                        onChange={(e) =>
-                          setForm((p) => ({ ...p, bizName: e.target.value }))
-                        }
-                        data-ocid="family.member.biz.input"
-                      />
-                      <input
-                        className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Location"
-                        value={form.bizLocation ?? ""}
-                        onChange={(e) =>
-                          setForm((p) => ({
-                            ...p,
-                            bizLocation: e.target.value,
-                          }))
-                        }
-                      />
-                      <input
-                        className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Phone number"
-                        value={form.bizPhone ?? ""}
-                        onChange={(e) =>
-                          setForm((p) => ({ ...p, bizPhone: e.target.value }))
-                        }
-                      />
-                    </div>
-                  )}
-                  {form.bizMode === "link" && form.bizCategory && (
+                  {/* Business & Services Section */}
+                  <div className="space-y-3 rounded-xl border border-border bg-secondary/20 p-3">
+                    <p className="text-xs font-semibold text-foreground">
+                      Business &amp; Services
+                    </p>
                     <Select
-                      value={form.bizLinkId ?? ""}
+                      value={form.bizCategory ?? ""}
                       onValueChange={(v) =>
-                        setForm((p) => ({ ...p, bizLinkId: v }))
+                        setForm((p) => ({
+                          ...p,
+                          bizCategory: v,
+                          bizMode: p.bizMode ?? "none",
+                        }))
                       }
                     >
                       <SelectTrigger
                         className="h-8 text-xs"
-                        data-ocid="family.member.biz.link.select"
+                        data-ocid="family.member.biz.select"
                       >
-                        <SelectValue placeholder="Select existing business" />
+                        <SelectValue placeholder="Select category (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getFamilyTreeBusinesses().map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.name}
-                          </SelectItem>
-                        ))}
-                        {getFamilyTreeBusinesses().length === 0 && (
-                          <SelectItem value="_none" disabled>
-                            No businesses found — add one first
-                          </SelectItem>
-                        )}
+                        <SelectItem value="retail">Retail</SelectItem>
+                        <SelectItem value="food">
+                          Food &amp; Beverage
+                        </SelectItem>
+                        <SelectItem value="healthcare">Healthcare</SelectItem>
+                        <SelectItem value="education">Education</SelectItem>
+                        <SelectItem value="realestate">Real Estate</SelectItem>
+                        <SelectItem value="travel">Travel</SelectItem>
+                        <SelectItem value="technology">Technology</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="manufacturing">
+                          Manufacturing
+                        </SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                  )}
-                </div>
+                    {form.bizCategory && (
+                      <div className="flex gap-2">
+                        {(["none", "add", "link"] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${(form.bizMode ?? "none") === mode ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                            onClick={() =>
+                              setForm((p) => ({ ...p, bizMode: mode }))
+                            }
+                            data-ocid={`family.member.biz.${mode}.toggle`}
+                          >
+                            {mode === "none"
+                              ? "Skip"
+                              : mode === "add"
+                                ? "Add New"
+                                : "Link Existing"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {form.bizMode === "add" && form.bizCategory && (
+                      <div className="space-y-2">
+                        <input
+                          className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
+                          placeholder="Business name"
+                          value={form.bizName ?? ""}
+                          onChange={(e) =>
+                            setForm((p) => ({ ...p, bizName: e.target.value }))
+                          }
+                          data-ocid="family.member.biz.input"
+                        />
+                        <input
+                          className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
+                          placeholder="Location"
+                          value={form.bizLocation ?? ""}
+                          onChange={(e) =>
+                            setForm((p) => ({
+                              ...p,
+                              bizLocation: e.target.value,
+                            }))
+                          }
+                        />
+                        <input
+                          className="w-full h-8 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-primary"
+                          placeholder="Phone number"
+                          value={form.bizPhone ?? ""}
+                          onChange={(e) =>
+                            setForm((p) => ({ ...p, bizPhone: e.target.value }))
+                          }
+                        />
+                      </div>
+                    )}
+                    {form.bizMode === "link" && form.bizCategory && (
+                      <Select
+                        value={form.bizLinkId ?? ""}
+                        onValueChange={(v) =>
+                          setForm((p) => ({ ...p, bizLinkId: v }))
+                        }
+                      >
+                        <SelectTrigger
+                          className="h-8 text-xs"
+                          data-ocid="family.member.biz.link.select"
+                        >
+                          <SelectValue placeholder="Select existing business" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getFamilyTreeBusinesses().map((b) => (
+                            <SelectItem key={b.id} value={b.id}>
+                              {b.name}
+                            </SelectItem>
+                          ))}
+                          {getFamilyTreeBusinesses().length === 0 && (
+                            <SelectItem value="_none" disabled>
+                              No businesses found — add one first
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={addMember.isPending}
-                >
-                  {addMember.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                      Adding...
-                    </>
-                  ) : (
-                    "Add to Family Tree"
-                  )}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={addMember.isPending}
+                  >
+                    {addMember.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Adding...
+                      </>
+                    ) : (
+                      "Add to Family Tree"
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Edit Member Dialog */}
