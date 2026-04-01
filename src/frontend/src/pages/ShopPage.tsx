@@ -883,16 +883,27 @@ function CheckoutDialog({
     setStep("confirmation");
     toast.success("Order placed successfully!");
     // Save order to localStorage for Dashboard
+    const ts = new Date().toISOString();
     const newOrder = {
       id,
-      date: new Date().toISOString(),
+      date: ts,
       items: cartItems.map((item) => ({
         name: item.name,
         qty: item.qty,
         price: item.unitPrice,
       })),
       total: cartItems.reduce((s, i) => s + i.qty * i.unitPrice, 0),
-      status: "Placed",
+      status: "Order Placed",
+      statusHistory: [
+        { status: "Order Placed", timestamp: ts },
+        {
+          status: "Vendor Notified",
+          timestamp: new Date(Date.now() + 2000).toISOString(),
+          note: "Vendor notified automatically",
+        },
+      ],
+      vendorId: "",
+      courierId: "",
       billing: billingForm,
     };
     try {
@@ -904,6 +915,23 @@ function CheckoutDialog({
         "ic_user_orders",
         JSON.stringify(existing.slice(0, 50)),
       );
+      // Fire vendor notification
+      try {
+        const notifications = JSON.parse(
+          localStorage.getItem("indyaNotifications") || "[]",
+        );
+        notifications.unshift({
+          id: `notif-${Date.now()}`,
+          message: `New order ${id} received from ${billingForm.fullName || "Customer"}`,
+          time: ts,
+          read: false,
+        });
+        localStorage.setItem(
+          "indyaNotifications",
+          JSON.stringify(notifications.slice(0, 100)),
+        );
+        window.dispatchEvent(new Event("notificationAdded"));
+      } catch {}
       window.dispatchEvent(new Event("orderPlaced"));
     } catch {}
   };

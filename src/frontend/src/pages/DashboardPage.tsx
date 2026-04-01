@@ -18,6 +18,8 @@ import {
   Truck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { OrderStatusStepper } from "../components/BusinessModulesExtra";
+import type { OrderWithLifecycle } from "../components/BusinessModulesExtra";
 import { useCurrency } from "../contexts/CurrencyContext";
 
 interface StatCard {
@@ -490,16 +492,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function DashboardPage() {
   const { formatCurrency } = useCurrency();
-  const [userOrders, setUserOrders] = useState<
-    Array<{
-      id: string;
-      date: string;
-      items: Array<{ name: string; qty: number; price: number }>;
-      total: number;
-      status: string;
-      billing?: unknown;
-    }>
-  >(() => {
+  const [userOrders, setUserOrders] = useState<OrderWithLifecycle[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("ic_user_orders") || "[]");
     } catch {
@@ -715,7 +708,9 @@ export default function DashboardPage() {
                     {
                       userOrders.filter(
                         (o) =>
-                          o.status === "Placed" || o.status === "Confirmed",
+                          o.status === "Order Placed" ||
+                          o.status === "Vendor Approved" ||
+                          o.status === "Assigned to Courier",
                       ).length
                     }{" "}
                     active
@@ -831,31 +826,37 @@ export default function DashboardPage() {
               <div className="divide-y divide-border">
                 {userOrders.map((order, idx) => {
                   const isExpanded = expandedOrder === order.id;
-                  const statusStyle =
-                    order.status === "Delivered"
-                      ? {
-                          bg: "oklch(0.52 0.14 155 / 0.12)",
-                          text: "oklch(0.32 0.085 155)",
-                        }
-                      : order.status === "Shipped"
-                        ? {
-                            bg: "oklch(0.72 0.17 55 / 0.15)",
-                            text: "oklch(0.48 0.14 55)",
-                          }
-                        : order.status === "Confirmed"
-                          ? {
-                              bg: "oklch(0.85 0.12 85 / 0.3)",
-                              text: "oklch(0.45 0.14 65)",
-                            }
-                          : order.status === "Cancelled"
-                            ? {
-                                bg: "oklch(0.55 0.22 25 / 0.12)",
-                                text: "oklch(0.45 0.18 25)",
-                              }
-                            : {
-                                bg: "oklch(0.62 0.2 230 / 0.12)",
-                                text: "oklch(0.45 0.15 230)",
-                              };
+                  const statusStyle = (() => {
+                    const s = order.status;
+                    if (s === "Delivered")
+                      return {
+                        bg: "oklch(0.52 0.14 155 / 0.12)",
+                        text: "oklch(0.32 0.085 155)",
+                      };
+                    if (
+                      s === "Out for Delivery" ||
+                      s === "Courier Dispatched" ||
+                      s === "In Transit"
+                    )
+                      return {
+                        bg: "oklch(0.72 0.17 55 / 0.15)",
+                        text: "oklch(0.48 0.14 55)",
+                      };
+                    if (s === "Vendor Approved" || s === "Assigned to Courier")
+                      return {
+                        bg: "oklch(0.85 0.12 85 / 0.3)",
+                        text: "oklch(0.45 0.14 65)",
+                      };
+                    if (s === "Vendor Rejected" || s === "Delivery Failed")
+                      return {
+                        bg: "oklch(0.55 0.22 25 / 0.12)",
+                        text: "oklch(0.45 0.18 25)",
+                      };
+                    return {
+                      bg: "oklch(0.62 0.2 230 / 0.12)",
+                      text: "oklch(0.45 0.15 230)",
+                    };
+                  })();
                   return (
                     <div
                       key={order.id}
@@ -908,28 +909,45 @@ export default function DashboardPage() {
                       </button>
                       {isExpanded && (
                         <div className="px-5 pb-4 bg-secondary/10 border-t border-border">
-                          <div className="pt-3 space-y-2">
-                            <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide">
-                              Items
-                            </p>
-                            {order.items?.map((item) => (
-                              <div
-                                key={item.name}
-                                className="flex items-center justify-between text-xs"
-                              >
-                                <span className="text-foreground">
-                                  {item.name} × {item.qty}
-                                </span>
-                                <span className="font-label font-semibold text-foreground">
-                                  ₹{(item.price * item.qty).toLocaleString()}
+                          <div className="pt-3 space-y-4">
+                            {/* Order Status Timeline */}
+                            {order.statusHistory &&
+                            order.statusHistory.length > 0 ? (
+                              <div>
+                                <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                                  Order Journey
+                                </p>
+                                <OrderStatusStepper order={order} />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                Status: {order.status}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-label font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                Items
+                              </p>
+                              {order.items?.map((item) => (
+                                <div
+                                  key={item.name}
+                                  className="flex items-center justify-between text-xs"
+                                >
+                                  <span className="text-foreground">
+                                    {item.name} × {item.qty}
+                                  </span>
+                                  <span className="font-label font-semibold text-foreground">
+                                    ₹{(item.price * item.qty).toLocaleString()}
+                                  </span>
+                                </div>
+                              ))}
+                              <div className="flex items-center justify-between text-sm font-label font-bold pt-1 border-t border-border mt-2">
+                                <span>Total</span>
+                                <span style={{ color: "oklch(0.52 0.14 155)" }}>
+                                  ₹{order.total?.toLocaleString()}
                                 </span>
                               </div>
-                            ))}
-                            <div className="flex items-center justify-between text-sm font-label font-bold pt-1 border-t border-border">
-                              <span>Total</span>
-                              <span style={{ color: "oklch(0.52 0.14 155)" }}>
-                                ₹{order.total?.toLocaleString()}
-                              </span>
                             </div>
                           </div>
                         </div>

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -60,6 +61,21 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
 import { DiscoverClaimTab } from "../components/BusinessDiscoveryFeatures";
+import {
+  CourierDispatchBusinessPanel,
+  CourierDispatchModule,
+  ElectricalModule,
+  ElectricianModule,
+  FoodParcelDeliveryModule,
+  FuelDepotModule,
+  GarmentsModule,
+  MechanicModule,
+  PlumbingModule,
+  SweeperModule,
+  TransportModule,
+  VendorOrdersPanel,
+  WaterDeliveryModule,
+} from "../components/BusinessModulesExtra";
 import { LikeVoteBar } from "../components/LikeVoteBar";
 import { ReviewModal } from "../components/ReviewModal";
 import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
@@ -1899,6 +1915,18 @@ export default function BusinessPage() {
           <TabsTrigger value="biz-modules" data-ocid="business.biz_modules.tab">
             🧩 Modules
           </TabsTrigger>
+          <TabsTrigger
+            value="vendor-orders"
+            data-ocid="business.vendor_orders.tab"
+          >
+            📦 Vendor Orders
+          </TabsTrigger>
+          <TabsTrigger
+            value="courier-panel"
+            data-ocid="business.courier_panel.tab"
+          >
+            🚚 Courier Panel
+          </TabsTrigger>
           <TabsTrigger value="hr-payroll" data-ocid="business.hr_payroll.tab">
             👥 HR &amp; Payroll
           </TabsTrigger>
@@ -2752,6 +2780,12 @@ export default function BusinessPage() {
         </TabsContent>
         <TabsContent value="biz-modules" className="mt-6 space-y-4">
           <BizModulesTab />
+        </TabsContent>
+        <TabsContent value="vendor-orders" className="mt-6 space-y-4">
+          <VendorOrdersPanel />
+        </TabsContent>
+        <TabsContent value="courier-panel" className="mt-6 space-y-4">
+          <CourierDispatchBusinessPanel />
         </TabsContent>
         <TabsContent value="hr-payroll" className="mt-6 space-y-4">
           <HRPayrollTab />
@@ -4611,6 +4645,83 @@ const BIZ_MODULES = [
     icon: "🏦",
     categories: ["Lending/Finance"],
   },
+  {
+    id: "courier-dispatch",
+    name: "Courier & Dispatch",
+    desc: "Shipment tracking, dispatch board, proof of delivery",
+    icon: "🚚",
+    categories: ["Logistics", "Transport", "General"],
+  },
+  {
+    id: "fuel-depot",
+    name: "Fuel Depot Management",
+    desc: "Petrol, LPG, CNG, EV, Hydrogen & more — stock & dispense",
+    icon: "⛽",
+    categories: ["Fuel & Energy"],
+  },
+  {
+    id: "transport-biz",
+    name: "Transport Business",
+    desc: "Fleet management, trip logs, cargo tracking",
+    icon: "🚛",
+    categories: ["Logistics", "Transport"],
+  },
+  {
+    id: "water-delivery",
+    name: "Water Delivery System",
+    desc: "Bottle & bulk water orders, route planning",
+    icon: "💧",
+    categories: ["Logistics", "General"],
+  },
+  {
+    id: "food-parcel",
+    name: "Food & Parcel Delivery",
+    desc: "Incoming orders, rider assignment, ETA tracking",
+    icon: "🍱",
+    categories: ["Food & Beverage", "Logistics"],
+  },
+  {
+    id: "plumbing",
+    name: "Plumbing Services",
+    desc: "Job cards, materials tracking, labour billing",
+    icon: "🔩",
+    categories: ["Home Services"],
+  },
+  {
+    id: "electrical",
+    name: "Electrical Services",
+    desc: "Wiring jobs, faults, inspection records",
+    icon: "⚡",
+    categories: ["Home Services"],
+  },
+  {
+    id: "electrician",
+    name: "Electrician (Field)",
+    desc: "Field engineer job cards, parts used, billing",
+    icon: "🔌",
+    categories: ["Home Services"],
+  },
+  {
+    id: "mechanic",
+    name: "Mechanic Shop",
+    desc: "Vehicle job cards, parts, service history",
+    icon: "🔧",
+    categories: ["Repair/Service", "Automotive"],
+  },
+  {
+    id: "sweeper",
+    name: "Sweeper / Cleaning",
+    desc: "Area schedules, shift assignment, attendance",
+    icon: "🧹",
+    categories: ["Home Services", "General"],
+  },
+  {
+    id: "garments",
+    name: "Garments & Tailoring",
+    desc: "Tailor orders, measurements, fabric stock",
+    icon: "👗",
+    categories: ["Retail", "Garments"],
+  },
 ];
 
 const BIZ_CATEGORIES = [
@@ -4623,7 +4734,54 @@ const BIZ_CATEGORIES = [
   "Vehicle Dealership",
   "Software/IT",
   "Lending/Finance",
+  "Logistics",
+  "Transport",
+  "Fuel & Energy",
+  "Food & Beverage",
+  "Home Services",
+  "Automotive",
+  "Garments",
 ];
+
+function BizModulePanel({ moduleId }: { moduleId: string | null }) {
+  if (!moduleId) return null;
+  const panels: Record<string, React.ReactNode> = {
+    "courier-dispatch": <CourierDispatchModule />,
+    "fuel-depot": <FuelDepotModule />,
+    "transport-biz": <TransportModule />,
+    "water-delivery": <WaterDeliveryModule />,
+    "food-parcel": <FoodParcelDeliveryModule />,
+    plumbing: <PlumbingModule />,
+    electrical: <ElectricalModule />,
+    electrician: <ElectricianModule />,
+    mechanic: <MechanicModule />,
+    sweeper: <SweeperModule />,
+    garments: <GarmentsModule />,
+  };
+  return (
+    panels[moduleId] ?? (
+      <div className="space-y-3 py-2">
+        <p className="text-sm text-muted-foreground">
+          Module is active. Configure settings for your business below.
+        </p>
+        <div>
+          <Label className="text-xs">Custom Label</Label>
+          <Input
+            placeholder="e.g. My Inventory"
+            className="mt-1"
+            data-ocid="biz.module.config.input"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch data-ocid="biz.module.config.switch" />
+          <Label className="text-sm">
+            Enable notifications for this module
+          </Label>
+        </div>
+      </div>
+    )
+  );
+}
 
 function BizModulesTab() {
   const [category, setCategory] = React.useState("General");
@@ -4733,48 +4891,28 @@ function BizModulesTab() {
       </div>
 
       <Dialog open={!!configOpen} onOpenChange={() => setConfigOpen(null)}>
-        <DialogContent data-ocid="biz.module.config.dialog">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] flex flex-col"
+          data-ocid="biz.module.config.dialog"
+        >
           <DialogHeader>
             <DialogTitle>
-              {BIZ_MODULES.find((m) => m.id === configOpen)?.icon} Configure{" "}
+              {BIZ_MODULES.find((m) => m.id === configOpen)?.icon}{" "}
               {BIZ_MODULES.find((m) => m.id === configOpen)?.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Module is active. You can configure settings specific to this
-              module below.
-            </p>
-            <div>
-              <Label className="text-xs">Custom Label</Label>
-              <Input
-                placeholder="e.g. My Inventory"
-                className="mt-1"
-                data-ocid="biz.module.config.input"
-              />
+          <ScrollArea className="flex-1 mt-2 pr-1">
+            <div className="space-y-4 py-2">
+              <BizModulePanel moduleId={configOpen} />
             </div>
-            <div className="flex items-center gap-2">
-              <Switch data-ocid="biz.module.config.switch" />
-              <Label className="text-sm">
-                Enable notifications for this module
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="mt-4">
             <Button
               variant="outline"
               onClick={() => setConfigOpen(null)}
               data-ocid="biz.module.config.cancel_button"
             >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setConfigOpen(null);
-              }}
-              data-ocid="biz.module.config.confirm_button"
-            >
-              Save
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
