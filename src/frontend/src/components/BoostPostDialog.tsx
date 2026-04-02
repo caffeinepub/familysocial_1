@@ -89,8 +89,6 @@ export default function BoostPostDialog({
 
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
   const totalPrice = plan.price * selectedDuration;
-  const showTargeting = selectedPlan !== "basic";
-
   function toggleRegion(r: string) {
     setSelectedRegions((prev) =>
       prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
@@ -108,6 +106,34 @@ export default function BoostPostDialog({
     const existing: string[] = JSON.parse(localStorage.getItem(key) || "[]");
     if (!existing.includes(postTitle)) {
       localStorage.setItem(key, JSON.stringify([...existing, postTitle]));
+    }
+    // Save full promo to queue for admin review
+    try {
+      const promo = {
+        id: Date.now().toString(),
+        postTitle,
+        postType,
+        plan: selectedPlan,
+        amount: totalPrice,
+        gateway: "Razorpay",
+        txnId: `TXN${Date.now()}`,
+        regions: selectedRegions,
+        ageGroup: selectedAge,
+        gender: selectedGender,
+        duration: selectedDuration,
+        status: "pending",
+        timestamp: new Date().toISOString(),
+        impressions: 0,
+      };
+      const existingQ = JSON.parse(
+        localStorage.getItem("ic_promotion_queue") || "[]",
+      );
+      localStorage.setItem(
+        "ic_promotion_queue",
+        JSON.stringify([...existingQ, promo]),
+      );
+    } catch {
+      // ignore localStorage errors
     }
     toast.success("Your post is now being promoted!", {
       description: `${plan.name} plan · ${plan.reach}`,
@@ -252,111 +278,105 @@ export default function BoostPostDialog({
               </div>
             </div>
 
-            {/* Audience Targeting (Standard/Premium only) */}
-            {showTargeting && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Audience Targeting
-                </p>
+            {/* Audience Targeting - All plans */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Audience Targeting
+              </p>
 
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Regions</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {REGIONS.map((r) => (
+                    <button
+                      type="button"
+                      key={r}
+                      onClick={() => toggleRegion(r)}
+                      className="text-[11px] px-2.5 py-1 rounded-full border transition-all"
+                      style={{
+                        borderColor: selectedRegions.includes(r)
+                          ? "oklch(0.55 0.22 280)"
+                          : "oklch(var(--border))",
+                        background: selectedRegions.includes(r)
+                          ? "oklch(0.55 0.22 280 / 0.12)"
+                          : "transparent",
+                        color: selectedRegions.includes(r)
+                          ? "oklch(0.55 0.22 280)"
+                          : "oklch(var(--muted-foreground))",
+                      }}
+                      data-ocid="boost.region.toggle"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1.5">
-                    Regions
+                    Age Group
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {REGIONS.map((r) => (
+                  <div className="flex flex-wrap gap-1">
+                    {AGE_GROUPS.map((a) => (
                       <button
                         type="button"
-                        key={r}
-                        onClick={() => toggleRegion(r)}
-                        className="text-[11px] px-2.5 py-1 rounded-full border transition-all"
+                        key={a}
+                        onClick={() => setSelectedAge(a)}
+                        className="text-[11px] px-2 py-0.5 rounded-full border transition-all"
                         style={{
-                          borderColor: selectedRegions.includes(r)
-                            ? "oklch(0.55 0.22 280)"
-                            : "oklch(var(--border))",
-                          background: selectedRegions.includes(r)
-                            ? "oklch(0.55 0.22 280 / 0.12)"
-                            : "transparent",
-                          color: selectedRegions.includes(r)
-                            ? "oklch(0.55 0.22 280)"
-                            : "oklch(var(--muted-foreground))",
+                          borderColor:
+                            selectedAge === a
+                              ? "oklch(0.60 0.25 335)"
+                              : "oklch(var(--border))",
+                          background:
+                            selectedAge === a
+                              ? "oklch(0.60 0.25 335 / 0.1)"
+                              : "transparent",
+                          color:
+                            selectedAge === a
+                              ? "oklch(0.60 0.25 335)"
+                              : "oklch(var(--muted-foreground))",
                         }}
-                        data-ocid="boost.region.toggle"
+                        data-ocid="boost.age.toggle"
                       >
-                        {r}
+                        {a}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1.5">
-                      Age Group
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {AGE_GROUPS.map((a) => (
-                        <button
-                          type="button"
-                          key={a}
-                          onClick={() => setSelectedAge(a)}
-                          className="text-[11px] px-2 py-0.5 rounded-full border transition-all"
-                          style={{
-                            borderColor:
-                              selectedAge === a
-                                ? "oklch(0.60 0.25 335)"
-                                : "oklch(var(--border))",
-                            background:
-                              selectedAge === a
-                                ? "oklch(0.60 0.25 335 / 0.1)"
-                                : "transparent",
-                            color:
-                              selectedAge === a
-                                ? "oklch(0.60 0.25 335)"
-                                : "oklch(var(--muted-foreground))",
-                          }}
-                          data-ocid="boost.age.toggle"
-                        >
-                          {a}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1.5">
-                      Gender
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {GENDERS.map((g) => (
-                        <button
-                          type="button"
-                          key={g}
-                          onClick={() => setSelectedGender(g)}
-                          className="text-[11px] px-2 py-0.5 rounded-full border transition-all"
-                          style={{
-                            borderColor:
-                              selectedGender === g
-                                ? "oklch(0.60 0.18 150)"
-                                : "oklch(var(--border))",
-                            background:
-                              selectedGender === g
-                                ? "oklch(0.60 0.18 150 / 0.1)"
-                                : "transparent",
-                            color:
-                              selectedGender === g
-                                ? "oklch(0.60 0.18 150)"
-                                : "oklch(var(--muted-foreground))",
-                          }}
-                          data-ocid="boost.gender.toggle"
-                        >
-                          {g}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1.5">Gender</p>
+                  <div className="flex flex-wrap gap-1">
+                    {GENDERS.map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        onClick={() => setSelectedGender(g)}
+                        className="text-[11px] px-2 py-0.5 rounded-full border transition-all"
+                        style={{
+                          borderColor:
+                            selectedGender === g
+                              ? "oklch(0.60 0.18 150)"
+                              : "oklch(var(--border))",
+                          background:
+                            selectedGender === g
+                              ? "oklch(0.60 0.18 150 / 0.1)"
+                              : "transparent",
+                          color:
+                            selectedGender === g
+                              ? "oklch(0.60 0.18 150)"
+                              : "oklch(var(--muted-foreground))",
+                        }}
+                        data-ocid="boost.gender.toggle"
+                      >
+                        {g}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Duration */}
             <div>

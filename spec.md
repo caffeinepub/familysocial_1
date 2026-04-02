@@ -1,57 +1,32 @@
 # IndyaCentral
 
 ## Current State
-BusinessPage has a `BizModulesTab` that lists 20+ business modules. Modules like Courier, Fuel, Transport, Water, Food/Parcel, Plumbing, Electrical, Mechanic, Sweeper, Garments have full panel components in `BusinessModulesExtra.tsx`. However the following modules fall back to a generic placeholder with just a text input and a switch:
-- Inventory & Material Management
-- Assembly/Manufacturing
-- Repair & Service Center
-- Financial Management
-- Telecom Management
-- Retail Shop Management
-- Vehicle Sale/Purchase
-- Lead Generation / CRM
-- Software Project Management
-- Money Lending
-
-No delivery partner integrations (Porter, Rapido, Uber, Jugnoo) exist anywhere in the app.
+- MyAccountPage has Dashboard, Orders, Products, Inventory tabs
+- BoostPostDialog has plans, audience targeting (Standard/Premium only), duration, payment
+- AdminPanelPage Promotions section shows hardcoded moderation queue, plans, active promos — no payment details per promotion
+- Promotions saved to localStorage as a list of post titles only
+- No visiting card feature exists
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full configuration panels for all 10 placeholder business modules, each with relevant tabs (e.g. Inventory has: Stock, Purchase Orders, Suppliers, Reports)
-- `BusinessModulesFull.tsx` component file with all 10 module panels
-- `DeliveryPartnersPanel.tsx` component: Porter, Rapido, Uber, Jugnoo integration setup with API key config, rate display, order dispatch, and status tracking
-- Delivery Partners tab in Business Page (under delivery/logistics businesses)
-- Delivery Partners admin setup section in Admin Panel (under a new "Delivery Partners" tab)
-- Real-time feel: all module data tables auto-refresh every 10-15s with simulated live updates (new orders, stock changes, status updates)
+- Personal Visiting Card tab in MyAccountPage with name, photo upload, designation, phone, email, website, social links (Instagram, LinkedIn, Twitter, WhatsApp), QR code, and download/share
+- Promotions saved to localStorage with full payment details: amount, plan, gateway used, transaction ID, demographic targeting, module/post type
+- Admin Promotions queue reads from localStorage and shows payment receipt per pending promotion
+- Approved promotions saved to localStorage and injected inline (every 5th item) into relevant module feeds (Shop, Social Feed, Jobs, Blog)
+- Demographic targeting (age, gender, region, religion/culture) available for ALL boost plans (not just Standard/Premium)
 
 ### Modify
-- `BusinessPage.tsx` `BizModulePanel` function: replace generic placeholder for the 10 modules with new full panel components from `BusinessModulesFull.tsx`
-- `BusinessPage.tsx`: add "Delivery Partners" tab visible for logistics/delivery businesses
-- `AdminPanelPage.tsx`: add "Delivery Partners" tab with per-platform config
+- BoostPostDialog: show demographic targeting for Basic plan too; on payment success, save full promo object to localStorage `ic_promotion_queue`
+- AdminPanelPage PromotionsQueue: read pending promos from localStorage `ic_promotion_queue`, show payment details per row, on approve move to `ic_active_promos`
+- ShopPage, SocialFeedPage, JobsPage: inject approved promotion cards inline in feed every 5 items
 
 ### Remove
-- Generic placeholder fallback for the 10 named modules
+- Nothing removed
 
 ## Implementation Plan
-1. Create `src/frontend/src/components/BusinessModulesFull.tsx` with 10 full module panels:
-   - `InventoryModule`: Stock table (item, qty, unit, reorder level, last updated), Add Stock dialog, Purchase Orders tab, Suppliers tab, low-stock alerts badge
-   - `AssemblyModule`: BOM (Bill of Materials) list, Production Orders, Work-in-Progress tracker, Finished Goods
-   - `RepairServiceModule`: Job Cards (device, issue, status, technician), Parts Used, Customer History, Warranty Tracker
-   - `FinancialModule`: P&L summary cards, Transactions ledger, Invoices, Tax Reports, Bank Reconciliation
-   - `TelecomModule`: SIM/Connection inventory, Plan Management, Customer accounts, Usage reports, Recharge tracker
-   - `RetailShopModule`: Point-of-Sale quick bill, Daily Sales summary, Cash register, Customer loyalty
-   - `VehicleModule`: Vehicle listings (make, model, year, price, status), Test Drive bookings, Sale records, Purchase history
-   - `LeadCRMModule`: Lead pipeline (New→Contacted→Qualified→Closed), Follow-up scheduler, Contact notes, Conversion stats
-   - `SoftwareProjectModule`: Projects list, Sprint board (To Do/In Progress/Done), Time logs, Client billing
-   - `MoneyLendingModule`: Loan accounts, EMI schedule, Payment history, Overdue alerts, Recovery notes
-2. Create `src/frontend/src/components/DeliveryPartnersPanel.tsx`:
-   - Tabs: Porter | Rapido | Uber | Jugnoo
-   - Per partner: API credentials form (API Key, Secret, Merchant ID), Service toggle (enabled/disabled), Rate display (fetched/simulated), Dispatch Order dialog (pickup, drop, weight/size), Active Deliveries table with status
-   - Admin view: per-partner analytics (orders dispatched, avg cost, success rate)
-3. Update `BusinessPage.tsx`:
-   - Import and wire all 10 modules in `BizModulePanel`
-   - Add "🚚 Delivery Partners" tab in the Business Page tabs for delivery/logistics businesses
-4. Update `AdminPanelPage.tsx`:
-   - Add "🚚 Delivery Partners" tab with the same `DeliveryPartnersPanel` component showing admin config view
-5. All data tables use `useEffect` with `setInterval` (10-15s) to simulate real-time updates
+1. Update BoostPostDialog to save full promotion object (title, type, plan, amount, gateway, txnId, demographics, module, timestamp) to localStorage `ic_promotion_queue` on payment success
+2. Add Visiting Card tab to MyAccountPage
+3. Update PromotionsQueue in AdminPanelPage to read `ic_promotion_queue` from localStorage, show payment details, allow approve/reject that moves items to `ic_active_promos`
+4. Create a shared `getActivePromos()` helper that reads `ic_active_promos` and injects promos into feed arrays
+5. Update ShopPage, SocialFeedPage to inject promoted cards every 5 items

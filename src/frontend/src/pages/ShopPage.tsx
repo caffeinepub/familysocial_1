@@ -53,6 +53,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
@@ -2262,36 +2263,90 @@ export default function ShopPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {sortedItems.map((item) => (
-                <ShopProductCard
-                  key={item.id}
-                  id={item.id}
-                  name={item.name}
-                  description={item.description}
-                  price={item.price}
-                  category={item.category}
-                  rating={item.rating}
-                  seller={item.seller}
-                  isService={item.isService}
-                  photoUrl={item.photoUrl}
-                  sourceModule={item.sourceModule}
-                  votes={item.votes}
-                  isBestBuy={(item as { isBestBuy?: boolean }).isBestBuy}
-                  isLoggedIn={isLoggedIn}
-                  createdAt={(item as { createdAt?: string }).createdAt}
-                  onAddToCart={() => addToCart(item)}
-                  distanceKm={
-                    userLocation && (item as { lat?: number; lng?: number }).lat
-                      ? haversineKm(
-                          userLocation.lat,
-                          userLocation.lng,
-                          (item as { lat?: number }).lat!,
-                          (item as { lng?: number }).lng!,
-                        )
-                      : undefined
+              {(() => {
+                const activePromos: any[] = (() => {
+                  try {
+                    return JSON.parse(
+                      localStorage.getItem("ic_active_promos") || "[]",
+                    );
+                  } catch {
+                    return [];
                   }
-                />
-              ))}
+                })();
+                const shopPromos = activePromos.filter((p) =>
+                  ["product", "listing", "post"].includes(p.postType),
+                );
+                let promoIdx = 0;
+                const elements: React.ReactNode[] = [];
+                sortedItems.forEach((item, idx) => {
+                  elements.push(
+                    <ShopProductCard
+                      key={item.id}
+                      id={item.id}
+                      name={item.name}
+                      description={item.description}
+                      price={item.price}
+                      category={item.category}
+                      rating={item.rating}
+                      seller={item.seller}
+                      isService={item.isService}
+                      photoUrl={item.photoUrl}
+                      sourceModule={item.sourceModule}
+                      votes={item.votes}
+                      isBestBuy={(item as { isBestBuy?: boolean }).isBestBuy}
+                      isLoggedIn={isLoggedIn}
+                      createdAt={(item as { createdAt?: string }).createdAt}
+                      onAddToCart={() => addToCart(item)}
+                      distanceKm={
+                        userLocation &&
+                        (item as { lat?: number; lng?: number }).lat
+                          ? haversineKm(
+                              userLocation.lat,
+                              userLocation.lng,
+                              (item as { lat?: number }).lat!,
+                              (item as { lng?: number }).lng!,
+                            )
+                          : undefined
+                      }
+                    />,
+                  );
+                  if ((idx + 1) % 5 === 0 && promoIdx < shopPromos.length) {
+                    const promo = shopPromos[promoIdx++];
+                    elements.push(
+                      <div
+                        key={`promo-${promo.id}`}
+                        className="bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-400/60 rounded-2xl p-4 flex flex-col gap-2"
+                        data-ocid="shop.promoted.card"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Megaphone size={12} className="text-amber-600" />
+                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                            Sponsored
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground line-clamp-2">
+                          {promo.postTitle}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {promo.plan?.charAt(0).toUpperCase() +
+                            promo.plan?.slice(1)}{" "}
+                          Plan · {promo.regions?.join(", ") || "All India"}
+                        </p>
+                        <div className="text-[10px] text-amber-600 font-medium">
+                          ~
+                          {promo.plan === "premium"
+                            ? "10,000"
+                            : promo.plan === "standard"
+                              ? "2,000"
+                              : "500"}{" "}
+                          impressions
+                        </div>
+                      </div>,
+                    );
+                  }
+                });
+                return elements;
+              })()}
             </div>
           )}
         </TabsContent>

@@ -16,15 +16,26 @@ import {
   ArrowUpRight,
   Box,
   ClipboardList,
+  CreditCard,
   DollarSign,
+  Download,
   Edit,
+  Globe,
+  Instagram,
+  Linkedin,
+  MessageCircle,
   Package,
+  Phone,
   PiggyBank,
+  QrCode,
+  Share2,
   ShoppingCart,
   Trash2,
   TrendingUp,
+  Twitter,
+  User,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const MOCK_ORDERS = [
@@ -145,6 +156,17 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function MyAccountPage() {
   const [searchOrders, setSearchOrders] = useState("");
+  const [vcName, setVcName] = useState("Aakash Sharma");
+  const [vcTitle, setVcTitle] = useState("Founder & CEO");
+  const [vcPhone, setVcPhone] = useState("+91 98765 43210");
+  const [vcEmail, setVcEmail] = useState("aakash@indyacentral.in");
+  const [vcWebsite, setVcWebsite] = useState("www.indyacentral.in");
+  const [vcInsta, setVcInsta] = useState("@aakash.sharma");
+  const [vcLinkedin, setVcLinkedin] = useState("linkedin.com/in/aakash");
+  const [vcTwitter, setVcTwitter] = useState("@aakash_s");
+  const [vcWhatsapp, setVcWhatsapp] = useState("+91 98765 43210");
+  const [vcPhoto, setVcPhoto] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6" data-ocid="myaccount.page">
@@ -170,6 +192,12 @@ export default function MyAccountPage() {
           </TabsTrigger>
           <TabsTrigger value="inventory" data-ocid="myaccount.inventory.tab">
             Inventory
+          </TabsTrigger>
+          <TabsTrigger
+            value="visiting-card"
+            data-ocid="myaccount.visiting_card.tab"
+          >
+            <CreditCard size={13} className="mr-1" /> Visiting Card
           </TabsTrigger>
         </TabsList>
 
@@ -556,7 +584,375 @@ export default function MyAccountPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* Visiting Card */}
+        <TabsContent
+          value="visiting-card"
+          className="mt-6 space-y-6"
+          data-ocid="myaccount.visiting_card.panel"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Card Preview */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Live Preview
+              </h3>
+              <div
+                className="relative rounded-2xl p-6 overflow-hidden shadow-xl min-h-[200px] flex flex-col justify-between"
+                style={{
+                  background:
+                    "linear-gradient(135deg, oklch(0.32 0.20 280) 0%, oklch(0.25 0.22 310) 50%, oklch(0.30 0.25 335) 100%)",
+                  color: "white",
+                }}
+                data-ocid="myaccount.visiting_card.card"
+              >
+                {/* Background decoration */}
+                <div
+                  className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10"
+                  style={{
+                    background: "oklch(0.80 0.20 335)",
+                    transform: "translate(30%, -30%)",
+                  }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-10"
+                  style={{
+                    background: "oklch(0.70 0.22 280)",
+                    transform: "translate(-30%, 30%)",
+                  }}
+                />
+
+                {/* Top section */}
+                <div className="flex items-start justify-between relative z-10">
+                  <div className="flex items-start gap-3">
+                    {vcPhoto ? (
+                      <img
+                        src={vcPhoto}
+                        alt="Profile"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-white/30"
+                      />
+                    ) : (
+                      <div
+                        className="w-14 h-14 rounded-full border-2 border-white/30 flex items-center justify-center"
+                        style={{ background: "oklch(0.45 0.22 280)" }}
+                      >
+                        <User size={24} className="text-white/80" />
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-xl font-bold text-white leading-tight">
+                        {vcName || "Your Name"}
+                      </h2>
+                      <p className="text-sm text-white/80 mt-0.5">
+                        {vcTitle || "Your Title"}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Decorative QR */}
+                  <div className="shrink-0">
+                    <DecorativeQR />
+                  </div>
+                </div>
+
+                {/* Contact details */}
+                <div className="relative z-10 space-y-1.5 mt-4">
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <Phone size={11} />
+                    <span>{vcPhone}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <MessageCircle size={11} />
+                    <span>{vcEmail}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <Globe size={11} />
+                    <span>{vcWebsite}</span>
+                  </div>
+                </div>
+
+                {/* Social links */}
+                <div className="relative z-10 flex items-center gap-3 mt-3 pt-3 border-t border-white/20">
+                  {vcInsta && (
+                    <div className="flex items-center gap-1 text-[10px] text-white/70">
+                      <Instagram size={10} />
+                      <span>{vcInsta}</span>
+                    </div>
+                  )}
+                  {vcLinkedin && (
+                    <div className="flex items-center gap-1 text-[10px] text-white/70">
+                      <Linkedin size={10} />
+                      <span>in</span>
+                    </div>
+                  )}
+                  {vcTwitter && (
+                    <div className="flex items-center gap-1 text-[10px] text-white/70">
+                      <Twitter size={10} />
+                      <span>{vcTwitter}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 gap-1.5"
+                  onClick={() => toast.success("Card downloaded as image")}
+                  data-ocid="myaccount.visiting_card.download_button"
+                >
+                  <Download size={14} /> Download
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 gap-1.5"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `https://indyacentral.in/card/${vcName.replace(/\s+/g, "-").toLowerCase()}`,
+                    );
+                    toast.success("Link copied!", {
+                      description: "Share your visiting card link",
+                    });
+                  }}
+                  data-ocid="myaccount.visiting_card.secondary_button"
+                >
+                  <QrCode size={14} /> Copy Link
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={() => toast.success("Card shared successfully")}
+                  data-ocid="myaccount.visiting_card.primary_button"
+                >
+                  <Share2 size={14} /> Share
+                </Button>
+              </div>
+            </div>
+
+            {/* Edit Form */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Edit Details
+              </h3>
+              <Card className="rounded-2xl border-border">
+                <CardContent className="p-4 space-y-3">
+                  {/* Photo Upload */}
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="vc-photo-input"
+                      className="w-16 h-16 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                      data-ocid="myaccount.visiting_card.upload_button"
+                    >
+                      {vcPhoto ? (
+                        <img
+                          src={vcPhoto}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={20} className="text-muted-foreground" />
+                      )}
+                    </label>
+                    <input
+                      id="vc-photo-input"
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) =>
+                          setVcPhoto(ev.target?.result as string);
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <div>
+                      <p className="text-xs font-medium">Profile Photo</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Click to upload (JPG, PNG)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Full Name</Label>
+                      <Input
+                        value={vcName}
+                        onChange={(e) => setVcName(e.target.value)}
+                        className="mt-1 h-8 text-xs"
+                        placeholder="Your name"
+                        data-ocid="myaccount.visiting_card.input"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Designation / Title</Label>
+                      <Input
+                        value={vcTitle}
+                        onChange={(e) => setVcTitle(e.target.value)}
+                        className="mt-1 h-8 text-xs"
+                        placeholder="CEO, Developer..."
+                        data-ocid="myaccount.visiting_card.input"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone</Label>
+                      <Input
+                        value={vcPhone}
+                        onChange={(e) => setVcPhone(e.target.value)}
+                        className="mt-1 h-8 text-xs"
+                        placeholder="+91..."
+                        data-ocid="myaccount.visiting_card.input"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Email</Label>
+                      <Input
+                        value={vcEmail}
+                        onChange={(e) => setVcEmail(e.target.value)}
+                        className="mt-1 h-8 text-xs"
+                        type="email"
+                        placeholder="you@email.com"
+                        data-ocid="myaccount.visiting_card.input"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Website URL</Label>
+                      <Input
+                        value={vcWebsite}
+                        onChange={(e) => setVcWebsite(e.target.value)}
+                        className="mt-1 h-8 text-xs"
+                        placeholder="www.yoursite.com"
+                        data-ocid="myaccount.visiting_card.input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">
+                      Social Links
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Instagram
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <Input
+                          value={vcInsta}
+                          onChange={(e) => setVcInsta(e.target.value)}
+                          className="h-7 text-xs"
+                          placeholder="@handle"
+                          data-ocid="myaccount.visiting_card.input"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Linkedin
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <Input
+                          value={vcLinkedin}
+                          onChange={(e) => setVcLinkedin(e.target.value)}
+                          className="h-7 text-xs"
+                          placeholder="linkedin.com/in/..."
+                          data-ocid="myaccount.visiting_card.input"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Twitter
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <Input
+                          value={vcTwitter}
+                          onChange={(e) => setVcTwitter(e.target.value)}
+                          className="h-7 text-xs"
+                          placeholder="@handle"
+                          data-ocid="myaccount.visiting_card.input"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MessageCircle
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <Input
+                          value={vcWhatsapp}
+                          onChange={(e) => setVcWhatsapp(e.target.value)}
+                          className="h-7 text-xs"
+                          placeholder="+91..."
+                          data-ocid="myaccount.visiting_card.input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full gap-2"
+                    onClick={() => toast.success("Visiting card saved!")}
+                    data-ocid="myaccount.visiting_card.save_button"
+                  >
+                    <CreditCard size={14} /> Save Card
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Decorative QR code made from CSS grid
+function DecorativeQR() {
+  const pattern = [
+    1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+    1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0,
+    1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0,
+    1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,
+    0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0,
+    0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0,
+    1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0,
+    0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0,
+    0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0,
+    0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0,
+    0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0,
+    0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0,
+    0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+    0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0,
+  ];
+  return (
+    <div
+      className="grid gap-0 rounded-sm overflow-hidden"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(19, 3px)",
+        width: 57,
+        height: 57,
+        background: "white",
+        padding: 3,
+      }}
+    >
+      {pattern.map((cell, i) => {
+        const row = Math.floor(i / 19);
+        const col = i % 19;
+        return (
+          <div
+            key={`r${row}c${col}`}
+            style={{
+              width: 3,
+              height: 3,
+              background: cell ? "#1a1a2e" : "white",
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

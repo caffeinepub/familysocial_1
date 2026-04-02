@@ -23,6 +23,7 @@ import {
   Heart,
   Home,
   Image,
+  Megaphone,
   MessageCircle,
   MoreHorizontal,
   Plane,
@@ -682,11 +683,64 @@ export default function SocialFeedPage({ userProfile }: Props) {
             </p>
           </div>
         ) : (
-          getTabPosts().map((post, i) => (
-            <div key={post.id} style={{ animationDelay: `${i * 0.04}s` }}>
-              <PostCard post={post} />
-            </div>
-          ))
+          (() => {
+            const activePromos: any[] = (() => {
+              try {
+                return JSON.parse(
+                  localStorage.getItem("ic_active_promos") || "[]",
+                );
+              } catch {
+                return [];
+              }
+            })();
+            let promoIdx = 0;
+            const posts = getTabPosts();
+            const elements: React.ReactNode[] = [];
+            posts.forEach((post, i) => {
+              elements.push(
+                <div key={post.id} style={{ animationDelay: `${i * 0.04}s` }}>
+                  <PostCard post={post} />
+                </div>,
+              );
+              if ((i + 1) % 5 === 0 && promoIdx < activePromos.length) {
+                const promo = activePromos[promoIdx++];
+                elements.push(
+                  <div
+                    key={`feed-promo-${promo.id}`}
+                    className="bg-amber-50 dark:bg-amber-950/20 border border-amber-400/50 rounded-2xl p-4 space-y-2"
+                    data-ocid="feed.promoted.card"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <Megaphone size={14} className="text-amber-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider px-1.5 py-0.5 bg-amber-500/15 rounded-full">
+                            Promoted
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {promo.plan?.charAt(0).toUpperCase() +
+                              promo.plan?.slice(1)}{" "}
+                            Plan
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground mt-0.5 line-clamp-1">
+                          {promo.postTitle}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-10">
+                      Sponsored · {promo.regions?.join(", ") || "All India"} ·{" "}
+                      {promo.gender !== "All" ? `${promo.gender} · ` : ""}
+                      {promo.ageGroup}
+                    </p>
+                  </div>,
+                );
+              }
+            });
+            return elements;
+          })()
         )}
       </div>
 

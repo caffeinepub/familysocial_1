@@ -10159,6 +10159,22 @@ function PromotionsQueue() {
   const [modStatuses, setModStatuses] = React.useState<
     Record<number, "approved" | "rejected">
   >({});
+  const [pendingPromos, setPendingPromos] = React.useState<any[]>(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("ic_promotion_queue") || "[]",
+      ).filter((p: any) => p.status === "pending");
+    } catch {
+      return [];
+    }
+  });
+  const [lsActivePromos, setLsActivePromos] = React.useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("ic_active_promos") || "[]");
+    } catch {
+      return [];
+    }
+  });
   const [editingPlan, setEditingPlan] = React.useState<number | null>(null);
 
   const AIResultColor = (r: string) => {
@@ -10393,6 +10409,147 @@ function PromotionsQueue() {
                 decision.
               </span>
             </div>
+            {/* User-submitted promotions from localStorage */}
+            {pendingPromos.map((promo, i) => (
+              <div
+                key={promo.id}
+                className="bg-card border-2 border-amber-500/40 rounded-xl p-4 space-y-3"
+                data-ocid={`admin.promotions.ls.row.${i + 1}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-bold">
+                        NEW
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {promo.postTitle}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {promo.plan?.toUpperCase()} Plan · {promo.postType} ·{" "}
+                      {new Date(promo.timestamp).toLocaleDateString()}
+                    </div>
+                    {/* Payment Receipt */}
+                    <details className="mt-2">
+                      <summary className="text-xs text-primary cursor-pointer font-medium">
+                        💳 View Payment Receipt
+                      </summary>
+                      <div className="mt-2 p-2 rounded-lg bg-secondary/30 text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Amount</span>
+                          <span className="font-bold">
+                            ₹{promo.amount?.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Gateway</span>
+                          <span>{promo.gateway}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Txn ID</span>
+                          <span className="font-mono text-[10px]">
+                            {promo.txnId}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Duration
+                          </span>
+                          <span>{promo.duration} week(s)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Age Group
+                          </span>
+                          <span>{promo.ageGroup}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Gender</span>
+                          <span>{promo.gender}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Regions</span>
+                          <span>{promo.regions?.join(", ") || "All"}</span>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => {
+                        try {
+                          const queue = JSON.parse(
+                            localStorage.getItem("ic_promotion_queue") || "[]",
+                          );
+                          const updated = queue.map((p: any) =>
+                            p.id === promo.id
+                              ? { ...p, status: "approved" }
+                              : p,
+                          );
+                          localStorage.setItem(
+                            "ic_promotion_queue",
+                            JSON.stringify(updated),
+                          );
+                          const active = JSON.parse(
+                            localStorage.getItem("ic_active_promos") || "[]",
+                          );
+                          localStorage.setItem(
+                            "ic_active_promos",
+                            JSON.stringify([
+                              ...active,
+                              { ...promo, status: "approved" },
+                            ]),
+                          );
+                          setLsActivePromos((prev) => [
+                            ...prev,
+                            { ...promo, status: "approved" },
+                          ]);
+                          setPendingPromos((prev) =>
+                            prev.filter((p) => p.id !== promo.id),
+                          );
+                        } catch {}
+                        toast.success(`"${promo.postTitle}" approved and live`);
+                      }}
+                      data-ocid={`admin.promotions.ls.confirm_button.${i + 1}`}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-destructive"
+                      onClick={() => {
+                        try {
+                          const queue = JSON.parse(
+                            localStorage.getItem("ic_promotion_queue") || "[]",
+                          );
+                          const updated = queue.map((p: any) =>
+                            p.id === promo.id
+                              ? { ...p, status: "rejected" }
+                              : p,
+                          );
+                          localStorage.setItem(
+                            "ic_promotion_queue",
+                            JSON.stringify(updated),
+                          );
+                          setPendingPromos((prev) =>
+                            prev.filter((p) => p.id !== promo.id),
+                          );
+                        } catch {}
+                        toast.error(`"${promo.postTitle}" rejected`);
+                      }}
+                      data-ocid={`admin.promotions.ls.delete_button.${i + 1}`}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
             {modItems.map((item, i) => {
               const status = modStatuses[item.id];
               return (
@@ -10536,7 +10693,25 @@ function PromotionsQueue() {
                 </tr>
               </thead>
               <tbody>
-                {activePromos.map((promo, i) => (
+                {[
+                  ...lsActivePromos.map((p, idx) => ({
+                    id: `ls-${p.id}`,
+                    title: p.postTitle,
+                    advertiser: "User Promotion",
+                    plan: p.plan?.charAt(0).toUpperCase() + p.plan?.slice(1),
+                    channels: p.regions?.length
+                      ? p.regions.slice(0, 2)
+                      : ["Social Feed"],
+                    region: p.regions?.[0] || "All India",
+                    start: new Date(p.timestamp).toLocaleDateString(),
+                    end: new Date(
+                      Date.now() + p.duration * 7 * 86400000,
+                    ).toLocaleDateString(),
+                    impressions: Math.floor(Math.random() * 1000) + idx * 100,
+                    status: "active" as "active" | "paused",
+                  })),
+                  ...activePromos,
+                ].map((promo, i) => (
                   <tr
                     key={promo.id}
                     className="border-b border-border/50 hover:bg-secondary/20"
