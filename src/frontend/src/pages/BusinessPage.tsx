@@ -76,6 +76,19 @@ import {
   VendorOrdersPanel,
   WaterDeliveryModule,
 } from "../components/BusinessModulesExtra";
+import {
+  AssemblyModule,
+  FinancialModule,
+  InventoryModule,
+  LeadCRMModule,
+  MoneyLendingModule,
+  RepairServiceModule,
+  RetailShopModule,
+  SoftwareProjectModule,
+  TelecomModule,
+  VehicleModule,
+} from "../components/BusinessModulesFull";
+import { DeliveryPartnersPanel } from "../components/DeliveryPartnersPanel";
 import { LikeVoteBar } from "../components/LikeVoteBar";
 import { ReviewModal } from "../components/ReviewModal";
 import { getFamilyTreeBusinesses } from "../utils/familyTreeState";
@@ -2366,6 +2379,12 @@ export default function BusinessPage() {
           >
             🚚 Courier Panel
           </TabsTrigger>
+          <TabsTrigger
+            value="delivery-partners"
+            data-ocid="business.delivery_partners.tab"
+          >
+            🚚 Delivery Partners
+          </TabsTrigger>
           <TabsTrigger value="hr-payroll" data-ocid="business.hr_payroll.tab">
             👥 HR &amp; Payroll
           </TabsTrigger>
@@ -3237,6 +3256,9 @@ export default function BusinessPage() {
         </TabsContent>
         <TabsContent value="courier-panel" className="mt-6 space-y-4">
           <CourierDispatchBusinessPanel />
+        </TabsContent>
+        <TabsContent value="delivery-partners" className="mt-6">
+          <DeliveryPartnersPanel mode="business" />
         </TabsContent>
         <TabsContent value="hr-payroll" className="mt-6 space-y-4">
           <HRPayrollTab />
@@ -5211,6 +5233,16 @@ function BizModulePanel({ moduleId }: { moduleId: string | null }) {
     mechanic: <MechanicModule />,
     sweeper: <SweeperModule />,
     garments: <GarmentsModule />,
+    inventory: <InventoryModule />,
+    assembly: <AssemblyModule />,
+    repair: <RepairServiceModule />,
+    financial: <FinancialModule />,
+    telecom: <TelecomModule />,
+    retail: <RetailShopModule />,
+    vehicle: <VehicleModule />,
+    crm: <LeadCRMModule />,
+    software: <SoftwareProjectModule />,
+    lending: <MoneyLendingModule />,
   };
   return (
     panels[moduleId] ?? (

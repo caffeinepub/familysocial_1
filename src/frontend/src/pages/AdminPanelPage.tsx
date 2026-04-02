@@ -78,6 +78,7 @@ import {
   Agent11BusinessDiscovery,
   BusinessClaimsAdmin,
 } from "../components/BusinessDiscoveryFeatures";
+import { DeliveryPartnersPanel } from "../components/DeliveryPartnersPanel";
 import { type Review, getReviews } from "../components/ReviewModal";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1919,6 +1920,7 @@ export default function AdminPanelPage() {
               { value: "payment-gateways", label: "💳 Payment Gateways" },
               { value: "biz-analytics", label: "📊 Biz Analytics" },
               { value: "agent-a4-wa", label: "🔮 A4: Astro Advice" },
+              { value: "delivery-partners", label: "🚚 Delivery Partners" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -5464,6 +5466,9 @@ export default function AdminPanelPage() {
         {/* ── ASTRO ADVICE A4 ── */}
         <TabsContent value="agent-a4-wa" className="mt-0 space-y-5">
           <EvolutionA4Agent />
+        </TabsContent>
+        <TabsContent value="delivery-partners" className="mt-0">
+          <DeliveryPartnersPanel mode="admin" />
         </TabsContent>
       </Tabs>
 
