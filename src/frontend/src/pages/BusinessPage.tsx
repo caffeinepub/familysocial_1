@@ -1757,6 +1757,444 @@ function _BusinessPOSProducts() {
   );
 }
 
+// ── Business Alerts Tab ──────────────────────────────────────────────────────
+
+type AlertType =
+  | "order"
+  | "review"
+  | "bid"
+  | "inventory"
+  | "promotion"
+  | "delivery"
+  | "hr"
+  | "community";
+
+interface BizAlert {
+  id: string;
+  type: AlertType;
+  title: string;
+  description: string;
+  timestamp: Date;
+  read: boolean;
+  module: string;
+  actionLabel?: string;
+}
+
+const ALERT_ICONS: Record<AlertType, string> = {
+  order: "📦",
+  review: "⭐",
+  bid: "🏷️",
+  inventory: "📊",
+  promotion: "📣",
+  delivery: "🚚",
+  hr: "👥",
+  community: "🏘️",
+};
+
+const ALERT_COLORS: Record<AlertType, string> = {
+  order: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  review:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  bid: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  inventory:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  promotion:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  delivery: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  hr: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  community:
+    "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+};
+
+function seedAlerts(): BizAlert[] {
+  const now = Date.now();
+  const min = 60 * 1000;
+  return [
+    {
+      id: "a1",
+      type: "order",
+      title: "New Order #1038 Placed",
+      description: "Order for ₹1,240 placed by Ravi Kumar — 3 items",
+      timestamp: new Date(now - 5 * min),
+      read: false,
+      module: "Shop",
+      actionLabel: "View Order",
+    },
+    {
+      id: "a2",
+      type: "review",
+      title: "New 5-Star Review",
+      description:
+        "Priya Sharma rated your Basmati Rice: 'Fresh and fragrant!'",
+      timestamp: new Date(now - 18 * min),
+      read: false,
+      module: "Shop",
+    },
+    {
+      id: "a3",
+      type: "inventory",
+      title: "Low Stock Alert",
+      description: "Toor Dal (1 kg) has only 4 units left in inventory",
+      timestamp: new Date(now - 32 * min),
+      read: false,
+      module: "POS",
+      actionLabel: "Restock",
+    },
+    {
+      id: "a4",
+      type: "bid",
+      title: "New Bid Received",
+      description: "Arun Electrical bid ₹8,500 on Electrical Maintenance job",
+      timestamp: new Date(now - 45 * min),
+      read: true,
+      module: "Community",
+    },
+    {
+      id: "a5",
+      type: "promotion",
+      title: "Promotion Approved ✅",
+      description:
+        "Your Diwali Offer campaign is now live and reaching 2,400 users",
+      timestamp: new Date(now - 58 * min),
+      read: true,
+      module: "Admin",
+    },
+    {
+      id: "a6",
+      type: "delivery",
+      title: "Delivery Request Assigned",
+      description: "Order #1035 assigned to Ramesh (Bike) — ETA 25 min",
+      timestamp: new Date(now - 72 * min),
+      read: true,
+      module: "Delivery",
+    },
+    {
+      id: "a7",
+      type: "hr",
+      title: "Leave Request Pending",
+      description:
+        "Suresh Kumar requested 2 days leave (Apr 5–6). Approval needed.",
+      timestamp: new Date(now - 90 * min),
+      read: false,
+      module: "HR",
+      actionLabel: "Review",
+    },
+    {
+      id: "a8",
+      type: "community",
+      title: "Marketplace Activity",
+      description:
+        "3 new products listed in Society Marketplace linked to your business",
+      timestamp: new Date(now - 110 * min),
+      read: true,
+      module: "Community",
+    },
+  ];
+}
+
+const AUTO_ALERTS: Omit<BizAlert, "id" | "timestamp" | "read">[] = [
+  {
+    type: "order",
+    title: "New Order Placed",
+    description: "Order #1042 for ₹850 from Meena Patel — 2 items",
+    module: "Shop",
+    actionLabel: "View",
+  },
+  {
+    type: "inventory",
+    title: "Low Stock: Basmati Rice",
+    description: "Only 3 units remaining. Consider restocking soon.",
+    module: "POS",
+    actionLabel: "Restock",
+  },
+  {
+    type: "review",
+    title: "New Review Received",
+    description: "Amit Singh left a 4-star review on Mustard Oil 1L",
+    module: "Shop",
+  },
+  {
+    type: "promotion",
+    title: "Promotion Approved",
+    description: "Your Eid Sale campaign is approved and going live",
+    module: "Admin",
+  },
+  {
+    type: "delivery",
+    title: "New Delivery Request",
+    description: "Order #1041 ready for pickup. Assign a rider.",
+    module: "Delivery",
+    actionLabel: "Assign",
+  },
+  {
+    type: "bid",
+    title: "New Bid on Auction",
+    description: "Laptop Stand — current highest bid: ₹1,200 by Neha R.",
+    module: "Shop",
+  },
+  {
+    type: "hr",
+    title: "Payroll Due This Week",
+    description: "Monthly payroll for 4 employees is due on Apr 5",
+    module: "HR",
+    actionLabel: "Process",
+  },
+  {
+    type: "community",
+    title: "Vendor Bid Accepted",
+    description: "Your bid for Plumbing Repair was accepted by Society Admin",
+    module: "Community",
+  },
+];
+
+function playAlertBeep() {
+  try {
+    const ctx = new (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
+    )();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.2);
+  } catch {
+    // ignore audio errors
+  }
+}
+
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
+
+const FILTER_TABS: { label: string; value: AlertType | "all" }[] = [
+  { label: "All", value: "all" },
+  { label: "Orders", value: "order" },
+  { label: "Reviews", value: "review" },
+  { label: "Bids", value: "bid" },
+  { label: "Inventory", value: "inventory" },
+  { label: "Promotions", value: "promotion" },
+  { label: "HR", value: "hr" },
+  { label: "Deliveries", value: "delivery" },
+];
+
+function BusinessAlertsTab({
+  onUnreadChange,
+}: { onUnreadChange: (count: number) => void }) {
+  const [alerts, setAlerts] = useState<BizAlert[]>(() => seedAlerts());
+  const [filter, setFilter] = useState<AlertType | "all">("all");
+  const [soundOn, setSoundOn] = useState(true);
+  const [, forceRender] = useState(0);
+
+  // Bubble unread count up to parent
+  React.useEffect(() => {
+    const unread = alerts.filter((a) => !a.read).length;
+    onUnreadChange(unread);
+    localStorage.setItem("biz_alerts_unread", String(unread));
+  }, [alerts, onUnreadChange]);
+
+  // Auto-generate new alerts every 10s
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      const template =
+        AUTO_ALERTS[Math.floor(Math.random() * AUTO_ALERTS.length)];
+      const newAlert: BizAlert = {
+        ...template,
+        id: `a-${Date.now()}`,
+        timestamp: new Date(),
+        read: false,
+      };
+      setAlerts((prev) => [newAlert, ...prev].slice(0, 50));
+      if (soundOn) playAlertBeep();
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [soundOn]);
+
+  // Re-render time-ago labels every 30s
+  React.useEffect(() => {
+    const t = setInterval(() => forceRender((n) => n + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const markRead = (id: string) => {
+    setAlerts((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, read: true } : a)),
+    );
+  };
+
+  const markAllRead = () => {
+    setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+  };
+
+  const filtered =
+    filter === "all" ? alerts : alerts.filter((a) => a.type === filter);
+
+  const countByType = (type: AlertType | "all") => {
+    const list =
+      type === "all" ? alerts : alerts.filter((a) => a.type === type);
+    return list.filter((a) => !a.read).length;
+  };
+
+  return (
+    <div className="space-y-4" data-ocid="business.alerts.panel">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Business Alerts
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Real-time notifications from all your business modules
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSoundOn((s) => !s)}
+            title={soundOn ? "Mute alert sound" : "Enable alert sound"}
+            className="text-lg p-1.5 rounded-md hover:bg-muted transition-colors"
+            data-ocid="business.alerts.toggle"
+          >
+            {soundOn ? "🔔" : "🔕"}
+          </button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={markAllRead}
+            data-ocid="business.alerts.button"
+          >
+            Mark All Read
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter pills */}
+      <div className="flex flex-wrap gap-1.5" data-ocid="business.alerts.tab">
+        {FILTER_TABS.map(({ label, value }) => {
+          const unread = countByType(value);
+          return (
+            <button
+              type="button"
+              key={value}
+              onClick={() => setFilter(value)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                filter === value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {label}
+              {unread > 0 && (
+                <span className="bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Alert list */}
+      <ScrollArea className="h-[500px] pr-2">
+        {filtered.length === 0 ? (
+          <div
+            className="flex flex-col items-center justify-center py-16 text-muted-foreground"
+            data-ocid="business.alerts.empty_state"
+          >
+            <span className="text-4xl mb-3">🔔</span>
+            <p className="text-sm font-medium">No alerts yet.</p>
+            <p className="text-xs mt-1">
+              Your business activity will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((alert, idx) => (
+              <div
+                key={alert.id}
+                onClick={() => markRead(alert.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") markRead(alert.id);
+                }}
+                data-ocid={`business.alerts.item.${idx + 1}`}
+                className={`flex gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50 ${
+                  !alert.read
+                    ? "border-l-4 border-l-primary border-border bg-primary/5"
+                    : "border-border"
+                }`}
+              >
+                <div className="text-xl shrink-0 mt-0.5">
+                  {ALERT_ICONS[alert.type]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-medium text-foreground">
+                        {alert.title}
+                      </span>
+                      {!alert.read && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                      )}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {timeAgo(alert.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    {alert.description}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${ALERT_COLORS[alert.type]}`}
+                    >
+                      {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                      {alert.module}
+                    </span>
+                    {alert.actionLabel && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-primary font-medium hover:underline ml-auto"
+                      >
+                        {alert.actionLabel} →
+                      </button>
+                    )}
+                    {!alert.read && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markRead(alert.id);
+                        }}
+                        className="text-[10px] text-muted-foreground hover:text-foreground ml-auto"
+                        data-ocid={`business.alerts.save_button.${idx + 1}`}
+                      >
+                        Mark Read
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
 export default function BusinessPage() {
   const [tables, setTables] = useState([
     {
@@ -1816,6 +2254,7 @@ export default function BusinessPage() {
   });
   const [orders, setOrders] = useState(MOCK_ORDERS);
   const [liveRefresh, setLiveRefresh] = useState(true);
+  const [unreadAlertCount, setUnreadAlertCount] = useState(0);
 
   const branch = branches.find((b) => b.id === selectedBranch) ?? branches[0];
 
@@ -1929,6 +2368,18 @@ export default function BusinessPage() {
           </TabsTrigger>
           <TabsTrigger value="hr-payroll" data-ocid="business.hr_payroll.tab">
             👥 HR &amp; Payroll
+          </TabsTrigger>
+          <TabsTrigger
+            value="business-alerts"
+            data-ocid="business.alerts.tab"
+            className="relative"
+          >
+            🔔 Business Alerts
+            {unreadAlertCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                {unreadAlertCount > 9 ? "9+" : unreadAlertCount}
+              </span>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -2789,6 +3240,9 @@ export default function BusinessPage() {
         </TabsContent>
         <TabsContent value="hr-payroll" className="mt-6 space-y-4">
           <HRPayrollTab />
+        </TabsContent>
+        <TabsContent value="business-alerts" className="mt-6">
+          <BusinessAlertsTab onUnreadChange={setUnreadAlertCount} />
         </TabsContent>
       </Tabs>
 
