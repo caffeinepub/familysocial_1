@@ -1921,6 +1921,7 @@ export default function AdminPanelPage() {
               { value: "biz-analytics", label: "📊 Biz Analytics" },
               { value: "agent-a4-wa", label: "🔮 A4: Astro Advice" },
               { value: "delivery-partners", label: "🚚 Delivery Partners" },
+              { value: "ondc-network", label: "🌐 ONDC Network" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -5469,6 +5470,14 @@ export default function AdminPanelPage() {
         </TabsContent>
         <TabsContent value="delivery-partners" className="mt-0">
           <DeliveryPartnersPanel mode="admin" />
+        </TabsContent>
+        {/* ── ONDC NETWORK ── */}
+        <TabsContent
+          value="ondc-network"
+          className="mt-0"
+          data-ocid="admin.ondc.tab"
+        >
+          <ONDCAdminSetup />
         </TabsContent>
       </Tabs>
 
@@ -10863,9 +10872,12 @@ function PromotionsQueue() {
 
         {/* Targeting Tab */}
         <TabsContent value="targeting" className="mt-0 space-y-4">
+          {/* Submitted promotions from users (from localStorage) */}
+          <PromotionsTargetingView />
+
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              🌏 Geographic Targeting
+              🌏 Geographic Targeting Configuration
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
@@ -16625,6 +16637,694 @@ function EvolutionA4Agent() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── ONDC Admin Setup Wizard ──────────────────────────────────────────────────
+function ONDCAdminSetup() {
+  const [step, setStep] = React.useState(1);
+  const [form, setForm] = React.useState({
+    businessName: "",
+    gstin: "",
+    pan: "",
+    email: "",
+    phone: "",
+    bizType: "BPP",
+    state: "Maharashtra",
+  });
+  const [creds, setCreds] = React.useState({
+    subscriberId: "",
+    subscriberUrl: "",
+    encKey: "",
+    signKey: "",
+  });
+  const [catalogSynced, setCatalogSynced] = React.useState(false);
+  const [autoSync, setAutoSync] = React.useState(true);
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([
+    "Food",
+    "Grocery",
+  ]);
+  const [buyerApps, setBuyerApps] = React.useState([
+    { name: "Paytm", enabled: true },
+    { name: "PhonePe", enabled: true },
+    { name: "ONDC Reference App", enabled: true },
+    { name: "Magicpin", enabled: false },
+    { name: "Namma Yatri", enabled: false },
+    { name: "Groww", enabled: false },
+  ]);
+  const [goLiveStatus, setGoLiveStatus] = React.useState<"sandbox" | "live">(
+    "sandbox",
+  );
+  const CATALOG_CATEGORIES = [
+    "Food",
+    "Electronics",
+    "Fashion",
+    "Beauty",
+    "Grocery",
+    "Healthcare",
+  ];
+
+  const toggleCategory = (c: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+    );
+  };
+
+  const toggleApp = (name: string) => {
+    setBuyerApps((prev) =>
+      prev.map((a) => (a.name === name ? { ...a, enabled: !a.enabled } : a)),
+    );
+  };
+
+  return (
+    <div className="space-y-4" data-ocid="admin.ondc.panel">
+      {/* Step indicator */}
+      <div className="flex items-center justify-between bg-card border border-border rounded-xl p-4">
+        <div>
+          <h2
+            className="text-base font-bold"
+            style={{ color: "oklch(0.65 0.20 40)" }}
+          >
+            🌐 ONDC Network Setup
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Register your platform on the Open Network for Digital Commerce
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStep(s)}
+              className="w-7 h-7 rounded-full text-xs font-bold border-2 transition-all"
+              style={{
+                borderColor:
+                  step >= s ? "oklch(0.65 0.20 40)" : "oklch(var(--border))",
+                background:
+                  step === s
+                    ? "oklch(0.65 0.20 40)"
+                    : step > s
+                      ? "oklch(0.65 0.20 40 / 0.15)"
+                      : "transparent",
+                color:
+                  step === s
+                    ? "white"
+                    : step > s
+                      ? "oklch(0.65 0.20 40)"
+                      : "oklch(var(--muted-foreground))",
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 1: Register */}
+      {step === 1 && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <h3
+            className="text-sm font-bold"
+            style={{ color: "oklch(0.65 0.20 40)" }}
+          >
+            Step 1 — Register on ONDC Registry
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              {
+                label: "Business Name",
+                key: "businessName",
+                placeholder: "Your Business Name",
+              },
+              {
+                label: "GSTIN",
+                key: "gstin",
+                placeholder: "22AAAAA0000A1Z5 (15 chars)",
+              },
+              { label: "PAN", key: "pan", placeholder: "ABCDE1234F" },
+              {
+                label: "Email",
+                key: "email",
+                placeholder: "admin@business.com",
+              },
+              { label: "Phone", key: "phone", placeholder: "+91 9876543210" },
+              { label: "State", key: "state", placeholder: "Maharashtra" },
+            ].map((f) => (
+              <div key={f.key}>
+                <Label className="text-xs">{f.label}</Label>
+                <Input
+                  className="mt-1 h-8 text-xs"
+                  value={(form as any)[f.key]}
+                  onChange={(e) =>
+                    setForm({ ...form, [f.key]: e.target.value })
+                  }
+                  placeholder={f.placeholder}
+                />
+              </div>
+            ))}
+            <div>
+              <Label className="text-xs">Business Type (NP Role)</Label>
+              <Select
+                value={form.bizType}
+                onValueChange={(v) => setForm({ ...form, bizType: v })}
+              >
+                <SelectTrigger className="mt-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BAP">BAP — Buyer App</SelectItem>
+                  <SelectItem value="BPP">BPP — Seller App</SelectItem>
+                  <SelectItem value="BAP+BPP">BAP+BPP — Both</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button
+            className="mt-2 text-xs font-label"
+            onClick={() => {
+              if (!form.businessName) {
+                toast.error("Please fill Business Name");
+                return;
+              }
+              setCreds({
+                ...creds,
+                subscriberId: `${form.businessName.toLowerCase().replace(/\s/g, "")}.indyacentral.in`,
+              });
+              setStep(2);
+            }}
+            style={{ background: "oklch(0.65 0.20 40)" }}
+            data-ocid="admin.ondc.step1.submit_button"
+          >
+            Verify &amp; Continue →
+          </Button>
+        </div>
+      )}
+
+      {/* Step 2: Credentials */}
+      {step === 2 && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <h3
+            className="text-sm font-bold"
+            style={{ color: "oklch(0.65 0.20 40)" }}
+          >
+            Step 2 — Network Participant Credentials
+          </h3>
+          <p className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+            ℹ️ These keys are provided by ONDC registry after registration at{" "}
+            <a
+              href="https://ondc.org"
+              target="_blank"
+              rel="noreferrer"
+              className="underline text-amber-600"
+            >
+              ondc.org
+            </a>
+          </p>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Subscriber ID</Label>
+              <Input
+                className="mt-1 h-8 text-xs"
+                value={creds.subscriberId}
+                onChange={(e) =>
+                  setCreds({ ...creds, subscriberId: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Subscriber URL</Label>
+              <Input
+                className="mt-1 h-8 text-xs"
+                value={creds.subscriberUrl}
+                placeholder="https://api.indyacentral.in/ondc"
+                onChange={(e) =>
+                  setCreds({ ...creds, subscriberUrl: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Encryption Public Key</Label>
+              <Textarea
+                className="mt-1 text-xs font-mono h-16 resize-none"
+                value={creds.encKey}
+                placeholder="Base64 encoded encryption public key..."
+                onChange={(e) => setCreds({ ...creds, encKey: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Signing Public Key</Label>
+              <Textarea
+                className="mt-1 text-xs font-mono h-16 resize-none"
+                value={creds.signKey}
+                placeholder="Base64 encoded signing public key..."
+                onChange={(e) =>
+                  setCreds({ ...creds, signKey: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="text-xs"
+              onClick={() => setStep(1)}
+            >
+              ← Back
+            </Button>
+            <Button
+              className="text-xs font-label"
+              onClick={() => setStep(3)}
+              style={{ background: "oklch(0.65 0.20 40)" }}
+              data-ocid="admin.ondc.step2.save_button"
+            >
+              Save Credentials →
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Catalog Sync */}
+      {step === 3 && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <h3
+            className="text-sm font-bold"
+            style={{ color: "oklch(0.65 0.20 40)" }}
+          >
+            Step 3 — Catalog Sync Configuration
+          </h3>
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <div>
+              <p className="text-xs font-semibold">Auto-sync catalog</p>
+              <p className="text-[11px] text-muted-foreground">
+                Push product updates every 6 hours
+              </p>
+            </div>
+            <Switch
+              checked={autoSync}
+              onCheckedChange={setAutoSync}
+              data-ocid="admin.ondc.autosync.switch"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-semibold mb-2">
+              Product Categories to Sync
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {CATALOG_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleCategory(c)}
+                  className="text-xs px-3 py-1 rounded-full border transition-all"
+                  style={{
+                    borderColor: selectedCategories.includes(c)
+                      ? "oklch(0.65 0.20 40)"
+                      : "oklch(var(--border))",
+                    background: selectedCategories.includes(c)
+                      ? "oklch(0.65 0.20 40 / 0.12)"
+                      : "transparent",
+                    color: selectedCategories.includes(c)
+                      ? "oklch(0.65 0.20 40)"
+                      : "oklch(var(--muted-foreground))",
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+          {catalogSynced && (
+            <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+              ✅ Catalog pushed: 12 products synced to ONDC network
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="text-xs"
+              onClick={() => setStep(2)}
+            >
+              ← Back
+            </Button>
+            <Button
+              variant="outline"
+              className="text-xs"
+              onClick={() => {
+                setCatalogSynced(true);
+                toast.success("Catalog pushed: 12 products synced");
+              }}
+              data-ocid="admin.ondc.test_catalog.button"
+            >
+              🔄 Test Catalog Push
+            </Button>
+            <Button
+              className="text-xs font-label"
+              onClick={() => setStep(4)}
+              style={{ background: "oklch(0.65 0.20 40)" }}
+              data-ocid="admin.ondc.step3.next_button"
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Buyer App Integration */}
+      {step === 4 && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <h3
+            className="text-sm font-bold"
+            style={{ color: "oklch(0.65 0.20 40)" }}
+          >
+            Step 4 — Buyer App Integration
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Enable the apps through which customers can discover your products
+          </p>
+          <div className="space-y-2">
+            {buyerApps.map((app) => (
+              <div
+                key={app.name}
+                className="flex items-center justify-between p-3 bg-muted/20 border border-border rounded-lg"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">📱</span>
+                  <span className="text-xs font-semibold">{app.name}</span>
+                </div>
+                <Switch
+                  checked={app.enabled}
+                  onCheckedChange={() => toggleApp(app.name)}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="text-xs"
+              onClick={() => setStep(3)}
+            >
+              ← Back
+            </Button>
+            <Button
+              className="text-xs font-label"
+              onClick={() => setStep(5)}
+              style={{ background: "oklch(0.65 0.20 40)" }}
+              data-ocid="admin.ondc.step4.activate_button"
+            >
+              Activate Integrations →
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Go Live */}
+      {step === 5 && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <h3
+            className="text-sm font-bold"
+            style={{ color: "oklch(0.65 0.20 40)" }}
+          >
+            Step 5 — Go Live on ONDC Network
+          </h3>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-sm font-semibold text-muted-foreground">
+              Network Status:
+            </span>
+            {goLiveStatus === "sandbox" ? (
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold"
+                style={{
+                  background: "oklch(0.72 0.17 85 / 0.15)",
+                  color: "oklch(0.72 0.17 85)",
+                }}
+              >
+                ● SANDBOX
+              </span>
+            ) : (
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold"
+                style={{
+                  background: "oklch(0.52 0.14 155 / 0.15)",
+                  color: "oklch(0.52 0.14 155)",
+                }}
+              >
+                ● LIVE
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {[
+              "GSTIN verified",
+              "Credentials configured",
+              "Catalog synced",
+              "Buyer apps enabled",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2 text-xs">
+                <span className="text-green-500">✅</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="text-xs"
+              onClick={() => setStep(4)}
+            >
+              ← Back
+            </Button>
+            {goLiveStatus === "sandbox" && (
+              <Button
+                className="text-xs font-label font-bold"
+                onClick={() => {
+                  setGoLiveStatus("live");
+                  toast.success(
+                    "ONDC Network activated — your products are now discoverable on ONDC!",
+                  );
+                }}
+                style={{ background: "oklch(0.52 0.14 155)" }}
+                data-ocid="admin.ondc.golive.button"
+              >
+                🚀 Go Live on ONDC Network
+              </Button>
+            )}
+          </div>
+          {goLiveStatus === "live" && (
+            <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-xs text-green-700 dark:text-green-400">
+              🎉 Your platform is now live on ONDC Network. Products from
+              registered vendors are discoverable via Paytm, PhonePe, and ONDC
+              Reference App.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Promotions Targeting View (shows submitted promotions with demographics) ──
+function PromotionsTargetingView() {
+  const [ageFilter, setAgeFilter] = React.useState("All");
+  const [genderFilter, setGenderFilter] = React.useState("All");
+  const [regionFilter, setRegionFilter] = React.useState("All");
+
+  const promos: any[] = React.useMemo(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("ic_promotion_queue") || "[]",
+      );
+      if (stored.length > 0) return stored;
+    } catch {
+      // fallback to mocks
+    }
+    return [
+      {
+        id: "mock1",
+        postTitle: "Sharma Spices — Diwali Sale 40% Off",
+        postType: "product",
+        plan: "standard",
+        amount: 1598,
+        ageGroup: "26-35",
+        gender: "All",
+        regions: ["North India", "Maharashtra"],
+        language: "Hindi",
+        religion: "Hindu",
+        status: "pending",
+        timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+        txnId: "TXN1712000000001",
+      },
+      {
+        id: "mock2",
+        postTitle: "TechFix Rapid Screen Repair",
+        postType: "service",
+        plan: "basic",
+        amount: 299,
+        ageGroup: "18-25",
+        gender: "Male",
+        regions: ["Delhi NCR"],
+        language: "English",
+        religion: "All",
+        status: "pending",
+        timestamp: new Date(Date.now() - 5 * 3600000).toISOString(),
+        txnId: "TXN1712000000002",
+      },
+    ];
+  }, []);
+
+  const filtered = promos.filter((p) => {
+    if (ageFilter !== "All" && p.ageGroup !== ageFilter) return false;
+    if (genderFilter !== "All" && p.gender !== genderFilter) return false;
+    if (regionFilter !== "All" && !(p.regions || []).includes(regionFilter))
+      return false;
+    return true;
+  });
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">
+          📩 Submitted Promotions with Demographic Targeting
+        </h3>
+        <Badge variant="secondary" className="text-[10px]">
+          {filtered.length} promos
+        </Badge>
+      </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <Select value={ageFilter} onValueChange={setAgeFilter}>
+          <SelectTrigger className="h-7 text-xs w-28">
+            <SelectValue placeholder="Age Group" />
+          </SelectTrigger>
+          <SelectContent>
+            {["All", "18-25", "26-35", "36-50", "50+"].map((a) => (
+              <SelectItem key={a} value={a} className="text-xs">
+                {a}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={genderFilter} onValueChange={setGenderFilter}>
+          <SelectTrigger className="h-7 text-xs w-24">
+            <SelectValue placeholder="Gender" />
+          </SelectTrigger>
+          <SelectContent>
+            {["All", "Male", "Female"].map((g) => (
+              <SelectItem key={g} value={g} className="text-xs">
+                {g}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={regionFilter} onValueChange={setRegionFilter}>
+          <SelectTrigger className="h-7 text-xs w-32">
+            <SelectValue placeholder="Region" />
+          </SelectTrigger>
+          <SelectContent>
+            {[
+              "All",
+              "North India",
+              "South India",
+              "Maharashtra",
+              "Delhi NCR",
+              "Gujarat",
+              "Karnataka",
+              "Tamil Nadu",
+              "West Bengal",
+            ].map((r) => (
+              <SelectItem key={r} value={r} className="text-xs">
+                {r}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {filtered.length === 0 ? (
+        <p
+          className="text-xs text-muted-foreground py-3 text-center"
+          data-ocid="admin.promotions.targeting.empty_state"
+        >
+          No promotions match the selected filters.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((promo, i) => (
+            <div
+              key={promo.id}
+              className="border border-border rounded-lg p-3 space-y-2"
+              data-ocid={`admin.promotions.targeting.item.${i + 1}`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold line-clamp-1">
+                    {promo.postTitle}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Plan:{" "}
+                    <span className="font-semibold capitalize">
+                      {promo.plan}
+                    </span>{" "}
+                    · ₹{promo.amount} · Txn: {promo.txnId}
+                  </p>
+                </div>
+                <Badge
+                  className="text-[10px] shrink-0"
+                  style={{
+                    background:
+                      promo.status === "pending"
+                        ? "oklch(0.72 0.17 85 / 0.15)"
+                        : "oklch(0.52 0.14 155 / 0.15)",
+                    color:
+                      promo.status === "pending"
+                        ? "oklch(0.72 0.17 85)"
+                        : "oklch(0.52 0.14 155)",
+                  }}
+                >
+                  {promo.status}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {promo.ageGroup && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                    👤 {promo.ageGroup}
+                  </span>
+                )}
+                {promo.gender && promo.gender !== "All" && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400">
+                    ⚧ {promo.gender}
+                  </span>
+                )}
+                {(promo.regions || []).map((r: string) => (
+                  <span
+                    key={r}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                  >
+                    📍 {r}
+                  </span>
+                ))}
+                {promo.language && (
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "oklch(0.65 0.20 40 / 0.12)",
+                      color: "oklch(0.65 0.20 40)",
+                    }}
+                  >
+                    🗣️ {promo.language}
+                  </span>
+                )}
+                {promo.religion && promo.religion !== "All" && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                    🙏 {promo.religion}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -2400,6 +2400,9 @@ export default function BusinessPage() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="ondc" data-ocid="business.ondc.tab">
+            🌐 ONDC
+          </TabsTrigger>
         </TabsList>
 
         {/* ── My Businesses ── */}
@@ -3265,6 +3268,9 @@ export default function BusinessPage() {
         </TabsContent>
         <TabsContent value="business-alerts" className="mt-6">
           <BusinessAlertsTab onUnreadChange={setUnreadAlertCount} />
+        </TabsContent>
+        <TabsContent value="ondc" className="mt-6 space-y-4">
+          <ONDCVendorPanel />
         </TabsContent>
       </Tabs>
 
@@ -6218,6 +6224,742 @@ function HRPayrollTab() {
           </DialogContent>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+// ─── ONDC Vendor Panel ────────────────────────────────────────────────────────
+function ONDCVendorPanel() {
+  const ONDC_COLOR = "oklch(0.65 0.20 40)";
+  const PARTICIPANT_ID = React.useMemo(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("ic_ondc_registration") || "null",
+      );
+      if (saved?.participantId) return saved.participantId;
+    } catch {
+      // ignore
+    }
+    return null;
+  }, []);
+
+  const [registered, setRegistered] = React.useState<boolean>(!!PARTICIPANT_ID);
+  const [participantId, _setParticipantId] = React.useState<string>(
+    PARTICIPANT_ID || `IC-${Date.now()}`,
+  );
+  const [regForm, setRegForm] = React.useState({
+    gstin: "",
+    pan: "",
+    category: "Food",
+    bankAccount: "",
+    ifsc: "",
+    fssai: "",
+  });
+
+  const [catalogProducts, setCatalogProducts] = React.useState([
+    {
+      name: "Masala Pack 500g",
+      category: "Food",
+      price: "₹299",
+      status: "Synced" as "Synced" | "Pending" | "Error",
+      lastSync: "2h ago",
+    },
+    {
+      name: "Basmati Rice 1kg",
+      category: "Grocery",
+      price: "₹180",
+      status: "Synced" as "Synced" | "Pending" | "Error",
+      lastSync: "2h ago",
+    },
+    {
+      name: "Chana Dal 500g",
+      category: "Grocery",
+      price: "₹120",
+      status: "Pending" as "Synced" | "Pending" | "Error",
+      lastSync: "Never",
+    },
+    {
+      name: "Turmeric Powder",
+      category: "Food",
+      price: "₹85",
+      status: "Error" as "Synced" | "Pending" | "Error",
+      lastSync: "5h ago",
+    },
+  ]);
+  const [syncing, setSyncing] = React.useState(false);
+
+  const [ondcOrders, setOndcOrders] = React.useState(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("ic_ondc_orders") || "null",
+      );
+      if (saved) return saved;
+    } catch {
+      /**/
+    }
+    return [
+      {
+        id: "ONDC001",
+        buyer: "Rahul S.",
+        product: "Masala Pack 500g",
+        amount: "₹299",
+        status: "New" as "New" | "Confirmed" | "Shipped" | "Cancelled",
+      },
+      {
+        id: "ONDC002",
+        buyer: "Priya M.",
+        product: "Basmati Rice 1kg",
+        amount: "₹180",
+        status: "Confirmed" as "New" | "Confirmed" | "Shipped" | "Cancelled",
+      },
+    ];
+  });
+  const [cancelOrderId, setCancelOrderId] = React.useState<string | null>(null);
+  const [cancelReason, setCancelReason] = React.useState("");
+
+  const [settings, setSettings] = React.useState({
+    deliverySLA: "Next Day",
+    cancellationWindow: "1 hour",
+    returnPolicy: "7 Days",
+    autoAccept: false,
+  });
+
+  function handleRegister() {
+    if (!regForm.gstin) {
+      toast.error("GSTIN is required");
+      return;
+    }
+    const reg = { participantId, ...regForm };
+    localStorage.setItem("ic_ondc_registration", JSON.stringify(reg));
+    setRegistered(true);
+    toast.success(`Registered on ONDC! Your Participant ID: ${participantId}`);
+  }
+
+  function saveOndcNotification(msg: string) {
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem("ic_notifications") || "[]",
+      ) as any[];
+      existing.unshift({ type: "ondc", message: msg, timestamp: Date.now() });
+      localStorage.setItem("ic_notifications", JSON.stringify(existing));
+      window.dispatchEvent(new Event("indya_notification_added"));
+    } catch {
+      /**/
+    }
+  }
+
+  function handleAcceptOrder(orderId: string) {
+    setOndcOrders((prev: any[]) =>
+      prev.map((o: any) =>
+        o.id === orderId ? { ...o, status: "Confirmed" } : o,
+      ),
+    );
+    saveOndcNotification(
+      `Your ONDC order #${orderId} has been accepted by seller`,
+    );
+    toast.success(`Order #${orderId} accepted`);
+  }
+
+  function handleCancelOrder(orderId: string) {
+    if (!cancelReason) {
+      toast.error("Please enter a cancellation reason");
+      return;
+    }
+    setOndcOrders((prev: any[]) =>
+      prev.map((o: any) =>
+        o.id === orderId ? { ...o, status: "Cancelled" } : o,
+      ),
+    );
+    saveOndcNotification(
+      `Your ONDC order #${orderId} was cancelled: ${cancelReason}`,
+    );
+    setCancelOrderId(null);
+    setCancelReason("");
+    toast.success(`Order #${orderId} cancelled`);
+  }
+
+  function handleMarkShipped(orderId: string) {
+    setOndcOrders((prev: any[]) =>
+      prev.map((o: any) =>
+        o.id === orderId ? { ...o, status: "Shipped" } : o,
+      ),
+    );
+    toast.success(`Order #${orderId} marked as shipped`);
+  }
+
+  function handleSyncAll() {
+    setSyncing(true);
+    setTimeout(() => {
+      setCatalogProducts((prev) =>
+        prev.map((p) => ({ ...p, status: "Synced", lastSync: "Just now" })),
+      );
+      setSyncing(false);
+      toast.success("12 products synced on ONDC Network");
+    }, 1800);
+  }
+
+  const statusBadge = (s: "Synced" | "Pending" | "Error") => {
+    if (s === "Synced")
+      return (
+        <Badge
+          className="text-[10px]"
+          style={{
+            background: "oklch(0.52 0.14 155 / 0.15)",
+            color: "oklch(0.52 0.14 155)",
+          }}
+        >
+          ✅ Synced
+        </Badge>
+      );
+    if (s === "Pending")
+      return (
+        <Badge
+          className="text-[10px]"
+          style={{
+            background: "oklch(0.72 0.17 85 / 0.15)",
+            color: "oklch(0.72 0.17 85)",
+          }}
+        >
+          ⏳ Pending
+        </Badge>
+      );
+    return (
+      <Badge
+        className="text-[10px]"
+        style={{
+          background: "oklch(0.55 0.22 22 / 0.15)",
+          color: "oklch(0.55 0.22 22)",
+        }}
+      >
+        ❌ Error
+      </Badge>
+    );
+  };
+
+  return (
+    <div className="space-y-4" data-ocid="business.ondc.panel">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 bg-card border border-border rounded-xl">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+          style={{ background: ONDC_COLOR }}
+        >
+          🌐
+        </div>
+        <div>
+          <h2 className="text-sm font-bold" style={{ color: ONDC_COLOR }}>
+            ONDC Vendor Portal
+          </h2>
+          <p className="text-[11px] text-muted-foreground">
+            Open Network for Digital Commerce — Sell to millions of buyers
+          </p>
+        </div>
+        {registered && (
+          <Badge
+            className="ml-auto text-[10px]"
+            style={{
+              background: "oklch(0.52 0.14 155 / 0.15)",
+              color: "oklch(0.52 0.14 155)",
+            }}
+          >
+            ● Active · {participantId}
+          </Badge>
+        )}
+      </div>
+
+      <Tabs defaultValue="registration">
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger
+            value="registration"
+            className="text-xs"
+            data-ocid="business.ondc.registration.tab"
+          >
+            📋 Registration
+          </TabsTrigger>
+          <TabsTrigger
+            value="catalog"
+            className="text-xs"
+            data-ocid="business.ondc.catalog.tab"
+          >
+            📦 Catalog Sync
+          </TabsTrigger>
+          <TabsTrigger
+            value="orders"
+            className="text-xs"
+            data-ocid="business.ondc.orders.tab"
+          >
+            🛒 ONDC Orders
+          </TabsTrigger>
+          <TabsTrigger
+            value="settings"
+            className="text-xs"
+            data-ocid="business.ondc.settings.tab"
+          >
+            ⚙️ Settings
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Registration Tab */}
+        <TabsContent value="registration" className="mt-4 space-y-4">
+          {registered ? (
+            <div
+              className="p-4 rounded-xl border-2 text-center space-y-2"
+              style={{
+                borderColor: ONDC_COLOR,
+                background: "oklch(0.65 0.20 40 / 0.05)",
+              }}
+            >
+              <div className="text-3xl">✅</div>
+              <p className="font-bold text-sm" style={{ color: ONDC_COLOR }}>
+                Registered on ONDC Network!
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Your ONDC Participant ID:
+              </p>
+              <p
+                className="text-base font-mono font-bold"
+                style={{ color: ONDC_COLOR }}
+              >
+                {participantId}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs mt-2"
+                data-ocid="business.ondc.manage.button"
+              >
+                Manage Registration
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">GSTIN *</Label>
+                  <Input
+                    className="mt-1 h-8 text-xs"
+                    value={regForm.gstin}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, gstin: e.target.value })
+                    }
+                    placeholder="22AAAAA0000A1Z5"
+                    data-ocid="business.ondc.gstin.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">PAN *</Label>
+                  <Input
+                    className="mt-1 h-8 text-xs"
+                    value={regForm.pan}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, pan: e.target.value })
+                    }
+                    placeholder="ABCDE1234F"
+                    data-ocid="business.ondc.pan.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Business Category *</Label>
+                  <Select
+                    value={regForm.category}
+                    onValueChange={(v) =>
+                      setRegForm({ ...regForm, category: v })
+                    }
+                  >
+                    <SelectTrigger className="mt-1 h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Food",
+                        "Grocery",
+                        "Electronics",
+                        "Fashion",
+                        "Beauty",
+                        "Healthcare",
+                      ].map((c) => (
+                        <SelectItem key={c} value={c} className="text-xs">
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Bank Account Number</Label>
+                  <Input
+                    className="mt-1 h-8 text-xs"
+                    value={regForm.bankAccount}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, bankAccount: e.target.value })
+                    }
+                    placeholder="12345678901234"
+                    data-ocid="business.ondc.bank.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">IFSC Code</Label>
+                  <Input
+                    className="mt-1 h-8 text-xs"
+                    value={regForm.ifsc}
+                    onChange={(e) =>
+                      setRegForm({ ...regForm, ifsc: e.target.value })
+                    }
+                    placeholder="HDFC0001234"
+                    data-ocid="business.ondc.ifsc.input"
+                  />
+                </div>
+                {regForm.category === "Food" && (
+                  <div>
+                    <Label className="text-xs">FSSAI License Number</Label>
+                    <Input
+                      className="mt-1 h-8 text-xs"
+                      value={regForm.fssai}
+                      onChange={(e) =>
+                        setRegForm({ ...regForm, fssai: e.target.value })
+                      }
+                      placeholder="12345678901234"
+                      data-ocid="business.ondc.fssai.input"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs">
+                    ONDC Participant ID (auto-generated)
+                  </Label>
+                  <Input
+                    className="mt-1 h-8 text-xs font-mono bg-muted/50"
+                    value={participantId}
+                    readOnly
+                  />
+                </div>
+              </div>
+              <Button
+                className="text-xs font-label font-semibold"
+                onClick={handleRegister}
+                style={{ background: ONDC_COLOR }}
+                data-ocid="business.ondc.register.submit_button"
+              >
+                🌐 Register on ONDC Network
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Catalog Sync Tab */}
+        <TabsContent value="catalog" className="mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground font-semibold">
+              {catalogProducts.filter((p) => p.status === "Synced").length}{" "}
+              products synced on ONDC Network
+            </p>
+            <Button
+              size="sm"
+              className="text-xs"
+              onClick={handleSyncAll}
+              disabled={syncing}
+              style={{ background: ONDC_COLOR }}
+              data-ocid="business.ondc.sync_all.button"
+            >
+              {syncing ? "Syncing..." : "🔄 Sync All"}
+            </Button>
+          </div>
+          <div className="border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">
+                    Product
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">
+                    Category
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">
+                    Price
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">
+                    ONDC Status
+                  </th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">
+                    Last Sync
+                  </th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {catalogProducts.map((p, i) => (
+                  <tr
+                    key={`${p.name}-${i}`}
+                    className="border-t border-border/50"
+                  >
+                    <td className="px-3 py-2 font-medium">{p.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {p.category}
+                    </td>
+                    <td className="px-3 py-2">{p.price}</td>
+                    <td className="px-3 py-2">{statusBadge(p.status)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {p.lastSync}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] px-2"
+                        onClick={() => {
+                          setCatalogProducts((prev) =>
+                            prev.map((pp, ii) =>
+                              ii === i
+                                ? {
+                                    ...pp,
+                                    status: "Synced",
+                                    lastSync: "Just now",
+                                  }
+                                : pp,
+                            ),
+                          );
+                          toast.success(`${p.name} synced`);
+                        }}
+                        data-ocid={`business.ondc.sync.button.${i + 1}`}
+                      >
+                        Sync
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* ONDC Orders Tab */}
+        <TabsContent value="orders" className="mt-4 space-y-3">
+          {ondcOrders.length === 0 ? (
+            <div
+              className="text-center py-8 text-muted-foreground text-xs"
+              data-ocid="business.ondc.orders.empty_state"
+            >
+              No ONDC orders yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ondcOrders.map((order: any, i: number) => (
+                <div
+                  key={order.id}
+                  className="border border-border rounded-xl p-3 space-y-2"
+                  data-ocid={`business.ondc.orders.item.${i + 1}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className="text-[10px] font-mono"
+                        style={{
+                          background: "oklch(0.65 0.20 40 / 0.15)",
+                          color: ONDC_COLOR,
+                        }}
+                      >
+                        ONDC
+                      </Badge>
+                      <span className="text-xs font-bold">#{order.id}</span>
+                    </div>
+                    <Badge
+                      className="text-[10px]"
+                      style={{
+                        background:
+                          order.status === "New"
+                            ? "oklch(0.55 0.22 280 / 0.15)"
+                            : order.status === "Confirmed"
+                              ? "oklch(0.52 0.14 155 / 0.15)"
+                              : order.status === "Shipped"
+                                ? "oklch(0.72 0.17 85 / 0.15)"
+                                : "oklch(0.55 0.22 22 / 0.15)",
+                        color:
+                          order.status === "New"
+                            ? "oklch(0.55 0.22 280)"
+                            : order.status === "Confirmed"
+                              ? "oklch(0.52 0.14 155)"
+                              : order.status === "Shipped"
+                                ? "oklch(0.72 0.17 85)"
+                                : "oklch(0.55 0.22 22)",
+                      }}
+                    >
+                      {order.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[11px]">
+                    <span className="text-muted-foreground">
+                      Buyer:{" "}
+                      <span className="text-foreground font-medium">
+                        {order.buyer}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Product:{" "}
+                      <span className="text-foreground font-medium">
+                        {order.product}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Amount:{" "}
+                      <span className="text-foreground font-bold">
+                        {order.amount}
+                      </span>
+                    </span>
+                  </div>
+                  {order.status === "New" && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        style={{ background: "oklch(0.52 0.14 155)" }}
+                        onClick={() => handleAcceptOrder(order.id)}
+                        data-ocid={`business.ondc.accept.button.${i + 1}`}
+                      >
+                        ✅ Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[11px]"
+                        onClick={() => setCancelOrderId(order.id)}
+                        data-ocid={`business.ondc.cancel.button.${i + 1}`}
+                      >
+                        ❌ Cancel
+                      </Button>
+                    </div>
+                  )}
+                  {order.status === "Confirmed" && (
+                    <Button
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      style={{ background: ONDC_COLOR }}
+                      onClick={() => handleMarkShipped(order.id)}
+                      data-ocid={`business.ondc.ship.button.${i + 1}`}
+                    >
+                      🚚 Mark Shipped
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Cancel dialog */}
+          <Dialog
+            open={!!cancelOrderId}
+            onOpenChange={() => setCancelOrderId(null)}
+          >
+            <DialogContent
+              className="max-w-sm"
+              data-ocid="business.ondc.cancel.dialog"
+            >
+              <DialogHeader>
+                <DialogTitle className="text-sm">
+                  Cancel ONDC Order #{cancelOrderId}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <Label className="text-xs">Cancellation Reason *</Label>
+                <Textarea
+                  className="text-xs h-20 resize-none"
+                  placeholder="Enter reason for cancellation..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  data-ocid="business.ondc.cancel.textarea"
+                />
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs"
+                  onClick={() => setCancelOrderId(null)}
+                  data-ocid="business.ondc.cancel.close_button"
+                >
+                  Keep Order
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 text-xs"
+                  style={{ background: "oklch(0.55 0.22 22)" }}
+                  onClick={() =>
+                    cancelOrderId && handleCancelOrder(cancelOrderId)
+                  }
+                  data-ocid="business.ondc.cancel.confirm_button"
+                >
+                  Confirm Cancel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="mt-4 space-y-3">
+          <div className="space-y-4">
+            {[
+              {
+                label: "Delivery SLA",
+                key: "deliverySLA",
+                options: ["Same Day", "Next Day", "2-3 Days", "5-7 Days"],
+              },
+              {
+                label: "Cancellation Window",
+                key: "cancellationWindow",
+                options: ["30 min", "1 hour", "Before dispatch"],
+              },
+              {
+                label: "Return Policy",
+                key: "returnPolicy",
+                options: ["No Returns", "7 Days", "15 Days"],
+              },
+            ].map((s) => (
+              <div key={s.key}>
+                <Label className="text-xs">{s.label}</Label>
+                <Select
+                  value={(settings as any)[s.key]}
+                  onValueChange={(v) =>
+                    setSettings({ ...settings, [s.key]: v })
+                  }
+                >
+                  <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {s.options.map((o) => (
+                      <SelectItem key={o} value={o} className="text-xs">
+                        {o}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div>
+                <p className="text-xs font-semibold">Auto-accept orders</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Automatically confirm new ONDC orders
+                </p>
+              </div>
+              <Switch
+                checked={settings.autoAccept}
+                onCheckedChange={(v) =>
+                  setSettings({ ...settings, autoAccept: v })
+                }
+                data-ocid="business.ondc.autoaccept.switch"
+              />
+            </div>
+          </div>
+          <Button
+            className="text-xs font-label"
+            style={{ background: ONDC_COLOR }}
+            onClick={() => toast.success("ONDC settings saved")}
+            data-ocid="business.ondc.settings.save_button"
+          >
+            💾 Save Settings
+          </Button>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

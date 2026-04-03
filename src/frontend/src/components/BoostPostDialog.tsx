@@ -58,6 +58,26 @@ const REGIONS = [
 
 const AGE_GROUPS = ["18-25", "26-35", "36-50", "50+"];
 const GENDERS = ["All", "Male", "Female"];
+const LANGUAGES = [
+  "Hindi",
+  "English",
+  "Tamil",
+  "Telugu",
+  "Kannada",
+  "Marathi",
+  "Bengali",
+  "Gujarati",
+];
+const RELIGIONS = [
+  "All",
+  "Hindu",
+  "Muslim",
+  "Christian",
+  "Sikh",
+  "Buddhist",
+  "Jain",
+  "Other",
+];
 const DURATIONS = [
   { label: "1 Week", weeks: 1 },
   { label: "2 Weeks", weeks: 2 },
@@ -84,6 +104,8 @@ export default function BoostPostDialog({
   const [selectedAge, setSelectedAge] = useState<string>("18-25");
   const [selectedGender, setSelectedGender] = useState<string>("All");
   const [selectedDuration, setSelectedDuration] = useState<number>(1);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("Hindi");
+  const [selectedReligion, setSelectedReligion] = useState<string>("All");
   const [boosted, setBoosted] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
 
@@ -120,6 +142,8 @@ export default function BoostPostDialog({
         regions: selectedRegions,
         ageGroup: selectedAge,
         gender: selectedGender,
+        language: selectedLanguage,
+        religion: selectedReligion,
         duration: selectedDuration,
         status: "pending",
         timestamp: new Date().toISOString(),
@@ -147,6 +171,8 @@ export default function BoostPostDialog({
     setSelectedPlan("basic");
     setSelectedRegions([]);
     setSelectedDuration(1);
+    setSelectedLanguage("Hindi");
+    setSelectedReligion("All");
     onClose();
   }
 
@@ -280,8 +306,11 @@ export default function BoostPostDialog({
 
             {/* Audience Targeting - All plans */}
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Audience Targeting
+              <p
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{ color: "oklch(0.55 0.22 280)" }}
+              >
+                🎯 Audience Targeting
               </p>
 
               <div>
@@ -376,6 +405,68 @@ export default function BoostPostDialog({
                   </div>
                 </div>
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Language</p>
+                <div className="flex flex-wrap gap-1">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      type="button"
+                      key={lang}
+                      onClick={() => setSelectedLanguage(lang)}
+                      className="text-[11px] px-2 py-0.5 rounded-full border transition-all"
+                      style={{
+                        borderColor:
+                          selectedLanguage === lang
+                            ? "oklch(0.65 0.20 40)"
+                            : "oklch(var(--border))",
+                        background:
+                          selectedLanguage === lang
+                            ? "oklch(0.65 0.20 40 / 0.1)"
+                            : "transparent",
+                        color:
+                          selectedLanguage === lang
+                            ? "oklch(0.65 0.20 40)"
+                            : "oklch(var(--muted-foreground))",
+                      }}
+                      data-ocid="boost.language.toggle"
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">
+                  Religion / Culture
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {RELIGIONS.map((rel) => (
+                    <button
+                      type="button"
+                      key={rel}
+                      onClick={() => setSelectedReligion(rel)}
+                      className="text-[11px] px-2 py-0.5 rounded-full border transition-all"
+                      style={{
+                        borderColor:
+                          selectedReligion === rel
+                            ? "oklch(0.58 0.20 320)"
+                            : "oklch(var(--border))",
+                        background:
+                          selectedReligion === rel
+                            ? "oklch(0.58 0.20 320 / 0.1)"
+                            : "transparent",
+                        color:
+                          selectedReligion === rel
+                            ? "oklch(0.58 0.20 320)"
+                            : "oklch(var(--muted-foreground))",
+                      }}
+                      data-ocid="boost.religion.toggle"
+                    >
+                      {rel}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Duration */}
@@ -461,6 +552,10 @@ export default function BoostPostDialog({
                 </span>
               </Button>
             </div>
+            <p className="text-[10px] text-muted-foreground text-center">
+              Targeting: {selectedAge} · {selectedGender} · {selectedLanguage} ·{" "}
+              {selectedReligion}
+            </p>
           </div>
         )}
       </DialogContent>

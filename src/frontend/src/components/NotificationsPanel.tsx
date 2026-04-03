@@ -7,6 +7,7 @@ import {
   FileText,
   Heart,
   Home,
+  Network,
   Plane,
   ShoppingBag,
   TreePine,
@@ -39,6 +40,7 @@ const MODULE_COLORS: Record<string, string> = {
   Travel: "oklch(0.55 0.18 240)",
   Blog: "oklch(0.60 0.22 310)",
   GatedCommunity: "oklch(0.62 0.19 25)",
+  ONDC: "oklch(0.65 0.20 40)",
 };
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -51,6 +53,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
   Travel: Plane,
   Blog: FileText,
   GatedCommunity: Home,
+  ONDC: Network,
 };
 
 const SAMPLE_NOTIFICATIONS: Notification[] = [
@@ -197,12 +200,63 @@ export default function NotificationsPanel({
   const [storeNotifs, setStoreNotifs] = useState<StoreNotification[]>(() =>
     getNotifications(),
   );
+  const [ondcNotifs, setOndcNotifs] = useState<Notification[]>(() => {
+    try {
+      const raw = JSON.parse(
+        localStorage.getItem("ic_notifications") || "[]",
+      ) as Array<{
+        type: string;
+        message: string;
+        timestamp: number;
+      }>;
+      return raw.map((n, i) => ({
+        id: 90000 + i,
+        module: "ONDC",
+        text: n.message,
+        timestamp: n.timestamp
+          ? `${Math.max(0, Math.floor((Date.now() - n.timestamp) / 60000))}m ago`
+          : "Just now",
+        unread: true,
+        initials: "ON",
+      }));
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
-    const handler = () => setStoreNotifs(getNotifications());
+    const handler = () => {
+      setStoreNotifs(getNotifications());
+      try {
+        const raw = JSON.parse(
+          localStorage.getItem("ic_notifications") || "[]",
+        ) as Array<{
+          type: string;
+          message: string;
+          timestamp: number;
+        }>;
+        setOndcNotifs(
+          raw.map((n, i) => ({
+            id: 90000 + i,
+            module: "ONDC",
+            text: n.message,
+            timestamp: n.timestamp
+              ? `${Math.max(0, Math.floor((Date.now() - n.timestamp) / 60000))}m ago`
+              : "Just now",
+            unread: true,
+            initials: "ON",
+          })),
+        );
+      } catch {
+        // ignore
+      }
+    };
     window.addEventListener("indya_notification_added", handler);
-    return () =>
+    window.addEventListener("storage", handler);
+    return () => {
       window.removeEventListener("indya_notification_added", handler);
+      window.removeEventListener("storage", handler);
+    };
   }, []);
 
   // Close on Escape key
@@ -217,7 +271,7 @@ export default function NotificationsPanel({
 
   if (!open) return null;
 
-  const allNotifications = [...storeNotifs, ...notifications];
+  const allNotifications = [...ondcNotifs, ...storeNotifs, ...notifications];
 
   return createPortal(
     <>
