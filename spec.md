@@ -1,65 +1,37 @@
 # IndyaCentral
 
 ## Current State
-- BoostPostDialog exists with region, age group, and gender targeting UI fields already present in the component code
-- However the targeting section may not always be visible/functional when launched from all modules
-- Admin Panel PromotionsQueue has an "Audience Targeting" tab that references demographics
-- Business Page has tabs: My Businesses, Storefront, Tables, Orders, Branches, Payments, AI Marketing, POS Products, CSV Import, Discover/Claim, Biz Modules, Vendor Orders, Courier Panel, Delivery Partners, HR & Payroll, Business Alerts
-- No ONDC (Open Network for Digital Commerce) framework exists anywhere in the app
-- Notifications system exists (NotificationsPanel component)
+- Version 88 deployed
+- BoostPostDialog: saves to `ic_promotion_queue` after payment but missing image/video upload fields; status shows as "pending" but admin panel moderation queue only shows hardcoded items (not localStorage items)
+- BusinessAlertsTab: has type filter pills (order/review/bid/inventory/promotion/delivery/hr/community) but no ONDC tab and no per-module tabs
+- HealthcarePage: single "Add Reading" dialog for vitals (BP/pulse/glucose/weight) — no multi-disease tabwise recording
+- BusinessPage: no dedicated Healthcare Advisor or Insurance Business category registration flow
+- BusinessModulesFull/Extra: modules have tabs but some lack add/update/delete actions
+- BusinessDiscoveryFeatures Agent11: simulates random discovery only, no Google Business search simulation
 
 ## Requested Changes (Diff)
 
 ### Add
-- **ONDC Network framework** — step-by-step setup wizard in both Admin Panel and Business Page
-  - Admin Panel: New "ONDC Network" tab with setup steps (Register on ONDC registry → Configure network participant credentials → Set catalog sync → Enable buyer app integration → Go Live)
-  - Business Page: New "ONDC" tab with vendor registration form (GSTIN, PAN, business type, product categories, bank details, ONDC participant ID), catalog sync status, and order management
-  - ONDC order flow: buyer searches → seller listed on ONDC → order placed → seller notified → seller confirms/cancels → buyer notified of status change
-  - ONDC notifications: when user places ONDC order → vendor notified; when vendor cancels → user notified with cancellation reason
-  - ONDC status tracking in user Dashboard orders (ONDC badge on ONDC orders)
+- BoostPostDialog: image upload field (max 3 images) + video URL field with inline preview
+- BoostPostDialog: on payment success, save full promo with image/video to queue
+- Admin PromotionsQueue: load `ic_promotion_queue` from localStorage and show in pending approvals with image/video previews, AI moderation result (copyright check simulation), and approve/reject actions
+- BusinessAlertsTab: add "ondc" alert type + ONDC tab showing ONDC order notifications; add module-specific sub-tabs (Shop, POS, Community, Healthcare, Delivery, HR, Admin)
+- HealthcarePage: replace single vitals dialog with a tabbed "Add Reading" dialog supporting multiple disease categories: General Vitals, Diabetes, Hypertension, Heart, Thyroid, Kidney, Respiratory — each tab has disease-specific fields
+- BusinessPage: add Healthcare Advisor and Insurance Agent as registerable business sub-types in the Storefront/Modules section
+- Agent11BusinessDiscovery: add Google Business search simulation tab — user enters city/category, agent simulates fetching Google Business results and adds them to unclaimed listings
 
 ### Modify
-- **BoostPostDialog** — ensure demographic targeting (Age Group, Gender, Religion/Culture, Language) fields are always visible for ALL plan levels (Basic, Standard, Premium), not gated. Currently the section exists but may be conditionally hidden or missing in some contexts. Make all targeting fields (region, age, gender, religion/culture, language) fully visible and functional for every plan.
-- **Admin Panel PromotionsQueue Audience Targeting tab** — ensure the tab renders correctly and shows demographic breakdown of pending promotions (age group, gender, region, language, religion/culture filters on the approvals queue)
+- PromotionsQueue in AdminPanelPage: pending approvals tab must read from `ic_promotion_queue` localStorage (merged with hardcoded items), show image/video if present, show AI copyright moderation status
+- BusinessAlertsTab: FILTER_TABS and AUTO_ALERTS extended with ONDC and module-specific entries
+- All business modules (Inventory, Repair, Financial, etc.): verify add/update/delete buttons are present and functional
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-
-1. **Fix BoostPostDialog targeting visibility**
-   - Remove any conditional rendering that hides age/gender/demographic fields
-   - Add "Religion/Culture" and "Language" as additional targeting options (to match admin panel capabilities)
-   - Ensure the full targeting section is always shown for all plan types
-   - Show a targeting summary chip in the "Total" section before payment
-
-2. **Admin Panel PromotionsQueue — Audience Targeting tab fix**
-   - Ensure the Audience Targeting tab in PromotionsQueue correctly shows incoming promotions with their demographic data
-   - Add demographic filters (age group, gender, region, language, religion/culture) to the pending approvals queue so admin can filter by targeting criteria
-   - Show demographic targeting summary on each promotion card in the moderation queue
-
-3. **ONDC Setup in Admin Panel**
-   - New TabsTrigger + TabsContent `value="ondc-network"` in AdminPanelPage
-   - Component: `ONDCAdminSetup` with 5-step wizard:
-     - Step 1: Register on ONDC Registry (GSTIN, business name, contact, BAP/BPP role selection)
-     - Step 2: Network Participant Credentials (subscriber ID, subscriber URL, encryption public key, signing public key)
-     - Step 3: Catalog Sync (categories mapping, product sync schedule, test catalog push button)
-     - Step 4: Buyer App Integration (supported buyer apps list: Paytm, PhonePe, ONDC reference app, enable/disable toggles)
-     - Step 5: Go Live (pre-launch checklist, activate on ONDC network button, status indicator)
-   - Show current ONDC connection status (Offline / Sandbox / Live) badge
-
-4. **Business Page ONDC Vendor Tab**
-   - New TabsTrigger + TabsContent `value="ondc"` in BusinessPage
-   - Component: `ONDCVendorPanel` with tabs:
-     - **Registration** — vendor details form (GSTIN, PAN, business category, bank account, FSSAI if food, ONDC participant ID field)
-     - **Catalog** — product catalog sync status table (product name, ONDC status: Synced/Pending/Error, last sync time, manual sync button per product)
-     - **ONDC Orders** — incoming orders from ONDC network with Accept/Reject/Cancel actions, order details, buyer info
-     - **Settings** — delivery SLA, cancellation policy, return policy for ONDC compliance
-   - When vendor rejects/cancels an order: save to notification queue with buyer's name and reason → show in user's NotificationsPanel
-
-5. **ONDC User Purchase Flow**
-   - In ShopPage: add "ONDC Network" filter badge on products that are ONDC-registered vendors
-   - When user places order on an ONDC-listed product: mark order with `source: 'ondc'` in localStorage order queue
-   - In Dashboard > My Orders: show ONDC badge on ONDC-sourced orders
-   - Notification to vendor (BusinessPage > ONDC Orders tab) when order placed
-   - Notification to user (NotificationsPanel) when vendor accepts, ships, or cancels ONDC order
+1. Update `BoostPostDialog.tsx`: add image upload (3 max, base64), video URL field, pass them into promo object saved to `ic_promotion_queue`
+2. Update `AdminPanelPage.tsx` PromotionsQueue: merge localStorage queue with hardcoded modItems; show image thumbnails + video link; add AI copyright moderation field; approve action moves to active promos
+3. Update `BusinessPage.tsx` BusinessAlertsTab: add `ondc` to AlertType; add ONDC seed alerts; add module tabs (Shop, POS, Community, Healthcare, Delivery, HR, Admin, ONDC); auto-generate ONDC alerts
+4. Update `HealthcarePage.tsx`: replace Add Reading dialog with a tabbed multi-disease dialog (7 disease tabs, each with relevant fields); store per-disease readings in state
+5. Update `BusinessPage.tsx` Storefront: add Healthcare Advisor and Insurance Agent business type options
+6. Update `BusinessDiscoveryFeatures.tsx` Agent11: add a "Google Business Search" tab with city/category inputs and simulated results

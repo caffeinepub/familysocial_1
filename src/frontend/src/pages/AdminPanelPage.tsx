@@ -10419,145 +10419,234 @@ function PromotionsQueue() {
               </span>
             </div>
             {/* User-submitted promotions from localStorage */}
-            {pendingPromos.map((promo, i) => (
+            {pendingPromos.length === 0 && (
               <div
-                key={promo.id}
-                className="bg-card border-2 border-amber-500/40 rounded-xl p-4 space-y-3"
-                data-ocid={`admin.promotions.ls.row.${i + 1}`}
+                className="text-center py-8 text-muted-foreground text-sm"
+                data-ocid="admin.promotions.pending.empty_state"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-bold">
-                        NEW
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {promo.postTitle}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {promo.plan?.toUpperCase()} Plan · {promo.postType} ·{" "}
-                      {new Date(promo.timestamp).toLocaleDateString()}
-                    </div>
-                    {/* Payment Receipt */}
-                    <details className="mt-2">
-                      <summary className="text-xs text-primary cursor-pointer font-medium">
-                        💳 View Payment Receipt
-                      </summary>
-                      <div className="mt-2 p-2 rounded-lg bg-secondary/30 text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Amount</span>
-                          <span className="font-bold">
-                            ₹{promo.amount?.toLocaleString()}
+                No pending promotions awaiting review.
+              </div>
+            )}
+            {pendingPromos.map((promo, i) => {
+              const COPYRIGHT_BRANDS = [
+                "nike",
+                "apple",
+                "samsung",
+                "coca-cola",
+                "disney",
+                "adidas",
+                "amazon",
+                "google",
+                "microsoft",
+              ];
+              const hasCopyrightRisk = COPYRIGHT_BRANDS.some(
+                (b) =>
+                  (promo.postTitle || "").toLowerCase().includes(b) ||
+                  (promo.adContent || "").toLowerCase().includes(b),
+              );
+              const isAIFlagged =
+                promo.aiModeration && promo.aiModeration.safe === false;
+              return (
+                <div
+                  key={promo.id}
+                  className="bg-card border-2 border-amber-500/40 rounded-xl p-4 space-y-3"
+                  data-ocid={`admin.promotions.ls.row.${i + 1}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-bold">
+                          NEW
+                        </span>
+                        <span className="text-sm font-semibold">
+                          {promo.postTitle}
+                        </span>
+                        {isAIFlagged && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-bold">
+                            ⚠ AI Flagged —{" "}
+                            {promo.aiModeration?.details || "Unsafe content"}
                           </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Gateway</span>
-                          <span>{promo.gateway}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Txn ID</span>
-                          <span className="font-mono text-[10px]">
-                            {promo.txnId}
+                        )}
+                        {!isAIFlagged && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">
+                            ✓ AI Safe
                           </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Duration
+                        )}
+                        {hasCopyrightRisk ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 font-bold">
+                            ⚠ Copyright Risk
                           </span>
-                          <span>{promo.duration} week(s)</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Age Group
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">
+                            ✓ No Copyright Issues
                           </span>
-                          <span>{promo.ageGroup}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Gender</span>
-                          <span>{promo.gender}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Regions</span>
-                          <span>{promo.regions?.join(", ") || "All"}</span>
-                        </div>
+                        )}
                       </div>
-                    </details>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => {
-                        try {
-                          const queue = JSON.parse(
-                            localStorage.getItem("ic_promotion_queue") || "[]",
-                          );
-                          const updated = queue.map((p: any) =>
-                            p.id === promo.id
-                              ? { ...p, status: "approved" }
-                              : p,
-                          );
-                          localStorage.setItem(
-                            "ic_promotion_queue",
-                            JSON.stringify(updated),
-                          );
-                          const active = JSON.parse(
-                            localStorage.getItem("ic_active_promos") || "[]",
-                          );
-                          localStorage.setItem(
-                            "ic_active_promos",
-                            JSON.stringify([
-                              ...active,
+                      <div className="text-xs text-muted-foreground">
+                        {promo.plan?.toUpperCase()} Plan · {promo.postType} ·{" "}
+                        {new Date(promo.timestamp).toLocaleDateString()}
+                      </div>
+                      {/* Promotion Images */}
+                      {promo.images && promo.images.length > 0 && (
+                        <div className="flex gap-2 flex-wrap mt-1">
+                          {promo.images.map((img: string, ii: number) => (
+                            <img
+                              key={`${img.slice(0, 30)}-${ii}`}
+                              src={img}
+                              alt={`promo-img-${ii}`}
+                              className="w-16 h-16 object-cover rounded-lg border border-border"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {/* Promotion Video */}
+                      {promo.videoUrl && (
+                        <div className="mt-1 p-2 rounded-lg bg-secondary/30 text-xs flex items-center gap-2">
+                          <span>🎥</span>
+                          <a
+                            href={promo.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline truncate"
+                          >
+                            {promo.videoUrl}
+                          </a>
+                        </div>
+                      )}
+                      {/* Payment Receipt */}
+                      <details className="mt-2">
+                        <summary className="text-xs text-primary cursor-pointer font-medium">
+                          💳 View Payment Receipt
+                        </summary>
+                        <div className="mt-2 p-2 rounded-lg bg-secondary/30 text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Amount
+                            </span>
+                            <span className="font-bold">
+                              ₹{promo.amount?.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Gateway
+                            </span>
+                            <span>{promo.gateway}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Txn ID
+                            </span>
+                            <span className="font-mono text-[10px]">
+                              {promo.txnId}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Duration
+                            </span>
+                            <span>{promo.duration} week(s)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Age Group
+                            </span>
+                            <span>{promo.ageGroup}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Gender
+                            </span>
+                            <span>{promo.gender}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Regions
+                            </span>
+                            <span>{promo.regions?.join(", ") || "All"}</span>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => {
+                          try {
+                            const queue = JSON.parse(
+                              localStorage.getItem("ic_promotion_queue") ||
+                                "[]",
+                            );
+                            const updated = queue.map((p: any) =>
+                              p.id === promo.id
+                                ? { ...p, status: "approved" }
+                                : p,
+                            );
+                            localStorage.setItem(
+                              "ic_promotion_queue",
+                              JSON.stringify(updated),
+                            );
+                            const active = JSON.parse(
+                              localStorage.getItem("ic_active_promos") || "[]",
+                            );
+                            localStorage.setItem(
+                              "ic_active_promos",
+                              JSON.stringify([
+                                ...active,
+                                { ...promo, status: "approved" },
+                              ]),
+                            );
+                            setLsActivePromos((prev) => [
+                              ...prev,
                               { ...promo, status: "approved" },
-                            ]),
+                            ]);
+                            setPendingPromos((prev) =>
+                              prev.filter((p) => p.id !== promo.id),
+                            );
+                          } catch {}
+                          toast.success(
+                            `"${promo.postTitle}" approved and live`,
                           );
-                          setLsActivePromos((prev) => [
-                            ...prev,
-                            { ...promo, status: "approved" },
-                          ]);
-                          setPendingPromos((prev) =>
-                            prev.filter((p) => p.id !== promo.id),
-                          );
-                        } catch {}
-                        toast.success(`"${promo.postTitle}" approved and live`);
-                      }}
-                      data-ocid={`admin.promotions.ls.confirm_button.${i + 1}`}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs text-destructive"
-                      onClick={() => {
-                        try {
-                          const queue = JSON.parse(
-                            localStorage.getItem("ic_promotion_queue") || "[]",
-                          );
-                          const updated = queue.map((p: any) =>
-                            p.id === promo.id
-                              ? { ...p, status: "rejected" }
-                              : p,
-                          );
-                          localStorage.setItem(
-                            "ic_promotion_queue",
-                            JSON.stringify(updated),
-                          );
-                          setPendingPromos((prev) =>
-                            prev.filter((p) => p.id !== promo.id),
-                          );
-                        } catch {}
-                        toast.error(`"${promo.postTitle}" rejected`);
-                      }}
-                      data-ocid={`admin.promotions.ls.delete_button.${i + 1}`}
-                    >
-                      Reject
-                    </Button>
+                        }}
+                        data-ocid={`admin.promotions.ls.confirm_button.${i + 1}`}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-destructive"
+                        onClick={() => {
+                          try {
+                            const queue = JSON.parse(
+                              localStorage.getItem("ic_promotion_queue") ||
+                                "[]",
+                            );
+                            const updated = queue.map((p: any) =>
+                              p.id === promo.id
+                                ? { ...p, status: "rejected" }
+                                : p,
+                            );
+                            localStorage.setItem(
+                              "ic_promotion_queue",
+                              JSON.stringify(updated),
+                            );
+                            setPendingPromos((prev) =>
+                              prev.filter((p) => p.id !== promo.id),
+                            );
+                          } catch {}
+                          toast.error(`"${promo.postTitle}" rejected`);
+                        }}
+                        data-ocid={`admin.promotions.ls.delete_button.${i + 1}`}
+                      >
+                        Reject
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {modItems.map((item, i) => {
               const status = modStatuses[item.id];

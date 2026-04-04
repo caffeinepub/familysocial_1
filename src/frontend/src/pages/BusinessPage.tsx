@@ -1264,11 +1264,22 @@ function MyBusinessesTab({
                 <Phone size={10} /> <span>{biz.phone}</span>
               </div>
             )}
-            {biz.category?.toLowerCase().includes("health") && (
-              <div className="mt-2 text-[10px] px-2 py-1 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-                💊 Healthcare — Advisor profile available
+            {biz.category === "Healthcare Advisor" && (
+              <div className="mt-2 text-[10px] px-2 py-1 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 font-medium">
+                💊 Healthcare Advisor — Registered on IndyaCentral
               </div>
             )}
+            {biz.category === "Insurance Agent" && (
+              <div className="mt-2 text-[10px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium">
+                🛡️ Insurance Agent — Registered on IndyaCentral
+              </div>
+            )}
+            {biz.category?.toLowerCase().includes("health") &&
+              biz.category !== "Healthcare Advisor" && (
+                <div className="mt-2 text-[10px] px-2 py-1 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+                  💊 Healthcare — Advisor profile available
+                </div>
+              )}
             <Button
               size="sm"
               variant="outline"
@@ -1780,7 +1791,8 @@ type AlertType =
   | "promotion"
   | "delivery"
   | "hr"
-  | "community";
+  | "community"
+  | "ondc";
 
 interface BizAlert {
   id: string;
@@ -1802,6 +1814,7 @@ const ALERT_ICONS: Record<AlertType, string> = {
   delivery: "🚚",
   hr: "👥",
   community: "🏘️",
+  ondc: "🌐",
 };
 
 const ALERT_COLORS: Record<AlertType, string> = {
@@ -1817,6 +1830,7 @@ const ALERT_COLORS: Record<AlertType, string> = {
   hr: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
   community:
     "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+  ondc: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
 };
 
 function seedAlerts(): BizAlert[] {
@@ -1902,6 +1916,34 @@ function seedAlerts(): BizAlert[] {
       read: true,
       module: "Community",
     },
+    {
+      id: "a9",
+      type: "ondc",
+      title: "New ONDC Order #ONDC205",
+      description: "ONDC order for ₹1,850 received via network — 2 items",
+      timestamp: new Date(now - 12 * min),
+      read: false,
+      module: "ONDC",
+      actionLabel: "View Order",
+    },
+    {
+      id: "a10",
+      type: "ondc",
+      title: "ONDC Order Cancelled",
+      description: "Order #ONDC198 cancelled by buyer. Reason: Change of mind",
+      timestamp: new Date(now - 35 * min),
+      read: false,
+      module: "ONDC",
+    },
+    {
+      id: "a11",
+      type: "ondc",
+      title: "ONDC Product Synced",
+      description: "12 products successfully synced to ONDC network catalogue",
+      timestamp: new Date(now - 65 * min),
+      read: true,
+      module: "ONDC",
+    },
   ];
 }
 
@@ -1958,6 +2000,26 @@ const AUTO_ALERTS: Omit<BizAlert, "id" | "timestamp" | "read">[] = [
     description: "Your bid for Plumbing Repair was accepted by Society Admin",
     module: "Community",
   },
+  {
+    type: "ondc",
+    title: "New ONDC Order Received",
+    description: "Order via ONDC network — confirm within 30 mins",
+    module: "ONDC",
+    actionLabel: "Accept",
+  },
+  {
+    type: "ondc",
+    title: "ONDC Catalogue Updated",
+    description: "Your ONDC product catalogue has been synced successfully",
+    module: "ONDC",
+  },
+  {
+    type: "ondc",
+    title: "ONDC Order Shipment Requested",
+    description: "Buyer requesting shipment for ONDC Order #ONDC211",
+    module: "ONDC",
+    actionLabel: "Ship",
+  },
 ];
 
 function playAlertBeep() {
@@ -2000,6 +2062,20 @@ const FILTER_TABS: { label: string; value: AlertType | "all" }[] = [
   { label: "Promotions", value: "promotion" },
   { label: "HR", value: "hr" },
   { label: "Deliveries", value: "delivery" },
+  { label: "Community", value: "community" },
+  { label: "ONDC", value: "ondc" },
+];
+
+const MODULE_TABS: { label: string; value: string }[] = [
+  { label: "All Modules", value: "all" },
+  { label: "Shop", value: "Shop" },
+  { label: "POS", value: "POS" },
+  { label: "Community", value: "Community" },
+  { label: "Healthcare", value: "Healthcare" },
+  { label: "Delivery", value: "Delivery" },
+  { label: "HR", value: "HR" },
+  { label: "Admin", value: "Admin" },
+  { label: "ONDC", value: "ONDC" },
 ];
 
 function BusinessAlertsTab({
@@ -2007,6 +2083,7 @@ function BusinessAlertsTab({
 }: { onUnreadChange: (count: number) => void }) {
   const [alerts, setAlerts] = useState<BizAlert[]>(() => seedAlerts());
   const [filter, setFilter] = useState<AlertType | "all">("all");
+  const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [soundOn, setSoundOn] = useState(true);
   const [, forceRender] = useState(0);
 
@@ -2050,8 +2127,9 @@ function BusinessAlertsTab({
     setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
   };
 
-  const filtered =
-    filter === "all" ? alerts : alerts.filter((a) => a.type === filter);
+  const filtered = alerts
+    .filter((a) => filter === "all" || a.type === filter)
+    .filter((a) => moduleFilter === "all" || a.module === moduleFilter);
 
   const countByType = (type: AlertType | "all") => {
     const list =
@@ -2092,30 +2170,54 @@ function BusinessAlertsTab({
         </div>
       </div>
 
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-1.5" data-ocid="business.alerts.tab">
-        {FILTER_TABS.map(({ label, value }) => {
-          const unread = countByType(value);
-          return (
+      {/* Filter pills - By Type */}
+      <div className="space-y-2">
+        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+          By Type
+        </p>
+        <div className="flex flex-wrap gap-1.5" data-ocid="business.alerts.tab">
+          {FILTER_TABS.map(({ label, value }) => {
+            const unread = countByType(value);
+            return (
+              <button
+                type="button"
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                  filter === value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted"
+                }`}
+              >
+                {label}
+                {unread > 0 && (
+                  <span className="bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider pt-1">
+          By Module
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {MODULE_TABS.map(({ label, value }) => (
             <button
               type="button"
               key={value}
-              onClick={() => setFilter(value)}
+              onClick={() => setModuleFilter(value)}
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
-                filter === value
-                  ? "bg-primary text-primary-foreground border-primary"
+                moduleFilter === value
+                  ? "bg-secondary text-secondary-foreground border-secondary"
                   : "bg-background text-muted-foreground border-border hover:bg-muted"
               }`}
             >
               {label}
-              {unread > 0 && (
-                <span className="bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {/* Alert list */}
@@ -5223,6 +5325,8 @@ const BIZ_CATEGORIES = [
   "Home Services",
   "Automotive",
   "Garments",
+  "Healthcare Advisor",
+  "Insurance Agent",
 ];
 
 function BizModulePanel({ moduleId }: { moduleId: string | null }) {

@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { CheckCircle2, Rocket, Target, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -108,6 +109,8 @@ export default function BoostPostDialog({
   const [selectedReligion, setSelectedReligion] = useState<string>("All");
   const [boosted, setBoosted] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [promoImages, setPromoImages] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState("");
 
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
   const totalPrice = plan.price * selectedDuration;
@@ -148,6 +151,24 @@ export default function BoostPostDialog({
         status: "pending",
         timestamp: new Date().toISOString(),
         impressions: 0,
+        images: promoImages,
+        videoUrl,
+        adContent: postTitle,
+        aiModeration: {
+          safe:
+            !postTitle.toLowerCase().includes("adult") &&
+            !postTitle.toLowerCase().includes("18+"),
+          copyright: [
+            "nike",
+            "apple",
+            "samsung",
+            "coca-cola",
+            "disney",
+            "adidas",
+            "amazon",
+          ].some((brand) => postTitle.toLowerCase().includes(brand)),
+          details: "AI scan pending",
+        },
       };
       const existingQ = JSON.parse(
         localStorage.getItem("ic_promotion_queue") || "[]",
@@ -173,6 +194,8 @@ export default function BoostPostDialog({
     setSelectedDuration(1);
     setSelectedLanguage("Hindi");
     setSelectedReligion("All");
+    setPromoImages([]);
+    setVideoUrl("");
     onClose();
   }
 
@@ -466,6 +489,91 @@ export default function BoostPostDialog({
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Promotion Media */}
+            <div className="space-y-3">
+              <p
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{ color: "oklch(0.55 0.22 280)" }}
+              >
+                📎 Promotion Media
+              </p>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">
+                  Upload Images (max 3)
+                </Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-secondary file:text-secondary-foreground hover:file:bg-secondary/80 cursor-pointer"
+                  data-ocid="boost.upload_button"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []).slice(0, 3);
+                    const readers = files.map(
+                      (file) =>
+                        new Promise<string>((resolve) => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) =>
+                            resolve(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }),
+                    );
+                    Promise.all(readers).then((imgs) => setPromoImages(imgs));
+                  }}
+                />
+                {promoImages.length > 0 && (
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {promoImages.map((img, i) => (
+                      <div key={img.slice(0, 40)} className="relative">
+                        <img
+                          src={img}
+                          alt={`promo-${i}`}
+                          className="w-16 h-16 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPromoImages((prev) =>
+                              prev.filter((_, idx) => idx !== i),
+                            )
+                          }
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full text-[9px] flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">
+                  Video URL (YouTube / Vimeo)
+                </Label>
+                <input
+                  type="text"
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="w-full h-8 px-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  data-ocid="boost.video.input"
+                />
+                {videoUrl && (
+                  <div className="mt-2 p-2 rounded-lg bg-secondary/30 text-xs flex items-center gap-2">
+                    <span>🎥</span>
+                    <a
+                      href={videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline truncate"
+                    >
+                      {videoUrl}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 

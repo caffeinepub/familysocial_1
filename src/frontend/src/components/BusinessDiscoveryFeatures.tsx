@@ -221,6 +221,244 @@ const CATEGORIES_LIST = [
   "Real Estate",
 ];
 
+// ─── Google Business Search (Agent 11 Sub-Feature) ───────────────────────────
+
+const GOOGLE_BIZ_TEMPLATES: Record<
+  string,
+  { names: string[]; suffix: string[] }
+> = {
+  Healthcare: {
+    names: [
+      "City Clinic",
+      "Health Plus",
+      "MedCare Centre",
+      "Wellness Hub",
+      "Life Care",
+    ],
+    suffix: ["Hospital", "Clinic", "Medical Centre", "Pharmacy", "Diagnostics"],
+  },
+  Retail: {
+    names: ["Smart", "Express", "Central", "Premium", "Value"],
+    suffix: ["Store", "Mart", "Shop", "Bazaar", "Emporium"],
+  },
+  Food: {
+    names: ["Spice Garden", "Royal", "Tasty", "Fresh", "Golden"],
+    suffix: ["Restaurant", "Kitchen", "Dhaba", "Cafe", "Eatery"],
+  },
+  Education: {
+    names: ["Bright", "Future", "Ideal", "Excellence", "Wisdom"],
+    suffix: ["School", "Academy", "Institute", "College", "Tutorial"],
+  },
+  Services: {
+    names: ["Quick Fix", "Pro", "Expert", "Swift", "Elite"],
+    suffix: ["Services", "Solutions", "Works", "Care", "Support"],
+  },
+  "Real Estate": {
+    names: ["Prime", "Green Valley", "Sunrise", "Golden", "Prestige"],
+    suffix: ["Properties", "Realtors", "Builders", "Estates", "Developers"],
+  },
+  Finance: {
+    names: ["Trust", "Secure", "Capital", "Wealth", "Sure"],
+    suffix: ["Finance", "Advisors", "Consultants", "Investments", "Insurance"],
+  },
+  Technology: {
+    names: ["Tech", "Digital", "Smart", "Cyber", "Inno"],
+    suffix: ["Solutions", "Systems", "Labs", "Hub", "Ventures"],
+  },
+  Transport: {
+    names: ["Fast", "Swift", "Safe", "City", "Metro"],
+    suffix: ["Transport", "Logistics", "Movers", "Packers", "Carriers"],
+  },
+};
+
+const GOOGLE_BIZ_CATEGORIES = Object.keys(GOOGLE_BIZ_TEMPLATES);
+
+function generateGoogleResults(
+  city: string,
+  category: string,
+): UnclaimedBusiness[] {
+  const tmpl = GOOGLE_BIZ_TEMPLATES[category] || GOOGLE_BIZ_TEMPLATES.Retail;
+  const count = 5 + Math.floor(Math.random() * 4);
+  return Array.from({ length: count }, (_, i) => {
+    const name = `${tmpl.names[i % tmpl.names.length]} ${tmpl.suffix[Math.floor(Math.random() * tmpl.suffix.length)]}`;
+    const rating = (3.5 + Math.random() * 1.5).toFixed(1);
+    return {
+      id: `gs_${Date.now()}_${i}`,
+      name: `${name}${i > 0 ? ` ${city.slice(0, 3).toUpperCase()}-${i + 1}` : ""}`,
+      category,
+      city,
+      phone: `+91 ${Math.floor(7000000000 + Math.random() * 2999999999)}`,
+      status: "Unclaimed" as const,
+      rating,
+      website: `https://www.${name.toLowerCase().replace(/\s+/g, "")}.com`,
+      address: `${Math.floor(Math.random() * 200) + 1}, ${["MG Road", "Brigade Road", "Connaught Place", "Linking Road", "Banjara Hills"][i % 5]}, ${city}`,
+    };
+  });
+}
+
+interface GoogleBizResult extends UnclaimedBusiness {
+  rating?: string;
+  website?: string;
+  address?: string;
+}
+
+function GoogleBusinessSearchTab({
+  onAddToBusiness,
+}: { onAddToBusiness: (biz: UnclaimedBusiness) => void }) {
+  const [city, setCity] = useState("");
+  const [category, setCategory] = useState("Healthcare");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<GoogleBizResult[]>([]);
+  const [added, setAdded] = useState<Set<string>>(new Set());
+
+  const handleSearch = () => {
+    if (!city.trim()) {
+      toast.error("Enter a city to search");
+      return;
+    }
+    setLoading(true);
+    setResults([]);
+    setTimeout(() => {
+      const found = generateGoogleResults(city.trim(), category);
+      setResults(found);
+      setLoading(false);
+      toast.success(`Found ${found.length} ${category} businesses in ${city}`);
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-400 flex gap-2">
+        <Search size={14} className="shrink-0 mt-0.5" />
+        <span>
+          Simulates Google Business Profile API search. In production, connect
+          your Google Places API key in Admin → API Sync to enable real results.
+        </span>
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          placeholder="Enter city (e.g. Bangalore)"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          className="flex-1 h-9"
+          data-ocid="admin.agent11.google.search_input"
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+        />
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="h-9 px-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          data-ocid="admin.agent11.google.select"
+        >
+          {GOOGLE_BIZ_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+        <Button
+          onClick={handleSearch}
+          disabled={loading}
+          className="h-9 shrink-0"
+          data-ocid="admin.agent11.google.primary_button"
+        >
+          {loading ? (
+            <Loader2 size={14} className="animate-spin mr-1" />
+          ) : (
+            <Search size={14} className="mr-1" />
+          )}
+          {loading ? "Searching…" : "Search"}
+        </Button>
+      </div>
+
+      {loading && (
+        <div
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+          data-ocid="admin.agent11.google.loading_state"
+        >
+          <Loader2 size={16} className="animate-spin" />
+          Searching Google Business for {category} in {city}…
+        </div>
+      )}
+
+      {results.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">
+            {results.length} results found
+          </p>
+          {results.map((biz, i) => (
+            <div
+              key={biz.id}
+              className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border bg-card"
+              data-ocid={`admin.agent11.google.item.${i + 1}`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    {biz.name}
+                  </span>
+                  {biz.rating && (
+                    <span className="text-[11px] text-amber-600 font-medium">
+                      ⭐ {biz.rating}
+                    </span>
+                  )}
+                </div>
+                {biz.address && (
+                  <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                    <MapPin size={10} /> {biz.address}
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Phone size={10} />
+                    {biz.phone}
+                  </span>
+                  {biz.website && (
+                    <a
+                      href={biz.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Website ↗
+                    </a>
+                  )}
+                </div>
+                <Badge variant="outline" className="mt-1 text-[10px]">
+                  {biz.category}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant={added.has(biz.id) ? "secondary" : "outline"}
+                className="h-7 text-xs shrink-0"
+                disabled={added.has(biz.id)}
+                onClick={() => {
+                  onAddToBusiness(biz);
+                  setAdded((prev) => new Set([...prev, biz.id]));
+                }}
+                data-ocid={`admin.agent11.google.secondary_button.${i + 1}`}
+              >
+                {added.has(biz.id) ? "✓ Added" : "+ Add"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && results.length === 0 && city && (
+        <div
+          className="text-center py-8 text-muted-foreground text-sm"
+          data-ocid="admin.agent11.google.empty_state"
+        >
+          No results yet. Click Search to discover businesses.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Agent11BusinessDiscovery() {
   const [activeTab, setActiveTab] = useState("config");
   const [running, setRunning] = useState(false);
@@ -389,6 +627,12 @@ export function Agent11BusinessDiscovery() {
           >
             Discovered ({businesses.length})
           </TabsTrigger>
+          <TabsTrigger
+            value="google-search"
+            data-ocid="admin.agent11discovery.tab"
+          >
+            🔍 Google Search
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="config" className="mt-4 space-y-4">
@@ -553,6 +797,22 @@ export function Agent11BusinessDiscovery() {
               ))}
             </TableBody>
           </Table>
+        </TabsContent>
+
+        <TabsContent value="google-search" className="mt-4">
+          <GoogleBusinessSearchTab
+            onAddToBusiness={(biz) => {
+              setBusinesses((prev) => {
+                const updated = [biz, ...prev];
+                saveBusinesses(updated);
+                return updated;
+              });
+              appendLog(
+                `✅ Added from Google Search: ${biz.name} (${biz.city})`,
+              );
+              toast.success(`${biz.name} added to discovery list`);
+            }}
+          />
         </TabsContent>
       </Tabs>
 

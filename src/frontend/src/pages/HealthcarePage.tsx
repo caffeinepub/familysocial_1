@@ -645,6 +645,17 @@ function MedicalRecordsTab({
   const [prescriptions, setPrescriptions] =
     useState<Prescription[]>(MOCK_PRESCRIPTIONS);
   const [vitals, setVitals] = useState<VitalReading[]>(MOCK_VITALS);
+  const [diseaseReadings, setDiseaseReadings] = useState<Record<string, any[]>>(
+    {
+      diabetes: [],
+      hypertension: [],
+      heart: [],
+      thyroid: [],
+      kidney: [],
+      respiratory: [],
+    },
+  );
+  const [diseaseActiveTab, setDiseaseActiveTab] = useState("vitals");
   const [conditionInput, setConditionInput] = useState("");
   const [allergyInput, setAllergyInput] = useState("");
   const [rxOpen, setRxOpen] = useState(false);
@@ -662,6 +673,44 @@ function MedicalRecordsTab({
     pulse: "",
     glucose: "",
     weight: "",
+    temperature: "",
+    spo2: "",
+  });
+  const [diabetesForm, setDiabetesForm] = useState({
+    fastingGlucose: "",
+    postMealGlucose: "",
+    hba1c: "",
+    insulin: "",
+  });
+  const [hypertensionForm, setHypertensionForm] = useState({
+    systolic: "",
+    diastolic: "",
+    pulse: "",
+    timeOfDay: "Morning",
+  });
+  const [heartForm, setHeartForm] = useState({
+    heartRate: "",
+    ecgNotes: "",
+    chestPain: "None",
+    medication: "",
+  });
+  const [thyroidForm, setThyroidForm] = useState({
+    tsh: "",
+    t3: "",
+    t4: "",
+    symptoms: "",
+  });
+  const [kidneyForm, setKidneyForm] = useState({
+    creatinine: "",
+    bun: "",
+    egfr: "",
+    fluidIntake: "",
+  });
+  const [respiratoryForm, setRespiratoryForm] = useState({
+    peakFlow: "",
+    o2sat: "",
+    difficulty: "None",
+    inhalerUsed: false,
   });
 
   const addCondition = () => {
@@ -694,27 +743,110 @@ function MedicalRecordsTab({
 
   const addVital = (e: React.FormEvent) => {
     e.preventDefault();
-    const now = new Date().toLocaleDateString("en-PK", {
+    const now = new Date().toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
-    setVitals((p) =>
-      [
-        {
-          id: Date.now(),
-          date: now,
-          bp: vitalForm.bp,
-          pulse: Number(vitalForm.pulse),
-          glucose: Number(vitalForm.glucose),
-          weight: Number(vitalForm.weight),
-        },
-        ...p,
-      ].slice(0, 10),
-    );
-    setVitalForm({ bp: "", pulse: "", glucose: "", weight: "" });
+    if (diseaseActiveTab === "vitals") {
+      setVitals((p) =>
+        [
+          {
+            id: Date.now(),
+            date: now,
+            bp: vitalForm.bp,
+            pulse: Number(vitalForm.pulse),
+            glucose: Number(vitalForm.glucose),
+            weight: Number(vitalForm.weight),
+          },
+          ...p,
+        ].slice(0, 10),
+      );
+      setVitalForm({
+        bp: "",
+        pulse: "",
+        glucose: "",
+        weight: "",
+        temperature: "",
+        spo2: "",
+      });
+    } else if (diseaseActiveTab === "diabetes") {
+      setDiseaseReadings((prev) => ({
+        ...prev,
+        diabetes: [
+          { id: Date.now(), date: now, ...diabetesForm },
+          ...prev.diabetes,
+        ].slice(0, 10),
+      }));
+      setDiabetesForm({
+        fastingGlucose: "",
+        postMealGlucose: "",
+        hba1c: "",
+        insulin: "",
+      });
+    } else if (diseaseActiveTab === "hypertension") {
+      setDiseaseReadings((prev) => ({
+        ...prev,
+        hypertension: [
+          { id: Date.now(), date: now, ...hypertensionForm },
+          ...prev.hypertension,
+        ].slice(0, 10),
+      }));
+      setHypertensionForm({
+        systolic: "",
+        diastolic: "",
+        pulse: "",
+        timeOfDay: "Morning",
+      });
+    } else if (diseaseActiveTab === "heart") {
+      setDiseaseReadings((prev) => ({
+        ...prev,
+        heart: [
+          { id: Date.now(), date: now, ...heartForm },
+          ...prev.heart,
+        ].slice(0, 10),
+      }));
+      setHeartForm({
+        heartRate: "",
+        ecgNotes: "",
+        chestPain: "None",
+        medication: "",
+      });
+    } else if (diseaseActiveTab === "thyroid") {
+      setDiseaseReadings((prev) => ({
+        ...prev,
+        thyroid: [
+          { id: Date.now(), date: now, ...thyroidForm },
+          ...prev.thyroid,
+        ].slice(0, 10),
+      }));
+      setThyroidForm({ tsh: "", t3: "", t4: "", symptoms: "" });
+    } else if (diseaseActiveTab === "kidney") {
+      setDiseaseReadings((prev) => ({
+        ...prev,
+        kidney: [
+          { id: Date.now(), date: now, ...kidneyForm },
+          ...prev.kidney,
+        ].slice(0, 10),
+      }));
+      setKidneyForm({ creatinine: "", bun: "", egfr: "", fluidIntake: "" });
+    } else if (diseaseActiveTab === "respiratory") {
+      setDiseaseReadings((prev) => ({
+        ...prev,
+        respiratory: [
+          { id: Date.now(), date: now, ...respiratoryForm },
+          ...prev.respiratory,
+        ].slice(0, 10),
+      }));
+      setRespiratoryForm({
+        peakFlow: "",
+        o2sat: "",
+        difficulty: "None",
+        inhalerUsed: false,
+      });
+    }
     setVitalOpen(false);
-    toast.success("Vital reading logged.");
+    toast.success("Reading logged successfully.");
   };
 
   return (
@@ -1065,70 +1197,559 @@ function MedicalRecordsTab({
                   <Plus size={12} /> Add Reading
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-sm">
+              <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle className="font-display">Log Vitals</DialogTitle>
+                  <DialogTitle className="font-display">
+                    Log Health Reading
+                  </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={addVital} className="space-y-3 mt-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Blood Pressure</Label>
-                      <Input
-                        className="h-8 text-sm"
-                        placeholder="e.g. 120/80"
-                        value={vitalForm.bp}
-                        onChange={(e) =>
-                          setVitalForm((p) => ({ ...p, bp: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Pulse (bpm)</Label>
-                      <Input
-                        type="number"
-                        className="h-8 text-sm"
-                        placeholder="72"
-                        value={vitalForm.pulse}
-                        onChange={(e) =>
-                          setVitalForm((p) => ({ ...p, pulse: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Glucose (mg/dL)</Label>
-                      <Input
-                        type="number"
-                        className="h-8 text-sm"
-                        placeholder="95"
-                        value={vitalForm.glucose}
-                        onChange={(e) =>
-                          setVitalForm((p) => ({
-                            ...p,
-                            glucose: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Weight (kg)</Label>
-                      <Input
-                        type="number"
-                        className="h-8 text-sm"
-                        placeholder="70"
-                        value={vitalForm.weight}
-                        onChange={(e) =>
-                          setVitalForm((p) => ({
-                            ...p,
-                            weight: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full font-label">
-                    Log Reading
-                  </Button>
-                </form>
+                <Tabs
+                  value={diseaseActiveTab}
+                  onValueChange={setDiseaseActiveTab}
+                  className="mt-2"
+                >
+                  <TabsList className="w-full flex-wrap h-auto gap-0.5">
+                    <TabsTrigger
+                      value="vitals"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      🩺 Vitals
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="diabetes"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      🩸 Diabetes
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="hypertension"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      💉 BP
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="heart"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      ❤️ Heart
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="thyroid"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      🦋 Thyroid
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="kidney"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      🫘 Kidney
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="respiratory"
+                      className="text-[11px] px-2 py-1"
+                    >
+                      🫁 Lungs
+                    </TabsTrigger>
+                  </TabsList>
+                  <form onSubmit={addVital} className="space-y-3 mt-3">
+                    <TabsContent value="vitals" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Blood Pressure</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="120/80"
+                            value={vitalForm.bp}
+                            onChange={(e) =>
+                              setVitalForm((p) => ({
+                                ...p,
+                                bp: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Pulse (bpm)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="72"
+                            value={vitalForm.pulse}
+                            onChange={(e) =>
+                              setVitalForm((p) => ({
+                                ...p,
+                                pulse: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Temperature (°C)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="36.8"
+                            value={vitalForm.temperature}
+                            onChange={(e) =>
+                              setVitalForm((p) => ({
+                                ...p,
+                                temperature: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Weight (kg)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="70"
+                            value={vitalForm.weight}
+                            onChange={(e) =>
+                              setVitalForm((p) => ({
+                                ...p,
+                                weight: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Glucose (mg/dL)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="95"
+                            value={vitalForm.glucose}
+                            onChange={(e) =>
+                              setVitalForm((p) => ({
+                                ...p,
+                                glucose: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">SpO2 (%)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="98"
+                            value={vitalForm.spo2}
+                            onChange={(e) =>
+                              setVitalForm((p) => ({
+                                ...p,
+                                spo2: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="diabetes" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">
+                            Fasting Glucose (mg/dL)
+                          </Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="90"
+                            value={diabetesForm.fastingGlucose}
+                            onChange={(e) =>
+                              setDiabetesForm((p) => ({
+                                ...p,
+                                fastingGlucose: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">
+                            Post-meal Glucose (mg/dL)
+                          </Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="140"
+                            value={diabetesForm.postMealGlucose}
+                            onChange={(e) =>
+                              setDiabetesForm((p) => ({
+                                ...p,
+                                postMealGlucose: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">HbA1c (%)</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="6.5%"
+                            value={diabetesForm.hba1c}
+                            onChange={(e) =>
+                              setDiabetesForm((p) => ({
+                                ...p,
+                                hba1c: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Insulin Dose</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="e.g. 10 units"
+                            value={diabetesForm.insulin}
+                            onChange={(e) =>
+                              setDiabetesForm((p) => ({
+                                ...p,
+                                insulin: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="hypertension" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Systolic (mmHg)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="120"
+                            value={hypertensionForm.systolic}
+                            onChange={(e) =>
+                              setHypertensionForm((p) => ({
+                                ...p,
+                                systolic: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Diastolic (mmHg)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="80"
+                            value={hypertensionForm.diastolic}
+                            onChange={(e) =>
+                              setHypertensionForm((p) => ({
+                                ...p,
+                                diastolic: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Pulse (bpm)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="72"
+                            value={hypertensionForm.pulse}
+                            onChange={(e) =>
+                              setHypertensionForm((p) => ({
+                                ...p,
+                                pulse: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Time of Day</Label>
+                          <Select
+                            value={hypertensionForm.timeOfDay}
+                            onValueChange={(v) =>
+                              setHypertensionForm((p) => ({
+                                ...p,
+                                timeOfDay: v,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Morning">Morning</SelectItem>
+                              <SelectItem value="Evening">Evening</SelectItem>
+                              <SelectItem value="Night">Night</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="heart" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Heart Rate (bpm)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="75"
+                            value={heartForm.heartRate}
+                            onChange={(e) =>
+                              setHeartForm((p) => ({
+                                ...p,
+                                heartRate: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Chest Pain</Label>
+                          <Select
+                            value={heartForm.chestPain}
+                            onValueChange={(v) =>
+                              setHeartForm((p) => ({ ...p, chestPain: v }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="None">None</SelectItem>
+                              <SelectItem value="Mild">Mild</SelectItem>
+                              <SelectItem value="Moderate">Moderate</SelectItem>
+                              <SelectItem value="Severe">Severe</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1 col-span-2">
+                          <Label className="text-xs">ECG Notes</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="Normal sinus rhythm"
+                            value={heartForm.ecgNotes}
+                            onChange={(e) =>
+                              setHeartForm((p) => ({
+                                ...p,
+                                ecgNotes: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1 col-span-2">
+                          <Label className="text-xs">Medication Taken</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="e.g. Aspirin 75mg"
+                            value={heartForm.medication}
+                            onChange={(e) =>
+                              setHeartForm((p) => ({
+                                ...p,
+                                medication: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="thyroid" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">TSH (mIU/L)</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="2.5"
+                            value={thyroidForm.tsh}
+                            onChange={(e) =>
+                              setThyroidForm((p) => ({
+                                ...p,
+                                tsh: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">T3</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="2.0"
+                            value={thyroidForm.t3}
+                            onChange={(e) =>
+                              setThyroidForm((p) => ({
+                                ...p,
+                                t3: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">T4</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="1.2"
+                            value={thyroidForm.t4}
+                            onChange={(e) =>
+                              setThyroidForm((p) => ({
+                                ...p,
+                                t4: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Symptoms</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="fatigue, weight gain"
+                            value={thyroidForm.symptoms}
+                            onChange={(e) =>
+                              setThyroidForm((p) => ({
+                                ...p,
+                                symptoms: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="kidney" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Creatinine (mg/dL)</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="0.9"
+                            value={kidneyForm.creatinine}
+                            onChange={(e) =>
+                              setKidneyForm((p) => ({
+                                ...p,
+                                creatinine: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">BUN</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="15"
+                            value={kidneyForm.bun}
+                            onChange={(e) =>
+                              setKidneyForm((p) => ({
+                                ...p,
+                                bun: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">eGFR</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="90"
+                            value={kidneyForm.egfr}
+                            onChange={(e) =>
+                              setKidneyForm((p) => ({
+                                ...p,
+                                egfr: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Fluid Intake (ml)</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="2000"
+                            value={kidneyForm.fluidIntake}
+                            onChange={(e) =>
+                              setKidneyForm((p) => ({
+                                ...p,
+                                fluidIntake: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="respiratory" className="mt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Peak Flow (L/min)</Label>
+                          <Input
+                            className="h-8 text-sm"
+                            placeholder="450"
+                            value={respiratoryForm.peakFlow}
+                            onChange={(e) =>
+                              setRespiratoryForm((p) => ({
+                                ...p,
+                                peakFlow: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">O2 Saturation (%)</Label>
+                          <Input
+                            type="number"
+                            className="h-8 text-sm"
+                            placeholder="98"
+                            value={String(respiratoryForm.o2sat)}
+                            onChange={(e) =>
+                              setRespiratoryForm((p) => ({
+                                ...p,
+                                o2sat: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">
+                            Breathing Difficulty
+                          </Label>
+                          <Select
+                            value={respiratoryForm.difficulty}
+                            onValueChange={(v) =>
+                              setRespiratoryForm((p) => ({
+                                ...p,
+                                difficulty: v,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="None">None</SelectItem>
+                              <SelectItem value="Mild">Mild</SelectItem>
+                              <SelectItem value="Moderate">Moderate</SelectItem>
+                              <SelectItem value="Severe">Severe</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1 flex items-center gap-2 pt-4">
+                          <input
+                            type="checkbox"
+                            id="inhaler"
+                            checked={respiratoryForm.inhalerUsed}
+                            onChange={(e) =>
+                              setRespiratoryForm((p) => ({
+                                ...p,
+                                inhalerUsed: e.target.checked,
+                              }))
+                            }
+                            className="rounded"
+                          />
+                          <Label
+                            htmlFor="inhaler"
+                            className="text-xs cursor-pointer"
+                          >
+                            Inhaler Used
+                          </Label>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <Button type="submit" className="w-full font-label mt-2">
+                      Log Reading
+                    </Button>
+                  </form>
+                </Tabs>
               </DialogContent>
             </Dialog>
           }
@@ -1178,6 +1799,174 @@ function MedicalRecordsTab({
           </Table>
         </div>
       </div>
+
+      {/* Disease-Specific Readings */}
+      {Object.entries({
+        diabetes: {
+          label: "🩸 Diabetes Readings",
+          icon: "🩸",
+          cols: ["Date", "Fasting", "Post-meal", "HbA1c", "Insulin"],
+        },
+        hypertension: {
+          label: "💉 Blood Pressure Readings",
+          icon: "💉",
+          cols: ["Date", "Systolic", "Diastolic", "Pulse", "Time"],
+        },
+        heart: {
+          label: "❤️ Heart Readings",
+          icon: "❤️",
+          cols: ["Date", "Heart Rate", "Chest Pain", "ECG Notes", "Medication"],
+        },
+        thyroid: {
+          label: "🦋 Thyroid Readings",
+          icon: "🦋",
+          cols: ["Date", "TSH", "T3", "T4", "Symptoms"],
+        },
+        kidney: {
+          label: "🫘 Kidney Readings",
+          icon: "🫘",
+          cols: ["Date", "Creatinine", "BUN", "eGFR", "Fluid Intake"],
+        },
+        respiratory: {
+          label: "🫁 Respiratory Readings",
+          icon: "🫁",
+          cols: ["Date", "Peak Flow", "O2 Sat", "Difficulty", "Inhaler"],
+        },
+      }).map(([key, meta]) => {
+        const readings = diseaseReadings[key] || [];
+        if (readings.length === 0) return null;
+        return (
+          <div key={key} className="animate-fade-up mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold">{meta.label}</h4>
+              <span className="text-[10px] text-muted-foreground">
+                {readings.length} reading{readings.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="border border-border rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {meta.cols.map((col) => (
+                      <TableHead key={col} className="text-xs font-label">
+                        {col}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {readings.slice(0, 5).map((r: any) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {r.date}
+                      </TableCell>
+                      {key === "diabetes" && (
+                        <>
+                          <TableCell className="text-xs">
+                            {r.fastingGlucose || "—"} mg/dL
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.postMealGlucose || "—"} mg/dL
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.hba1c || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.insulin || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      {key === "hypertension" && (
+                        <>
+                          <TableCell
+                            className="text-xs font-semibold"
+                            style={{ color: "oklch(0.55 0.22 25)" }}
+                          >
+                            {r.systolic || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.diastolic || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.pulse || "—"} bpm
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.timeOfDay || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      {key === "heart" && (
+                        <>
+                          <TableCell className="text-xs">
+                            {r.heartRate || "—"} bpm
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.chestPain || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.ecgNotes || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.medication || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      {key === "thyroid" && (
+                        <>
+                          <TableCell className="text-xs">
+                            {r.tsh || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.t3 || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.t4 || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.symptoms || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      {key === "kidney" && (
+                        <>
+                          <TableCell className="text-xs">
+                            {r.creatinine || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.bun || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.egfr || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.fluidIntake || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      {key === "respiratory" && (
+                        <>
+                          <TableCell className="text-xs">
+                            {r.peakFlow || "—"} L/min
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.o2sat || "—"}%
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.difficulty || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.inhalerUsed ? "Yes" : "No"}
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
