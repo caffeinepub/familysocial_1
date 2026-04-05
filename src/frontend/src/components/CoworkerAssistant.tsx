@@ -1,6 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, BrainCircuit, Clock, Send, X } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Bot,
+  BrainCircuit,
+  Clock,
+  Send,
+  Sparkles,
+  Star,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,6 +19,331 @@ interface Message {
   text: string;
   time: string;
 }
+
+// ── Astro Data ───────────────────────────────────────────────────────────────
+
+const LIFE_AREA_ADVICE: Record<
+  string,
+  { advice: string; action: string; caution: string; healings: string[] }
+> = {
+  Career: {
+    advice:
+      "The planets align for professional growth this week. Mercury enhances communication — presentations and negotiations are highly favorable.",
+    action:
+      "Best day to sign contracts: Thursday. Reach out to mentors on Wednesday.",
+    caution:
+      "Avoid major job changes on Tuesday. Saturn suggests patience over impulsiveness.",
+    healings: [
+      "Chant Om Suryaya Namah 11 times at sunrise",
+      "Wear orange or yellow on Sundays for success energy",
+      "Place a yellow citrine crystal on your work desk",
+    ],
+  },
+  Love: {
+    advice:
+      "Venus shines brightly. Open your heart with vulnerability — authentic communication deepens bonds significantly right now.",
+    action:
+      "Friday is highly auspicious for romantic gestures. Express feelings held back.",
+    caution:
+      "Avoid confrontations on Saturday. Mars creates friction between 3-5 PM.",
+    healings: [
+      "Rose quartz under your pillow attracts loving energy",
+      "Burn rose incense on Friday evenings",
+      "Chant Om Shukraya Namah 16 times for Venus blessings",
+    ],
+  },
+  Personal: {
+    advice:
+      "A period of deep self-discovery is underway. The Moon encourages journaling, meditation, and honest self-assessment.",
+    action:
+      "Mornings 6-8 AM are your most powerful reflection window. Start a wellness ritual.",
+    caution:
+      "Avoid self-criticism between 2-4 PM. Rahu creates mental distortions.",
+    healings: [
+      "Practice 10 minutes of mindful breathing at dawn",
+      "Write 3 gratitude affirmations each morning",
+      "Wear white or light blue for mental clarity",
+    ],
+  },
+  Family: {
+    advice:
+      "Jupiter's protective influence surrounds family matters. Old misunderstandings can be healed with patience and love.",
+    action:
+      "Sunday is ideal for family gatherings. Call a relative you haven't spoken to.",
+    caution: "Avoid discussing money on Monday. Emotional wounds can reopen.",
+    healings: [
+      "Light a ghee lamp at home entrance on Thursday",
+      "Place a family photo in northeast corner of home",
+      "Chant Sarve Bhavantu Sukhinah for collective wellbeing",
+    ],
+  },
+  Health: {
+    advice:
+      "Mars energizes your vitality. Starting a new fitness routine or dietary change now has lasting positive effects.",
+    action:
+      "Wednesday morning is best for new health habits. Medical appointments on Tuesday show clarity.",
+    caution: "Avoid overexertion on Friday evenings. Saturn may cause fatigue.",
+    healings: [
+      "Meditate for 10 minutes at sunrise",
+      "Wear green on Wednesdays for Mercury healing energy",
+      "Chant Om Namah Shivaya 108 times for overall healing",
+    ],
+  },
+  Luck: {
+    advice:
+      "Jupiter and the Moon create a rare abundance window. Your intuition about opportunities is exceptionally sharp.",
+    action: "Make bold moves on Thursday. 11 AM is your peak luck hour.",
+    caution:
+      "Avoid speculation on Saturday. Ketu creates illusions around windfalls.",
+    healings: [
+      "Wear yellow sapphire or topaz for Jupiter's luck",
+      "Donate yellow items on Thursday to activate abundance",
+      "Chant Om Gurave Namah 18 times before important decisions",
+    ],
+  },
+  Education: {
+    advice:
+      "Mercury governs learning and your mind is exceptionally sharp. Complex subjects that were confusing will suddenly make sense.",
+    action:
+      "Study between 7-11 AM for maximum retention. Wednesday is ideal for exams.",
+    caution: "Avoid starting study plans on Tuesday. Mars creates distraction.",
+    healings: [
+      "Keep a saraswati yantra at your study desk",
+      "Wear green on Wednesdays to enhance Mercury",
+      "Chant Om Aim Saraswatyai Namah before studying",
+    ],
+  },
+  Marriage: {
+    advice:
+      "Venus and Jupiter form a beautiful trine -- one of the best configurations for marriage matters.",
+    action:
+      "Friday and Sunday are auspicious for engagement or marriage talks.",
+    caution: "Avoid finalizing decisions on Saturday. Saturn creates doubt.",
+    healings: [
+      "Light jasmine incense on Friday evenings for Venus",
+      "Wear a pearl or moonstone for emotional harmony",
+      "Recite Lalitha Sahasranamam for harmonious partnerships",
+    ],
+  },
+};
+
+const TAROT_DECK = [
+  {
+    name: "The Fool",
+    emoji: "\u2728",
+    past: "A naive beginning full of potential, before life's lessons were learned.",
+    present:
+      "You stand at the edge of something new. Leap with faith -- the universe supports your journey.",
+    future:
+      "An unexpected adventure is coming. Embrace spontaneity over excessive planning.",
+  },
+  {
+    name: "The Magician",
+    emoji: "\u2728",
+    past: "Skills and resources were gathered for this moment.",
+    present:
+      "You have everything you need. Channel your willpower and manifest your vision.",
+    future:
+      "A breakthrough is imminent. Your talents will be recognized in a meaningful way.",
+  },
+  {
+    name: "The High Priestess",
+    emoji: "\u2728",
+    past: "Hidden knowledge was sought beneath the surface.",
+    present: "Trust your intuition over logic. The answers lie within.",
+    future:
+      "A mystery will be revealed. Patience and inner listening will guide you.",
+  },
+  {
+    name: "The Empress",
+    emoji: "\u2728",
+    past: "Abundance, creativity, and nurturing defined this period.",
+    present:
+      "Creation and fertility are strong. Start that project or creative work.",
+    future: "Abundance and growth are on the horizon. Nurture what you love.",
+  },
+  {
+    name: "The Emperor",
+    emoji: "\u2728",
+    past: "Structure and authority were established.",
+    present: "Take charge. Establish boundaries and lead with clarity.",
+    future: "A period of stability and authority is approaching.",
+  },
+  {
+    name: "The Lovers",
+    emoji: "\u2728",
+    past: "A significant choice and connection defined this phase.",
+    present: "A meaningful relationship demands your full attention.",
+    future: "A deep union or important choice is ahead. Listen to your heart.",
+  },
+  {
+    name: "The Chariot",
+    emoji: "\u2728",
+    past: "Victory came through sheer willpower and determination.",
+    present:
+      "Push forward with focused determination. You are close to your goal.",
+    future: "Success through discipline. Drive toward your destination.",
+  },
+  {
+    name: "Strength",
+    emoji: "\u2728",
+    past: "Inner courage was developed through facing fears.",
+    present:
+      "Gentle persistence overcomes obstacles. Inner strength is your weapon.",
+    future: "Courage and compassion will carry you through challenges.",
+  },
+  {
+    name: "The Hermit",
+    emoji: "\u2728",
+    past: "A period of solitude and deep inner searching.",
+    present: "Withdraw temporarily for inner guidance. Your soul has answers.",
+    future: "Reflection will lead to profound wisdom and clarity.",
+  },
+  {
+    name: "Wheel of Fortune",
+    emoji: "\u2728",
+    past: "Life's cycles brought unexpected changes.",
+    present: "Change is inevitable -- flow with it rather than resisting.",
+    future: "A significant turn of luck is coming.",
+  },
+  {
+    name: "Justice",
+    emoji: "\u2728",
+    past: "Fairness and accountability were key lessons.",
+    present: "Be honest in all dealings. Legal matters may need attention.",
+    future: "Balance will be restored. Truth and fairness will prevail.",
+  },
+  {
+    name: "The Star",
+    emoji: "\u2728",
+    past: "Hope and inspiration guided healing after difficulty.",
+    present:
+      "Believe in your future. Your authentic self is your greatest gift.",
+    future: "A period of hope, renewal, and creativity is approaching.",
+  },
+  {
+    name: "The Moon",
+    emoji: "\u2728",
+    past: "Illusions and subconscious patterns played tricks.",
+    present: "Trust your instincts but verify your perceptions.",
+    future: "Clarity will emerge from current confusion.",
+  },
+  {
+    name: "The Sun",
+    emoji: "\u2728",
+    past: "Clarity, joy, and success illuminated this time.",
+    present: "Radiate your authentic energy. Success and joy surround you.",
+    future: "A period of joy and vitality is coming. Embrace the light.",
+  },
+  {
+    name: "Judgement",
+    emoji: "\u2728",
+    past: "A major awakening and life review took place.",
+    present: "Heed the call to a higher version of yourself.",
+    future: "A karmic reckoning or spiritual awakening is near.",
+  },
+  {
+    name: "The World",
+    emoji: "\u2728",
+    past: "Completion and wholeness were achieved.",
+    present:
+      "You are nearing the end of a major cycle. Celebrate how far you've come.",
+    future: "Total fulfillment and completion await.",
+  },
+  {
+    name: "The Tower",
+    emoji: "\u2728",
+    past: "A sudden upheaval cleared away what was unstable.",
+    present: "Disruption is clearing the path for authentic foundations.",
+    future:
+      "An unexpected event will shake the ground -- what remains will be stronger.",
+  },
+  {
+    name: "Temperance",
+    emoji: "\u2728",
+    past: "Balance and moderation created lasting harmony.",
+    present: "Find the middle path. Blend opposing forces with patience.",
+    future:
+      "Healing and restoration are near. A balanced approach leads to peace.",
+  },
+  {
+    name: "The Devil",
+    emoji: "\u2728",
+    past: "Attachments and limiting beliefs held you back.",
+    present: "Examine what chains you. Unhealthy patterns can be released.",
+    future:
+      "Liberation from something that bound you is possible -- choose freedom.",
+  },
+  {
+    name: "The Hierophant",
+    emoji: "\u2728",
+    past: "Traditional wisdom and mentorship shaped this time.",
+    present: "Seek guidance from tradition. Conventional paths have wisdom.",
+    future: "An institution or teacher will play a key role in your path.",
+  },
+  {
+    name: "The Hanged Man",
+    emoji: "\u2728",
+    past: "Surrender and a new perspective were needed.",
+    present:
+      "Pause and see the situation from a different angle. Release control.",
+    future:
+      "A willing sacrifice leads to spiritual insight and eventual breakthrough.",
+  },
+  {
+    name: "Death (Transformation)",
+    emoji: "\u2728",
+    past: "A major transformation made way for the new.",
+    present:
+      "Let go of what no longer serves you. Transformation is essential, not optional.",
+    future:
+      "A profound ending brings beautiful new beginnings. Embrace the change.",
+  },
+];
+
+const FAVORABLE_TIMES: Record<string, { good: string; avoid: string }> = {
+  Aries: { good: "10:00 AM - 12:00 PM", avoid: "3:00 PM - 5:00 PM" },
+  Taurus: { good: "2:00 PM - 4:00 PM", avoid: "7:00 AM - 9:00 AM" },
+  Gemini: { good: "9:00 AM - 11:00 AM", avoid: "1:00 PM - 3:00 PM" },
+  Cancer: { good: "6:00 PM - 8:00 PM", avoid: "11:00 AM - 1:00 PM" },
+  Leo: { good: "12:00 PM - 2:00 PM", avoid: "4:00 PM - 6:00 PM" },
+  Virgo: { good: "7:00 AM - 9:00 AM", avoid: "2:00 PM - 4:00 PM" },
+  Libra: { good: "3:00 PM - 5:00 PM", avoid: "9:00 AM - 11:00 AM" },
+  Scorpio: { good: "8:00 PM - 10:00 PM", avoid: "6:00 AM - 8:00 AM" },
+  Sagittarius: { good: "4:00 PM - 6:00 PM", avoid: "12:00 PM - 2:00 PM" },
+  Capricorn: { good: "8:00 AM - 10:00 AM", avoid: "5:00 PM - 7:00 PM" },
+  Aquarius: { good: "1:00 PM - 3:00 PM", avoid: "8:00 AM - 10:00 AM" },
+  Pisces: { good: "5:00 AM - 7:00 AM", avoid: "3:00 PM - 5:00 PM" },
+};
+
+function calcLifePath(birthdate: string): number {
+  const digits = birthdate.replace(/-/g, "").split("").map(Number);
+  let sum = digits.reduce((a, b) => a + b, 0);
+  while (sum > 9 && sum !== 11 && sum !== 22 && sum !== 33) {
+    sum = String(sum)
+      .split("")
+      .map(Number)
+      .reduce((a, b) => a + b, 0);
+  }
+  return sum;
+}
+
+const LIFE_PATH_DESC: Record<number, string> = {
+  1: "The Leader -- Independent, pioneering, and original. You are meant to lead and innovate. Embrace your individuality and trust your vision.",
+  2: "The Mediator -- Sensitive, cooperative, and intuitive. You thrive in partnerships. Diplomacy is your superpower.",
+  3: "The Communicator -- Creative, expressive, and joyful. You uplift others through art, words, and humor.",
+  4: "The Builder -- Practical, disciplined, and reliable. You create lasting structures. Hard work and order are your foundation.",
+  5: "The Freedom Seeker -- Adventurous, versatile, and dynamic. Change and exploration fuel your soul.",
+  6: "The Nurturer -- Caring, responsible, and harmonious. Family and community are your calling.",
+  7: "The Seeker -- Analytical, introspective, and spiritual. You search for deeper truth.",
+  8: "The Powerhouse -- Ambitious, authoritative. You are destined for success. Balance material achievement with spiritual wisdom.",
+  9: "The Humanitarian -- Compassionate, artistic, and universal. Your life is a gift to humanity.",
+  11: "Master Number 11 -- Highly intuitive visionary and spiritual messenger. You carry extraordinary sensitivity.",
+  22: "Master Number 22 -- The Master Builder. You can turn dreams into reality on a grand scale.",
+  33: "Master Number 33 -- The Master Teacher. Pure love and compassion define you.",
+};
+
+// ── Chat Data ─────────────────────────────────────────────────────────────────
 
 const MODULE_SUGGESTIONS: Record<string, string[]> = {
   "family-tree": [
@@ -58,7 +391,7 @@ const MODULE_SUGGESTIONS: Record<string, string[]> = {
   "real-estate": [
     "Add photos and location details to improve listing visibility",
     "Check the Rent Management tab for tenant payment status",
-    "Properties appear on the Geomap — verify your pin location",
+    "Properties appear on the Geomap -- verify your pin location",
     "Upload NOC documents in the Documents tab",
   ],
   education: [
@@ -120,22 +453,22 @@ const MODULE_SUGGESTIONS: Record<string, string[]> = {
 const SIMULATED_RESPONSES: Record<Mood, Record<string, string>> = {
   calm: {
     default:
-      "That's a thoughtful question. Let me help you navigate this step by step. FamilySocial is designed to make every interaction meaningful — take it at your own pace.",
-    help: "Of course! I'm here to help. You can ask me about any module — Family Tree, Jobs, Healthcare, Real Estate, or even the Geomap. What would you like to explore?",
+      "That's a thoughtful question. Let me help you navigate this step by step. IndyaCentral is designed to make every interaction meaningful -- take it at your own pace.",
+    help: "Of course! I'm here to help. You can ask me about any module -- Family Tree, Jobs, Healthcare, Real Estate, or even the Geomap. What would you like to explore?",
     stuck:
       "No worries. It happens to everyone. Tell me what you're trying to do and I'll walk you through it calmly.",
   },
   focused: {
     default:
       "Let's get to it. Quick tip: use the module tabs at the top to switch context fast. What specific task are you trying to complete right now?",
-    help: "Got it. I'll be direct — what's the goal? Tell me the exact action you want to take and I'll give you the fastest path to it.",
+    help: "Got it. I'll be direct -- what's the goal? Tell me the exact action you want to take and I'll give you the fastest path to it.",
     stuck:
       "Let's diagnose this quickly. Is it a navigation issue, a missing feature, or something not working as expected?",
   },
   creative: {
     default:
       "Interesting! There are actually several creative ways to approach this. Did you know you can link your blog affiliate links directly to your family tree business for a unique income stream?",
-    help: "Oh, there's so much to explore! Have you tried combining the Geomap with the Dating module filters? Or using the Blog module to promote your Real Estate listings with affiliate links?",
+    help: "Oh, there's so much to explore! Have you tried combining the Geomap with the Dating module filters? Or using the Blog module to promote your Real Estate listings?",
     stuck:
       "Let's think outside the box here! Sometimes the solution is in an unexpected module. What if we approach this from a different angle?",
   },
@@ -175,7 +508,7 @@ export default function CoworkerAssistant({ currentPage }: Props) {
     (_, i) => !remindedSuggestions.has(i),
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on message/typing changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on message changes
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -287,7 +620,7 @@ export default function CoworkerAssistant({ currentPage }: Props) {
             >
               {/* Header */}
               <div
-                className="flex items-center justify-between px-4 py-3 border-b border-border"
+                className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0"
                 style={{ background: "oklch(0.52 0.14 155 / 0.05)" }}
               >
                 <div className="flex items-center gap-2">
@@ -319,170 +652,517 @@ export default function CoworkerAssistant({ currentPage }: Props) {
                 </Button>
               </div>
 
-              {/* Mood selector */}
-              <div className="px-3 py-2 border-b border-border/50 flex items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground font-label mr-1">
-                  Mood:
-                </span>
-                {(["calm", "focused", "creative"] as Mood[]).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMood(m)}
-                    className={`text-[10px] font-label font-medium px-2 py-1 rounded-full border transition-all ${
-                      mood === m
-                        ? "border-transparent text-white"
-                        : "border-border text-muted-foreground hover:border-foreground/30"
-                    }`}
-                    style={
-                      mood === m
-                        ? {
-                            background:
-                              m === "calm"
-                                ? "oklch(0.55 0.15 240)"
-                                : m === "focused"
-                                  ? "oklch(0.55 0.22 280)"
-                                  : "oklch(0.65 0.25 335)",
-                          }
-                        : {}
-                    }
+              {/* Tab bar: Chat | Astro */}
+              <Tabs
+                defaultValue="chat"
+                className="flex flex-col flex-1 min-h-0"
+              >
+                <TabsList className="shrink-0 h-9 rounded-none border-b border-border bg-transparent justify-start gap-0 px-3 flex w-full">
+                  <TabsTrigger
+                    value="chat"
+                    className="text-xs px-3 h-9 data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent transition-colors"
+                    data-ocid="friend.chat.tab"
                   >
-                    {m === "calm"
-                      ? "😌 Calm"
-                      : m === "focused"
-                        ? "🎯 Focused"
-                        : "✨ Creative"}
-                  </button>
-                ))}
-              </div>
+                    Chat
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="astro"
+                    className="text-xs px-3 h-9 data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent transition-colors"
+                    data-ocid="friend.astro.tab"
+                  >
+                    Astro
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Suggestions */}
-              {activeSuggestions.length > 0 && (
-                <div className="px-3 pt-2 pb-1 border-b border-border/30">
-                  <p className="text-[10px] font-label font-semibold text-muted-foreground mb-1.5">
-                    SUGGESTIONS FOR {pageName.toUpperCase()}
-                  </p>
-                  <div className="space-y-1">
-                    {activeSuggestions.slice(0, 2).map((s) => (
-                      <div key={s} className="flex items-start gap-1.5 group">
-                        <button
-                          type="button"
-                          onClick={() => sendMessage(s)}
-                          className="flex-1 text-left text-[11px] font-label text-foreground/80 hover:text-foreground px-2 py-1.5 rounded-lg bg-secondary/40 hover:bg-secondary/80 transition-colors leading-relaxed"
-                        >
-                          {s}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setRemindedSuggestions(
-                              (prev) =>
-                                new Set([...prev, suggestions.indexOf(s)]),
-                            )
-                          }
-                          className="shrink-0 mt-1.5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-                          title="Remind me later"
-                        >
-                          <Clock size={11} />
-                        </button>
-                      </div>
+                <TabsContent
+                  value="chat"
+                  className="mt-0 flex flex-col flex-1 min-h-0"
+                >
+                  {/* Mood selector */}
+                  <div className="px-3 py-2 border-b border-border/50 flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] text-muted-foreground font-label mr-1">
+                      Mood:
+                    </span>
+                    {(["calm", "focused", "creative"] as Mood[]).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMood(m)}
+                        className={`text-[10px] font-label font-medium px-2 py-1 rounded-full border transition-all ${
+                          mood === m
+                            ? "border-transparent text-white"
+                            : "border-border text-muted-foreground hover:border-foreground/30"
+                        }`}
+                        style={
+                          mood === m
+                            ? {
+                                background:
+                                  m === "calm"
+                                    ? "oklch(0.55 0.15 240)"
+                                    : m === "focused"
+                                      ? "oklch(0.55 0.22 280)"
+                                      : "oklch(0.65 0.25 335)",
+                              }
+                            : {}
+                        }
+                      >
+                        {m === "calm"
+                          ? "Calm"
+                          : m === "focused"
+                            ? "Focused"
+                            : "Creative"}
+                      </button>
                     ))}
                   </div>
-                </div>
-              )}
 
-              {/* Messages */}
-              <div
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto px-3 py-2 space-y-2"
-              >
-                {messages.slice(-5).map((msg, i) => (
-                  <div
-                    // biome-ignore lint/suspicious/noArrayIndexKey: chat list
-                    key={i}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-xl px-3 py-2 ${
-                        msg.role === "user" ? "rounded-br-sm" : "rounded-bl-sm"
-                      }`}
-                      style={
-                        msg.role === "user"
-                          ? {
-                              background: "oklch(0.55 0.22 280)",
-                              color: "oklch(0.98 0.005 280)",
-                            }
-                          : {
-                              background: "oklch(var(--secondary))",
-                              color: "oklch(var(--foreground))",
-                            }
-                      }
-                    >
-                      <p className="text-[11px] font-label leading-relaxed">
-                        {msg.text}
+                  {/* Suggestions */}
+                  {activeSuggestions.length > 0 && (
+                    <div className="px-3 pt-2 pb-1 border-b border-border/30 shrink-0">
+                      <p className="text-[10px] font-label font-semibold text-muted-foreground mb-1.5">
+                        SUGGESTIONS FOR {pageName.toUpperCase()}
                       </p>
-                      <p className="text-[9px] opacity-60 mt-0.5 text-right">
-                        {msg.time}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="rounded-xl rounded-bl-sm px-3 py-2 bg-secondary/60">
-                      <div className="flex gap-1 items-center h-4">
-                        {[0, 1, 2].map((i) => (
-                          <motion.div
-                            key={i}
-                            className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{
-                              duration: 0.6,
-                              repeat: Number.POSITIVE_INFINITY,
-                              delay: i * 0.15,
-                            }}
-                          />
+                      <div className="space-y-1">
+                        {activeSuggestions.slice(0, 2).map((s) => (
+                          <div
+                            key={s}
+                            className="flex items-start gap-1.5 group"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => sendMessage(s)}
+                              className="flex-1 text-left text-[11px] font-label text-foreground/80 hover:text-foreground px-2 py-1.5 rounded-lg bg-secondary/40 hover:bg-secondary/80 transition-colors leading-relaxed"
+                            >
+                              {s}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRemindedSuggestions(
+                                  (prev) =>
+                                    new Set([...prev, suggestions.indexOf(s)]),
+                                )
+                              }
+                              className="shrink-0 mt-1.5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                              title="Remind me later"
+                            >
+                              <Clock size={11} />
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
 
-              {/* Input */}
-              <div className="border-t border-border p-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage(input);
-                      }
-                    }}
-                    placeholder="Ask anything..."
-                    className="flex-1 bg-secondary/60 border border-border rounded-lg px-3 py-2 text-xs font-label text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  />
-                  <Button
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    style={{ background: "oklch(0.52 0.14 155)" }}
-                    onClick={() => sendMessage(input)}
-                    disabled={!input.trim() || isTyping}
+                  {/* Messages */}
+                  <div
+                    ref={scrollRef}
+                    className="flex-1 overflow-y-auto px-3 py-2 space-y-2"
                   >
-                    <Send
-                      size={13}
-                      style={{ color: "oklch(0.98 0.005 155)" }}
-                    />
-                  </Button>
-                </div>
-              </div>
+                    {messages.slice(-5).map((msg, i) => (
+                      <div
+                        // biome-ignore lint/suspicious/noArrayIndexKey: chat list
+                        key={i}
+                        className={`flex ${
+                          msg.role === "user" ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                            msg.role === "user"
+                              ? "rounded-br-sm"
+                              : "rounded-bl-sm"
+                          }`}
+                          style={
+                            msg.role === "user"
+                              ? {
+                                  background: "oklch(0.55 0.22 280)",
+                                  color: "oklch(0.98 0.005 280)",
+                                }
+                              : {
+                                  background: "oklch(var(--secondary))",
+                                  color: "oklch(var(--foreground))",
+                                }
+                          }
+                        >
+                          <p className="text-[11px] font-label leading-relaxed">
+                            {msg.text}
+                          </p>
+                          <p className="text-[9px] opacity-60 mt-0.5 text-right">
+                            {msg.time}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {isTyping && (
+                      <div className="flex justify-start">
+                        <div className="rounded-xl rounded-bl-sm px-3 py-2 bg-secondary/60">
+                          <div className="flex gap-1 items-center h-4">
+                            {[0, 1, 2].map((i) => (
+                              <motion.div
+                                key={i}
+                                className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
+                                animate={{ y: [0, -4, 0] }}
+                                transition={{
+                                  duration: 0.6,
+                                  repeat: Number.POSITIVE_INFINITY,
+                                  delay: i * 0.15,
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input */}
+                  <div className="border-t border-border p-3 shrink-0">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendMessage(input);
+                          }
+                        }}
+                        placeholder="Ask anything..."
+                        className="flex-1 bg-secondary/60 border border-border rounded-lg px-3 py-2 text-xs font-label text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                      />
+                      <Button
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        style={{ background: "oklch(0.52 0.14 155)" }}
+                        onClick={() => sendMessage(input)}
+                        disabled={!input.trim() || isTyping}
+                      >
+                        <Send
+                          size={13}
+                          style={{ color: "oklch(0.98 0.005 155)" }}
+                        />
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent
+                  value="astro"
+                  className="mt-0 flex-1 min-h-0 overflow-y-auto"
+                >
+                  <AstroTabContent />
+                </TabsContent>
+              </Tabs>
             </motion.div>
           </>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// ── AstroTabContent ───────────────────────────────────────────────────────────
+function AstroTabContent() {
+  const [lifeArea, setLifeArea] = useState<string>("Career");
+  const [birthdate, setBirthdate] = useState("");
+  const [lifePath, setLifePath] = useState<number | null>(null);
+  const [tarotCards, setTarotCards] = useState<(typeof TAROT_DECK)[number][]>(
+    [],
+  );
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+
+  const userSign =
+    typeof window !== "undefined"
+      ? localStorage.getItem("ic_user_zodiac") || "Scorpio"
+      : "Scorpio";
+  const areaData = LIFE_AREA_ADVICE[lifeArea];
+  const timeData = FAVORABLE_TIMES[userSign] || FAVORABLE_TIMES.Scorpio;
+
+  const LIFE_AREAS = [
+    "Career",
+    "Love",
+    "Personal",
+    "Family",
+    "Health",
+    "Luck",
+    "Education",
+    "Marriage",
+  ];
+
+  function drawTarot() {
+    const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5);
+    setTarotCards(shuffled.slice(0, 3));
+  }
+
+  function calcNum() {
+    if (!birthdate) return;
+    setLifePath(calcLifePath(birthdate));
+  }
+
+  function askQuestion() {
+    if (!question.trim()) return;
+    const q = question.trim();
+    const responses = [
+      `The stars indicate that regarding "${q}" -- patience and inner alignment will bring clarity. Mercury's position suggests communication is key.`,
+      `Your question about "${q}" resonates with the Moon's current phase. Emotional clarity comes before practical action. Trust the timing.`,
+      `The cards reveal that "${q}" has a favorable answer in the coming weeks. Venus and Jupiter form a harmonious angle supporting your inquiry.`,
+      `For "${q}" -- Mars encourages bold action while Saturn advises caution. Find the middle path: deliberate action taken with wisdom.`,
+      `The universe speaks: regarding "${q}" -- release attachment to outcomes. The path forward is through surrender, not force.`,
+    ];
+    setAnswer(responses[Math.floor(Math.random() * responses.length)]);
+    setQuestion("");
+  }
+
+  return (
+    <div className="px-3 py-3 space-y-5">
+      {/* Life Area Selector */}
+      <div>
+        <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          Life Area
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {LIFE_AREAS.map((area) => (
+            <button
+              key={area}
+              type="button"
+              onClick={() => setLifeArea(area)}
+              className="text-[10px] px-2 py-1 rounded-full border transition-all font-label font-medium"
+              style={{
+                borderColor:
+                  lifeArea === area
+                    ? "oklch(0.52 0.14 155)"
+                    : "oklch(var(--border))",
+                background:
+                  lifeArea === area ? "oklch(0.52 0.14 155)" : "transparent",
+                color:
+                  lifeArea === area
+                    ? "white"
+                    : "oklch(var(--muted-foreground))",
+              }}
+            >
+              {area}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Astro Advice for selected area */}
+      {areaData && (
+        <div className="space-y-2">
+          <div
+            className="rounded-xl p-3 space-y-2"
+            style={{
+              background: "oklch(0.52 0.14 155 / 0.08)",
+              border: "1px solid oklch(0.52 0.14 155 / 0.2)",
+            }}
+          >
+            <p className="text-[11px] text-foreground leading-relaxed">
+              {areaData.advice}
+            </p>
+            <p
+              className="text-[10px]"
+              style={{ color: "oklch(0.52 0.14 155)" }}
+            >
+              Action: {areaData.action}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Caution: {areaData.caution}
+            </p>
+          </div>
+
+          {/* Favorable time */}
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: "oklch(0.65 0.20 85 / 0.08)",
+              border: "1px solid oklch(0.65 0.20 85 / 0.2)",
+            }}
+          >
+            <p
+              className="text-[10px] font-semibold mb-1"
+              style={{ color: "oklch(0.55 0.18 85)" }}
+            >
+              Favorable Time Today ({userSign})
+            </p>
+            <p className="text-[10px] text-foreground">
+              Window: <strong>{timeData.good}</strong>
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Avoid: {timeData.avoid}
+            </p>
+          </div>
+
+          {/* Healings */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+              Healings & Remedies
+            </p>
+            <div className="space-y-1">
+              {areaData.healings.map((h) => (
+                <div key={h} className="flex items-start gap-1.5">
+                  <Star
+                    size={9}
+                    className="shrink-0 mt-1"
+                    style={{ color: "oklch(0.65 0.20 85)" }}
+                  />
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    {h}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Numerology */}
+      <div className="border-t border-border/30 pt-4">
+        <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          Numerology
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={birthdate}
+            onChange={(e) => setBirthdate(e.target.value)}
+            className="flex-1 h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          />
+          <button
+            type="button"
+            onClick={calcNum}
+            className="h-8 px-3 rounded-lg text-xs font-semibold text-white transition-colors"
+            style={{ background: "oklch(0.55 0.22 280)" }}
+            data-ocid="friend.astro.numerology_button"
+          >
+            Calculate
+          </button>
+        </div>
+        {lifePath !== null && (
+          <div
+            className="mt-2 rounded-xl p-3"
+            style={{
+              background: "oklch(0.55 0.22 280 / 0.08)",
+              border: "1px solid oklch(0.55 0.22 280 / 0.2)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="text-2xl font-display font-bold"
+                style={{ color: "oklch(0.55 0.22 280)" }}
+              >
+                {lifePath}
+              </span>
+              <p className="text-[10px] font-semibold text-foreground">
+                {[11, 22, 33].includes(lifePath)
+                  ? "Master Number"
+                  : "Life Path"}{" "}
+                {lifePath}
+              </p>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              {LIFE_PATH_DESC[lifePath] ||
+                "A unique vibration -- research your specific combination for deeper insight."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Tarot */}
+      <div className="border-t border-border/30 pt-4">
+        <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          Tarot Reading
+        </p>
+        <button
+          type="button"
+          onClick={drawTarot}
+          className="w-full h-8 rounded-lg text-xs font-semibold text-white transition-colors"
+          style={{ background: "oklch(0.60 0.25 335)" }}
+          data-ocid="friend.astro.tarot_button"
+        >
+          Draw 3 Cards
+        </button>
+        {tarotCards.length === 3 && (
+          <div className="mt-3 space-y-2">
+            {(["Past", "Present", "Future"] as const).map((pos, i) => {
+              const card = tarotCards[i];
+              return (
+                <div
+                  key={pos}
+                  className="rounded-xl p-3"
+                  style={{
+                    background: "oklch(0.60 0.25 335 / 0.07)",
+                    border: "1px solid oklch(0.60 0.25 335 / 0.2)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{card.emoji}</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-foreground">
+                        {card.name}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                        {pos}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    {pos === "Past"
+                      ? card.past
+                      : pos === "Present"
+                        ? card.present
+                        : card.future}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Q&A */}
+      <div className="border-t border-border/30 pt-4 pb-4">
+        <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          Ask the Stars
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") askQuestion();
+            }}
+            placeholder="Ask a life question..."
+            className="flex-1 bg-secondary/60 border border-border rounded-lg px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            data-ocid="friend.astro.question.input"
+          />
+          <button
+            type="button"
+            onClick={askQuestion}
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-white shrink-0"
+            style={{ background: "oklch(0.52 0.14 155)" }}
+            disabled={!question.trim()}
+            data-ocid="friend.astro.ask_button"
+          >
+            <Sparkles size={13} />
+          </button>
+        </div>
+        {answer && (
+          <div
+            className="mt-2 rounded-xl p-3"
+            style={{
+              background: "oklch(0.52 0.14 155 / 0.08)",
+              border: "1px solid oklch(0.52 0.14 155 / 0.2)",
+            }}
+          >
+            <p className="text-[11px] text-foreground leading-relaxed">
+              {answer}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -61,7 +61,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend.d";
 import EventsTab from "../components/EventsTab";
@@ -77,6 +77,7 @@ interface Prescription {
   frequency: string;
   prescribedBy: string;
   expiry: string;
+  memberName?: string;
 }
 
 interface VitalReading {
@@ -86,6 +87,7 @@ interface VitalReading {
   pulse: number;
   glucose: number;
   weight: number;
+  memberName?: string;
 }
 
 interface Appointment {
@@ -660,6 +662,61 @@ function MedicalRecordsTab({
   const [allergyInput, setAllergyInput] = useState("");
   const [rxOpen, setRxOpen] = useState(false);
   const [vitalOpen, setVitalOpen] = useState(false);
+  const [rxMember, setRxMember] = useState("Self");
+  const [vitalMember, setVitalMember] = useState("Self");
+  const [familyMembers, setFamilyMembers] = useState<
+    { name: string; relationship: string }[]
+  >(() => {
+    try {
+      const stored = localStorage.getItem("ic_family_members");
+      if (stored)
+        return [{ name: "Self", relationship: "Self" }, ...JSON.parse(stored)];
+    } catch {
+      /* ignore */
+    }
+    return [
+      { name: "Self", relationship: "Self" },
+      { name: "Spouse", relationship: "Spouse" },
+      { name: "Father", relationship: "Father" },
+      { name: "Mother", relationship: "Mother" },
+    ];
+  });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: storage sync
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const stored = localStorage.getItem("ic_family_members");
+        if (stored)
+          setFamilyMembers([
+            { name: "Self", relationship: "Self" },
+            ...JSON.parse(stored),
+          ]);
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ic_healthcare_prescriptions");
+      if (stored) setPrescriptions(JSON.parse(stored));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ic_healthcare_vitals");
+      if (stored) setVitals(JSON.parse(stored));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const [rxForm, setRxForm] = useState({
     medication: "",
@@ -729,7 +786,19 @@ function MedicalRecordsTab({
   const addPrescription = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rxForm.medication.trim()) return;
-    setPrescriptions((p) => [{ id: Date.now(), ...rxForm }, ...p]);
+    const newRx = { id: Date.now(), ...rxForm, memberName: rxMember };
+    setPrescriptions((p) => {
+      const updated = [newRx, ...p];
+      try {
+        localStorage.setItem(
+          "ic_healthcare_prescriptions",
+          JSON.stringify(updated),
+        );
+      } catch {
+        /* ignore */
+      }
+      return updated;
+    });
     setRxForm({
       medication: "",
       dosage: "",
@@ -737,6 +806,7 @@ function MedicalRecordsTab({
       prescribedBy: "",
       expiry: "",
     });
+    setRxMember("Self");
     setRxOpen(false);
     toast.success("Prescription added.");
   };
@@ -749,8 +819,8 @@ function MedicalRecordsTab({
       year: "numeric",
     });
     if (diseaseActiveTab === "vitals") {
-      setVitals((p) =>
-        [
+      setVitals((prev) => {
+        const updated = [
           {
             id: Date.now(),
             date: now,
@@ -758,10 +828,17 @@ function MedicalRecordsTab({
             pulse: Number(vitalForm.pulse),
             glucose: Number(vitalForm.glucose),
             weight: Number(vitalForm.weight),
+            memberName: vitalMember,
           },
-          ...p,
-        ].slice(0, 10),
-      );
+          ...prev,
+        ].slice(0, 10);
+        try {
+          localStorage.setItem("ic_healthcare_vitals", JSON.stringify(updated));
+        } catch {
+          /* ignore */
+        }
+        return updated;
+      });
       setVitalForm({
         bp: "",
         pulse: "",
@@ -1126,6 +1203,28 @@ function MedicalRecordsTab({
                       }
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Family Member</Label>
+                    <Select value={rxMember} onValueChange={setRxMember}>
+                      <SelectTrigger
+                        className="h-8 text-sm"
+                        data-ocid="rx.member.select"
+                      >
+                        <SelectValue placeholder="Select member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {familyMembers.map((m) => (
+                          <SelectItem
+                            key={m.name}
+                            value={m.name}
+                            className="text-sm"
+                          >
+                            {m.name} ({m.relationship})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button type="submit" className="w-full font-label">
                     Save Prescription
                   </Button>
@@ -1139,6 +1238,7 @@ function MedicalRecordsTab({
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs font-label">Medication</TableHead>
+                <TableHead className="text-xs font-label">Member</TableHead>
                 <TableHead className="text-xs font-label">Dosage</TableHead>
                 <TableHead className="text-xs font-label hidden sm:table-cell">
                   Frequency
@@ -1155,6 +1255,17 @@ function MedicalRecordsTab({
                 <TableRow key={rx.id}>
                   <TableCell className="text-sm font-label font-semibold">
                     {rx.medication}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-label"
+                      style={{
+                        background: "oklch(0.55 0.22 280 / 0.12)",
+                        color: "oklch(0.55 0.22 280)",
+                      }}
+                    >
+                      {rx.memberName || "Self"}
+                    </span>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {rx.dosage}
@@ -1745,6 +1856,31 @@ function MedicalRecordsTab({
                         </div>
                       </div>
                     </TabsContent>
+                    <div className="space-y-1 mt-2">
+                      <Label className="text-xs">Family Member</Label>
+                      <Select
+                        value={vitalMember}
+                        onValueChange={setVitalMember}
+                      >
+                        <SelectTrigger
+                          className="h-8 text-sm"
+                          data-ocid="vital.member.select"
+                        >
+                          <SelectValue placeholder="Select member" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {familyMembers.map((m) => (
+                            <SelectItem
+                              key={m.name}
+                              value={m.name}
+                              className="text-sm"
+                            >
+                              {m.name} ({m.relationship})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Button type="submit" className="w-full font-label mt-2">
                       Log Reading
                     </Button>
@@ -1759,6 +1895,7 @@ function MedicalRecordsTab({
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs font-label">Date</TableHead>
+                <TableHead className="text-xs font-label">Member</TableHead>
                 <TableHead className="text-xs font-label">BP</TableHead>
                 <TableHead className="text-xs font-label">Pulse</TableHead>
                 <TableHead className="text-xs font-label hidden sm:table-cell">
@@ -1774,6 +1911,17 @@ function MedicalRecordsTab({
                 <TableRow key={v.id}>
                   <TableCell className="text-xs text-muted-foreground font-label">
                     {v.date}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-label"
+                      style={{
+                        background: "oklch(0.60 0.18 150 / 0.12)",
+                        color: "oklch(0.60 0.18 150)",
+                      }}
+                    >
+                      {v.memberName || "Self"}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <span

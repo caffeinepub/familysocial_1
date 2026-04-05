@@ -1922,6 +1922,8 @@ export default function AdminPanelPage() {
               { value: "agent-a4-wa", label: "🔮 A4: Astro Advice" },
               { value: "delivery-partners", label: "🚚 Delivery Partners" },
               { value: "ondc-network", label: "🌐 ONDC Network" },
+              { value: "monthly-plans", label: "📅 Monthly Plans" },
+              { value: "approval-agent", label: "✅ Approvals" },
             ] as { value: string; label: string }[]
           ).map((t) => (
             <TabsTrigger
@@ -5480,6 +5482,16 @@ export default function AdminPanelPage() {
           <ONDCAdminSetup />
         </TabsContent>
       </Tabs>
+
+      {/* ── MONTHLY PLANS ── */}
+      <TabsContent value="monthly-plans" className="mt-0">
+        <MonthlyPlansTab />
+      </TabsContent>
+
+      {/* ── APPROVAL AGENT ── */}
+      <TabsContent value="approval-agent" className="mt-0">
+        <ApprovalAgentTab />
+      </TabsContent>
 
       <div className="mt-6 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()}.{" "}
@@ -16559,6 +16571,13 @@ function EvolutionA4Agent() {
           <TabsTrigger value="news" className="text-xs" data-ocid="a4.news.tab">
             📰 News & Weather
           </TabsTrigger>
+          <TabsTrigger
+            value="astro-matches"
+            className="text-xs"
+            data-ocid="a4.astro_matches.tab"
+          >
+            💑 Astro Matches
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="planets" className="mt-0">
@@ -16724,6 +16743,9 @@ function EvolutionA4Agent() {
               </li>
             </ul>
           </div>
+        </TabsContent>
+        <TabsContent value="astro-matches" className="mt-0">
+          <AstroMatchesPanel />
         </TabsContent>
       </Tabs>
     </div>
@@ -17412,6 +17434,1999 @@ function PromotionsTargetingView() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Astro Compatibility Matrix ───────────────────────────────────────────────
+const ZODIAC_LIST = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+
+const MATRIMONY_COMPAT: Record<
+  string,
+  { sign: string; pct: number; desc: string; reason: string }[]
+> = {
+  Aries: [
+    {
+      sign: "Leo",
+      pct: 96,
+      desc: "Magnetic fire union",
+      reason: "Fire signs share leadership and passion",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 91,
+      desc: "Adventure-driven soulmates",
+      reason: "Both love freedom and exploration",
+    },
+    {
+      sign: "Gemini",
+      pct: 84,
+      desc: "Energetic intellectual bond",
+      reason: "Mutual curiosity and wit",
+    },
+    {
+      sign: "Aquarius",
+      pct: 79,
+      desc: "Progressive partnership",
+      reason: "Both value independence and innovation",
+    },
+  ],
+  Taurus: [
+    {
+      sign: "Virgo",
+      pct: 95,
+      desc: "Earthy, deeply rooted love",
+      reason: "Shared practicality and loyalty",
+    },
+    {
+      sign: "Capricorn",
+      pct: 92,
+      desc: "Powerhouse couple",
+      reason: "Both build lasting structures",
+    },
+    {
+      sign: "Cancer",
+      pct: 88,
+      desc: "Nurturing sanctuary",
+      reason: "Emotional security and comfort",
+    },
+    {
+      sign: "Pisces",
+      pct: 81,
+      desc: "Dream and reality balance",
+      reason: "Taurus grounds Pisces' dreams",
+    },
+  ],
+  Gemini: [
+    {
+      sign: "Libra",
+      pct: 94,
+      desc: "Intellectual air romance",
+      reason: "Air signs thrive on communication",
+    },
+    {
+      sign: "Aquarius",
+      pct: 89,
+      desc: "Visionary partnership",
+      reason: "Both value intellect and freedom",
+    },
+    {
+      sign: "Aries",
+      pct: 84,
+      desc: "Energetic and stimulating",
+      reason: "Keeps each other engaged",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 80,
+      desc: "Philosophical explorers",
+      reason: "Shared love of ideas and travel",
+    },
+  ],
+  Cancer: [
+    {
+      sign: "Scorpio",
+      pct: 97,
+      desc: "Deepest water bond",
+      reason: "Emotional depth and loyalty",
+    },
+    {
+      sign: "Pisces",
+      pct: 93,
+      desc: "Spiritual soulmates",
+      reason: "Intuitive and nurturing connection",
+    },
+    {
+      sign: "Taurus",
+      pct: 88,
+      desc: "Safe and secure haven",
+      reason: "Stability meets nurturing",
+    },
+    {
+      sign: "Capricorn",
+      pct: 82,
+      desc: "Complementary opposites",
+      reason: "Emotional meets ambition",
+    },
+  ],
+  Leo: [
+    {
+      sign: "Aries",
+      pct: 96,
+      desc: "Royal fire pairing",
+      reason: "Shared passion and leadership",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 90,
+      desc: "Charismatic adventurers",
+      reason: "Both inspire and uplift each other",
+    },
+    {
+      sign: "Gemini",
+      pct: 85,
+      desc: "Vibrant social pair",
+      reason: "Leo shines, Gemini adapts",
+    },
+    {
+      sign: "Libra",
+      pct: 83,
+      desc: "Glamorous and balanced",
+      reason: "Venus and Sun bring harmony",
+    },
+  ],
+  Virgo: [
+    {
+      sign: "Taurus",
+      pct: 95,
+      desc: "Reliable earth union",
+      reason: "Both practical and devoted",
+    },
+    {
+      sign: "Capricorn",
+      pct: 92,
+      desc: "Achievement-oriented",
+      reason: "Work ethic and shared values",
+    },
+    {
+      sign: "Cancer",
+      pct: 87,
+      desc: "Caring complementary pair",
+      reason: "Virgo serves, Cancer nurtures",
+    },
+    {
+      sign: "Scorpio",
+      pct: 82,
+      desc: "Intense and loyal",
+      reason: "Both go deep and stay committed",
+    },
+  ],
+  Libra: [
+    {
+      sign: "Gemini",
+      pct: 94,
+      desc: "Air sign harmony",
+      reason: "Communication and wit flow naturally",
+    },
+    {
+      sign: "Aquarius",
+      pct: 88,
+      desc: "Idealistic partners",
+      reason: "Both believe in a better world",
+    },
+    {
+      sign: "Leo",
+      pct: 83,
+      desc: "Glamorous match",
+      reason: "Mutual appreciation for beauty",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 79,
+      desc: "Philosophical companions",
+      reason: "Both seek balance and truth",
+    },
+  ],
+  Scorpio: [
+    {
+      sign: "Cancer",
+      pct: 97,
+      desc: "Soul-level union",
+      reason: "Deepest emotional understanding",
+    },
+    {
+      sign: "Pisces",
+      pct: 93,
+      desc: "Mystical connection",
+      reason: "Spiritual and intuitive bond",
+    },
+    {
+      sign: "Virgo",
+      pct: 82,
+      desc: "Devoted and analytical",
+      reason: "Loyalty and precision combined",
+    },
+    {
+      sign: "Capricorn",
+      pct: 80,
+      desc: "Powerful transformation",
+      reason: "Both are intense and goal-driven",
+    },
+  ],
+  Sagittarius: [
+    {
+      sign: "Aries",
+      pct: 91,
+      desc: "Wild fire adventurers",
+      reason: "Shared love of freedom and action",
+    },
+    {
+      sign: "Leo",
+      pct: 90,
+      desc: "Inspirational duo",
+      reason: "Both radiate optimism",
+    },
+    {
+      sign: "Aquarius",
+      pct: 85,
+      desc: "Progressive visionaries",
+      reason: "Both challenge conventions",
+    },
+    {
+      sign: "Gemini",
+      pct: 80,
+      desc: "Curious wanderers",
+      reason: "Intellectual and adventurous",
+    },
+  ],
+  Capricorn: [
+    {
+      sign: "Taurus",
+      pct: 92,
+      desc: "Steadfast earth pair",
+      reason: "Both build and persevere",
+    },
+    {
+      sign: "Virgo",
+      pct: 92,
+      desc: "Perfectionists in love",
+      reason: "Discipline and devotion",
+    },
+    {
+      sign: "Scorpio",
+      pct: 80,
+      desc: "Intense achievers",
+      reason: "Both ambitious and private",
+    },
+    {
+      sign: "Pisces",
+      pct: 78,
+      desc: "Dream meets discipline",
+      reason: "Capricorn grounds Pisces",
+    },
+  ],
+  Aquarius: [
+    {
+      sign: "Gemini",
+      pct: 89,
+      desc: "Visionary air match",
+      reason: "Both love ideas and freedom",
+    },
+    {
+      sign: "Libra",
+      pct: 88,
+      desc: "Humanitarian pair",
+      reason: "Both seek fairness and beauty",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 85,
+      desc: "Progressive explorers",
+      reason: "Shared idealism and adventure",
+    },
+    {
+      sign: "Aries",
+      pct: 79,
+      desc: "Dynamic innovators",
+      reason: "Both lead and inspire",
+    },
+  ],
+  Pisces: [
+    {
+      sign: "Cancer",
+      pct: 93,
+      desc: "Empathic water souls",
+      reason: "Deep intuitive understanding",
+    },
+    {
+      sign: "Scorpio",
+      pct: 93,
+      desc: "Mystical depth",
+      reason: "Both feel everything deeply",
+    },
+    {
+      sign: "Taurus",
+      pct: 81,
+      desc: "Dreamer meets anchor",
+      reason: "Taurus stabilizes Pisces",
+    },
+    {
+      sign: "Capricorn",
+      pct: 78,
+      desc: "Grounded dreamers",
+      reason: "Capricorn channels Pisces creativity",
+    },
+  ],
+};
+
+const BIZ_COMPAT: Record<
+  string,
+  { sign: string; pct: number; desc: string; reason: string }[]
+> = {
+  Aries: [
+    {
+      sign: "Capricorn",
+      pct: 91,
+      desc: "Ambition meets structure",
+      reason: "Capricorn brings discipline to Aries' vision",
+    },
+    {
+      sign: "Leo",
+      pct: 88,
+      desc: "Leadership powerhouse",
+      reason: "Two leaders who complement each other",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 85,
+      desc: "Expansive ventures",
+      reason: "Both take bold business risks",
+    },
+    {
+      sign: "Aquarius",
+      pct: 82,
+      desc: "Innovation duo",
+      reason: "Disruptive ideas meet execution",
+    },
+  ],
+  Taurus: [
+    {
+      sign: "Virgo",
+      pct: 93,
+      desc: "Precision and profit",
+      reason: "Both are methodical and financially savvy",
+    },
+    {
+      sign: "Capricorn",
+      pct: 91,
+      desc: "Empire builders",
+      reason: "Long-term vision and persistence",
+    },
+    {
+      sign: "Cancer",
+      pct: 85,
+      desc: "Customer-first mindset",
+      reason: "Both value relationships in business",
+    },
+    {
+      sign: "Scorpio",
+      pct: 80,
+      desc: "Strategic operators",
+      reason: "Both play long games",
+    },
+  ],
+  Gemini: [
+    {
+      sign: "Aquarius",
+      pct: 89,
+      desc: "Tech innovators",
+      reason: "Ideas meet technological execution",
+    },
+    {
+      sign: "Libra",
+      pct: 86,
+      desc: "Creative agency",
+      reason: "Design and communication strengths",
+    },
+    {
+      sign: "Aries",
+      pct: 83,
+      desc: "Fast-moving startups",
+      reason: "Speed and adaptability",
+    },
+    {
+      sign: "Leo",
+      pct: 79,
+      desc: "Marketing powerhouses",
+      reason: "Gemini's messaging + Leo's presence",
+    },
+  ],
+  Cancer: [
+    {
+      sign: "Taurus",
+      pct: 85,
+      desc: "Stable service business",
+      reason: "Both prioritize customer care and loyalty",
+    },
+    {
+      sign: "Pisces",
+      pct: 83,
+      desc: "Creative collaborators",
+      reason: "Emotional intelligence in service",
+    },
+    {
+      sign: "Virgo",
+      pct: 80,
+      desc: "Systematic caregivers",
+      reason: "Service excellence focus",
+    },
+    {
+      sign: "Scorpio",
+      pct: 78,
+      desc: "Protective enterprise",
+      reason: "Both guard their ventures fiercely",
+    },
+  ],
+  Leo: [
+    {
+      sign: "Aries",
+      pct: 88,
+      desc: "Dynamic leadership",
+      reason: "Both bring energy and vision",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 86,
+      desc: "Brand ambassadors",
+      reason: "Natural promoters and networkers",
+    },
+    {
+      sign: "Gemini",
+      pct: 79,
+      desc: "Creative marketing",
+      reason: "Leo's brand + Gemini's communication",
+    },
+    {
+      sign: "Libra",
+      pct: 78,
+      desc: "Aesthetic enterprises",
+      reason: "Both value quality and presentation",
+    },
+  ],
+  Virgo: [
+    {
+      sign: "Taurus",
+      pct: 93,
+      desc: "Quality and efficiency",
+      reason: "Both obsess over details and results",
+    },
+    {
+      sign: "Capricorn",
+      pct: 90,
+      desc: "Corporate excellence",
+      reason: "Systems thinking and discipline",
+    },
+    {
+      sign: "Scorpio",
+      pct: 83,
+      desc: "Research-driven",
+      reason: "Both dig deep for competitive advantage",
+    },
+    {
+      sign: "Cancer",
+      pct: 80,
+      desc: "Service-oriented",
+      reason: "Both care deeply about delivery",
+    },
+  ],
+  Libra: [
+    {
+      sign: "Gemini",
+      pct: 86,
+      desc: "Creative communications",
+      reason: "Design and messaging mastery",
+    },
+    {
+      sign: "Aquarius",
+      pct: 84,
+      desc: "Social enterprise",
+      reason: "Both care about societal impact",
+    },
+    {
+      sign: "Leo",
+      pct: 78,
+      desc: "Luxury branding",
+      reason: "Both excel at high-end presentation",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 76,
+      desc: "Global ventures",
+      reason: "International outlook and ethics",
+    },
+  ],
+  Scorpio: [
+    {
+      sign: "Capricorn",
+      pct: 88,
+      desc: "Strategic dominance",
+      reason: "Both play to win, long-term",
+    },
+    {
+      sign: "Virgo",
+      pct: 83,
+      desc: "Precision research",
+      reason: "Both uncover hidden insights",
+    },
+    {
+      sign: "Taurus",
+      pct: 80,
+      desc: "Resource management",
+      reason: "Both control finances carefully",
+    },
+    {
+      sign: "Pisces",
+      pct: 77,
+      desc: "Creative transformation",
+      reason: "Scorpio directs Pisces creativity",
+    },
+  ],
+  Sagittarius: [
+    {
+      sign: "Aries",
+      pct: 85,
+      desc: "Bold growth ventures",
+      reason: "Both take big swings",
+    },
+    {
+      sign: "Leo",
+      pct: 86,
+      desc: "Inspirational brands",
+      reason: "Both attract followers",
+    },
+    {
+      sign: "Aquarius",
+      pct: 84,
+      desc: "Social impact",
+      reason: "Humanitarian business missions",
+    },
+    {
+      sign: "Gemini",
+      pct: 79,
+      desc: "Content and media",
+      reason: "Both excel at storytelling",
+    },
+  ],
+  Capricorn: [
+    {
+      sign: "Virgo",
+      pct: 90,
+      desc: "Corporate perfectionists",
+      reason: "Efficiency and systems mastery",
+    },
+    {
+      sign: "Taurus",
+      pct: 91,
+      desc: "Long-term empire",
+      reason: "Patient wealth builders",
+    },
+    {
+      sign: "Scorpio",
+      pct: 88,
+      desc: "Power business",
+      reason: "Both strategize and dominate",
+    },
+    {
+      sign: "Aries",
+      pct: 81,
+      desc: "Pioneer enterprises",
+      reason: "Capricorn grounds Aries' fire",
+    },
+  ],
+  Aquarius: [
+    {
+      sign: "Gemini",
+      pct: 89,
+      desc: "Tech disruptors",
+      reason: "Both love innovation and change",
+    },
+    {
+      sign: "Libra",
+      pct: 84,
+      desc: "Ethical ventures",
+      reason: "Both value fairness and society",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 84,
+      desc: "Global impact",
+      reason: "Both think big and act globally",
+    },
+    {
+      sign: "Aries",
+      pct: 82,
+      desc: "Startup culture",
+      reason: "Fast iteration and bold ideas",
+    },
+  ],
+  Pisces: [
+    {
+      sign: "Cancer",
+      pct: 83,
+      desc: "Healing and service",
+      reason: "Emotional intelligence in business",
+    },
+    {
+      sign: "Scorpio",
+      pct: 77,
+      desc: "Creative depth",
+      reason: "Scorpio channels Pisces vision",
+    },
+    {
+      sign: "Taurus",
+      pct: 78,
+      desc: "Artistic commerce",
+      reason: "Taurus monetizes Pisces creativity",
+    },
+    {
+      sign: "Capricorn",
+      pct: 76,
+      desc: "Dreams into reality",
+      reason: "Capricorn builds Pisces' vision",
+    },
+  ],
+};
+
+const FRIEND_COMPAT: Record<
+  string,
+  { sign: string; pct: number; desc: string; reason: string }[]
+> = {
+  Aries: [
+    {
+      sign: "Leo",
+      pct: 94,
+      desc: "Loyal fun companions",
+      reason: "Both love adventure and excitement",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 91,
+      desc: "Wild adventure squad",
+      reason: "Shared spontaneity",
+    },
+    {
+      sign: "Gemini",
+      pct: 87,
+      desc: "Witty and energetic",
+      reason: "Both keep each other entertained",
+    },
+    {
+      sign: "Aquarius",
+      pct: 82,
+      desc: "Rebellious allies",
+      reason: "Both fight for what they believe",
+    },
+  ],
+  Taurus: [
+    {
+      sign: "Virgo",
+      pct: 92,
+      desc: "Reliable and grounded",
+      reason: "Both appreciate consistency",
+    },
+    {
+      sign: "Capricorn",
+      pct: 89,
+      desc: "Steadfast companions",
+      reason: "Both honor commitments",
+    },
+    {
+      sign: "Pisces",
+      pct: 85,
+      desc: "Supportive bond",
+      reason: "Taurus protects, Pisces inspires",
+    },
+    {
+      sign: "Cancer",
+      pct: 83,
+      desc: "Cozy confidants",
+      reason: "Both value loyalty deeply",
+    },
+  ],
+  Gemini: [
+    {
+      sign: "Aquarius",
+      pct: 90,
+      desc: "Intellectual explorers",
+      reason: "Endless fascinating conversations",
+    },
+    {
+      sign: "Libra",
+      pct: 87,
+      desc: "Social butterflies",
+      reason: "Both thrive in social settings",
+    },
+    {
+      sign: "Aries",
+      pct: 87,
+      desc: "Fun-seeking duo",
+      reason: "Both love starting adventures",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 83,
+      desc: "Philosophical travelers",
+      reason: "Shared love of ideas",
+    },
+  ],
+  Cancer: [
+    {
+      sign: "Scorpio",
+      pct: 93,
+      desc: "Deeply loyal friends",
+      reason: "Both protect those they love",
+    },
+    {
+      sign: "Pisces",
+      pct: 90,
+      desc: "Empathic bond",
+      reason: "Emotional understanding runs deep",
+    },
+    {
+      sign: "Taurus",
+      pct: 83,
+      desc: "Dependable pair",
+      reason: "Both show up when it counts",
+    },
+    {
+      sign: "Virgo",
+      pct: 79,
+      desc: "Caring and helpful",
+      reason: "Both are service-oriented",
+    },
+  ],
+  Leo: [
+    {
+      sign: "Aries",
+      pct: 94,
+      desc: "Life-of-the-party duo",
+      reason: "Both bring the energy",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 88,
+      desc: "Enthusiastic explorers",
+      reason: "Both inspire others",
+    },
+    {
+      sign: "Gemini",
+      pct: 86,
+      desc: "Vibrant social pair",
+      reason: "Never a dull moment",
+    },
+    {
+      sign: "Libra",
+      pct: 84,
+      desc: "Elegant companions",
+      reason: "Both appreciate beauty and fun",
+    },
+  ],
+  Virgo: [
+    {
+      sign: "Taurus",
+      pct: 92,
+      desc: "Grounded companions",
+      reason: "Both value reliability",
+    },
+    {
+      sign: "Capricorn",
+      pct: 88,
+      desc: "Productive friends",
+      reason: "Both push each other to grow",
+    },
+    {
+      sign: "Cancer",
+      pct: 79,
+      desc: "Caring and attentive",
+      reason: "Both check in on each other",
+    },
+    {
+      sign: "Scorpio",
+      pct: 78,
+      desc: "Deep observers",
+      reason: "Both see through superficiality",
+    },
+  ],
+  Libra: [
+    {
+      sign: "Gemini",
+      pct: 87,
+      desc: "Social queens",
+      reason: "Both love people and ideas",
+    },
+    {
+      sign: "Aquarius",
+      pct: 85,
+      desc: "Idealistic crew",
+      reason: "Both want a better world",
+    },
+    {
+      sign: "Leo",
+      pct: 84,
+      desc: "Glamorous friends",
+      reason: "Both love experiences",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 80,
+      desc: "Fun philosophers",
+      reason: "Both seek meaning in fun",
+    },
+  ],
+  Scorpio: [
+    {
+      sign: "Cancer",
+      pct: 93,
+      desc: "Ride-or-die friends",
+      reason: "Unbreakable loyalty",
+    },
+    {
+      sign: "Pisces",
+      pct: 89,
+      desc: "Mystical confidants",
+      reason: "Shared intuitive depth",
+    },
+    {
+      sign: "Virgo",
+      pct: 78,
+      desc: "Private and loyal",
+      reason: "Both value deep trust",
+    },
+    {
+      sign: "Capricorn",
+      pct: 77,
+      desc: "Power friends",
+      reason: "Both ambitious and supportive",
+    },
+  ],
+  Sagittarius: [
+    {
+      sign: "Aries",
+      pct: 91,
+      desc: "Adventure crew",
+      reason: "Both love exploring",
+    },
+    {
+      sign: "Leo",
+      pct: 88,
+      desc: "Energetic optimists",
+      reason: "Both radiate positivity",
+    },
+    {
+      sign: "Aquarius",
+      pct: 85,
+      desc: "Freedom fighters",
+      reason: "Both resist conformity",
+    },
+    {
+      sign: "Gemini",
+      pct: 83,
+      desc: "Curious wanderers",
+      reason: "Endless things to explore together",
+    },
+  ],
+  Capricorn: [
+    {
+      sign: "Taurus",
+      pct: 89,
+      desc: "Trustworthy anchors",
+      reason: "Both keep their word",
+    },
+    {
+      sign: "Virgo",
+      pct: 88,
+      desc: "Ambitious allies",
+      reason: "Both support each other's goals",
+    },
+    {
+      sign: "Scorpio",
+      pct: 77,
+      desc: "Private confidants",
+      reason: "Both selective and loyal",
+    },
+    {
+      sign: "Pisces",
+      pct: 75,
+      desc: "Balance friends",
+      reason: "Cap grounds, Pisces lightens",
+    },
+  ],
+  Aquarius: [
+    {
+      sign: "Gemini",
+      pct: 90,
+      desc: "Idea exchange friends",
+      reason: "Conversations never end",
+    },
+    {
+      sign: "Libra",
+      pct: 85,
+      desc: "Social progressives",
+      reason: "Both value equality",
+    },
+    {
+      sign: "Sagittarius",
+      pct: 85,
+      desc: "Free spirits",
+      reason: "Both hate constraints",
+    },
+    {
+      sign: "Aries",
+      pct: 82,
+      desc: "Rebellious duo",
+      reason: "Both forge their own paths",
+    },
+  ],
+  Pisces: [
+    {
+      sign: "Cancer",
+      pct: 90,
+      desc: "Empathic souls",
+      reason: "Deep emotional resonance",
+    },
+    {
+      sign: "Scorpio",
+      pct: 89,
+      desc: "Mystical connection",
+      reason: "Both feel things intensely",
+    },
+    {
+      sign: "Taurus",
+      pct: 85,
+      desc: "Grounding friendship",
+      reason: "Taurus steadies Pisces",
+    },
+    {
+      sign: "Capricorn",
+      pct: 75,
+      desc: "Practical dreamer duo",
+      reason: "Both help each other grow",
+    },
+  ],
+};
+
+function AstroMatchesPanel() {
+  const [refSign, setRefSign] = React.useState("Scorpio");
+
+  const matrimonyMatches = MATRIMONY_COMPAT[refSign] || [];
+  const bizMatches = BIZ_COMPAT[refSign] || [];
+  const friendMatches = FRIEND_COMPAT[refSign] || [];
+
+  function pushFeed(type: string, match: string) {
+    window.dispatchEvent(
+      new CustomEvent("ic-astro-push", { detail: { type, refSign, match } }),
+    );
+    // Show feedback toast via data attribute to avoid import complications
+    const event = new CustomEvent("ic-toast", {
+      detail: { message: `Match suggestions pushed to ${type} feed` },
+    });
+    window.dispatchEvent(event);
+  }
+
+  const MatchCard = ({
+    match,
+    type,
+  }: {
+    match: { sign: string; pct: number; desc: string; reason: string };
+    type: string;
+  }) => (
+    <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">
+            {match.sign === "Aries"
+              ? "♈"
+              : match.sign === "Taurus"
+                ? "♉"
+                : match.sign === "Gemini"
+                  ? "♊"
+                  : match.sign === "Cancer"
+                    ? "♋"
+                    : match.sign === "Leo"
+                      ? "♌"
+                      : match.sign === "Virgo"
+                        ? "♍"
+                        : match.sign === "Libra"
+                          ? "♎"
+                          : match.sign === "Scorpio"
+                            ? "♏"
+                            : match.sign === "Sagittarius"
+                              ? "♐"
+                              : match.sign === "Capricorn"
+                                ? "♑"
+                                : match.sign === "Aquarius"
+                                  ? "♒"
+                                  : "♓"}
+          </span>
+          <div>
+            <p className="text-sm font-semibold">{match.sign}</p>
+            <p className="text-[10px] text-muted-foreground">{match.desc}</p>
+          </div>
+        </div>
+        <span
+          className="text-lg font-display font-bold"
+          style={{ color: "oklch(0.55 0.22 280)" }}
+        >
+          {match.pct}%
+        </span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{match.reason}</p>
+      <button
+        type="button"
+        onClick={() => pushFeed(type, match.sign)}
+        className="text-[10px] px-3 py-1 rounded-full font-semibold transition-all hover:opacity-80"
+        style={{
+          background: "oklch(0.55 0.22 280 / 0.15)",
+          color: "oklch(0.55 0.22 280)",
+        }}
+        data-ocid="astro.push_button"
+      >
+        Push to {type} Feed
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h3 className="text-sm font-semibold">Reference Sign:</h3>
+        <select
+          value={refSign}
+          onChange={(e) => setRefSign(e.target.value)}
+          className="h-8 px-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          data-ocid="astro.ref_sign.select"
+        >
+          {ZODIAC_LIST.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <span>💑</span> Matrimony Matches for {refSign}
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {matrimonyMatches.map((m) => (
+            <MatchCard key={m.sign} match={m} type="Matrimony" />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <span>💼</span> Business Matches for {refSign}
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {bizMatches.map((m) => (
+            <MatchCard key={m.sign} match={m} type="Business" />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <span>🤝</span> Friendship Matches for {refSign}
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {friendMatches.map((m) => (
+            <MatchCard key={m.sign} match={m} type="Friend" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Monthly Plans Tab ────────────────────────────────────────────────────────
+const ALL_MODULES_LIST = [
+  "Shop",
+  "Family Tree",
+  "Business",
+  "POS",
+  "Community",
+  "Jobs",
+  "Healthcare",
+  "Education",
+  "Real Estate",
+  "Travel",
+  "Transport & Pay",
+  "Rides",
+  "Blog",
+  "Matrimony",
+  "Dating",
+];
+const ALL_AGENTS_LIST = [
+  "A4 Astro",
+  "A11 Discovery",
+  "A13 Monetize",
+  "A17 Travel",
+  "A19 Games",
+  "A20 Comics",
+  "A21 Spiritual",
+  "A22 Tester",
+  "A23 News",
+  "A24 Food Stock",
+  "A25 Content Shield",
+];
+const DURATION_OPTIONS = ["1 Month", "3 Months", "6 Months", "12 Months"];
+
+interface AdminPlan {
+  id: string;
+  name: string;
+  pricePerMonth: number;
+  durations: string[];
+  modules: string[];
+  agents: string[];
+  maxUsers: number;
+  description: string;
+  createdAt: string;
+}
+
+function MonthlyPlansTab() {
+  const [plans, setPlans] = React.useState<AdminPlan[]>(() => {
+    try {
+      const stored = localStorage.getItem("ic_admin_plans");
+      if (stored) return JSON.parse(stored);
+    } catch {
+      /* ignore */
+    }
+    return [
+      {
+        id: "1",
+        name: "Starter",
+        pricePerMonth: 299,
+        durations: ["1 Month", "3 Months"],
+        modules: ["Shop", "Jobs", "Blog"],
+        agents: ["A23 News"],
+        maxUsers: 500,
+        description: "Basic access to core shopping and jobs features.",
+        createdAt: "2026-01-01",
+      },
+      {
+        id: "2",
+        name: "Growth",
+        pricePerMonth: 799,
+        durations: ["1 Month", "3 Months", "6 Months"],
+        modules: [
+          "Shop",
+          "Family Tree",
+          "Business",
+          "Jobs",
+          "Healthcare",
+          "Community",
+          "Blog",
+        ],
+        agents: ["A4 Astro", "A23 News", "A11 Discovery"],
+        maxUsers: 2000,
+        description: "Full business suite with family and community modules.",
+        createdAt: "2026-01-01",
+      },
+      {
+        id: "3",
+        name: "Enterprise",
+        pricePerMonth: 2499,
+        durations: ["1 Month", "3 Months", "6 Months", "12 Months"],
+        modules: ALL_MODULES_LIST,
+        agents: ALL_AGENTS_LIST,
+        maxUsers: 999999,
+        description: "Unlimited access to all modules, services, and agents.",
+        createdAt: "2026-01-01",
+      },
+    ];
+  });
+
+  const [open, setOpen] = React.useState(false);
+  const [editId, setEditId] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState({
+    name: "",
+    pricePerMonth: "",
+    durations: [] as string[],
+    modules: [] as string[],
+    agents: [] as string[],
+    maxUsers: "",
+    description: "",
+  });
+
+  const savePlans = (updated: AdminPlan[]) => {
+    setPlans(updated);
+    localStorage.setItem("ic_admin_plans", JSON.stringify(updated));
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const openCreate = () => {
+    setEditId(null);
+    setForm({
+      name: "",
+      pricePerMonth: "",
+      durations: [],
+      modules: [],
+      agents: [],
+      maxUsers: "",
+      description: "",
+    });
+    setOpen(true);
+  };
+
+  const openEdit = (plan: AdminPlan) => {
+    setEditId(plan.id);
+    setForm({
+      name: plan.name,
+      pricePerMonth: String(plan.pricePerMonth),
+      durations: plan.durations,
+      modules: plan.modules,
+      agents: plan.agents,
+      maxUsers: String(plan.maxUsers),
+      description: plan.description,
+    });
+    setOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!form.name.trim()) return;
+    const plan: AdminPlan = {
+      id: editId || Date.now().toString(),
+      name: form.name,
+      pricePerMonth: Number(form.pricePerMonth) || 0,
+      durations: form.durations,
+      modules: form.modules,
+      agents: form.agents,
+      maxUsers: Number(form.maxUsers) || 999,
+      description: form.description,
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+    if (editId) {
+      savePlans(plans.map((p) => (p.id === editId ? plan : p)));
+    } else {
+      savePlans([...plans, plan]);
+    }
+    setOpen(false);
+  };
+
+  const deletePlan = (id: string) =>
+    savePlans(plans.filter((p) => p.id !== id));
+
+  const toggleArr = (arr: string[], val: string): string[] =>
+    arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+
+  return (
+    <div className="space-y-5" data-ocid="admin.monthly_plans.panel">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Monthly Subscription Plans</h2>
+          <p className="text-sm text-muted-foreground">
+            Create and manage user subscription plans
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
+          style={{ background: "oklch(0.55 0.22 280)" }}
+          data-ocid="admin.plans.open_modal_button"
+        >
+          + Create Plan
+        </button>
+      </div>
+
+      {/* Plans table */}
+      <div className="border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/30">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Plan Name
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Price/Month
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Durations
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground hidden md:table-cell">
+                Modules
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground hidden lg:table-cell">
+                Max Users
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((plan, i) => (
+              <tr
+                key={plan.id}
+                className="border-t border-border/50 hover:bg-muted/10 transition-colors"
+                data-ocid={`admin.plans.item.${i + 1}`}
+              >
+                <td className="px-4 py-3 font-semibold">{plan.name}</td>
+                <td className="px-4 py-3">
+                  <span
+                    style={{ color: "oklch(0.55 0.22 280)" }}
+                    className="font-bold"
+                  >
+                    ₹{plan.pricePerMonth.toLocaleString()}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {plan.durations.join(", ")}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
+                  {plan.modules.length} modules
+                </td>
+                <td className="px-4 py-3 text-xs hidden lg:table-cell">
+                  {plan.maxUsers === 999999
+                    ? "Unlimited"
+                    : plan.maxUsers.toLocaleString()}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(plan)}
+                      className="text-xs px-2 py-1 rounded border border-border hover:bg-muted/30 transition-colors"
+                      data-ocid={`admin.plans.edit_button.${i + 1}`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deletePlan(plan.id)}
+                      className="text-xs px-2 py-1 rounded border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+                      data-ocid={`admin.plans.delete_button.${i + 1}`}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Create/Edit Dialog */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5"
+            data-ocid="admin.plans.dialog"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold">
+                {editId ? "Edit Plan" : "Create Plan"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+                data-ocid="admin.plans.close_button"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  {/* biome-ignore lint/a11y/noLabelWithoutControl: input follows immediately */}
+                  <label
+                    className="text-xs font-label font-semibold block mb-1"
+                    htmlFor="plan-name"
+                  >
+                    Plan Name *
+                  </label>
+                  <input
+                    id="plan-name"
+                    type="text"
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, name: e.target.value }))
+                    }
+                    className="w-full h-8 px-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    data-ocid="admin.plans.input"
+                  />
+                </div>
+                <div>
+                  {/* biome-ignore lint/a11y/noLabelWithoutControl: input follows immediately */}
+                  <label
+                    className="text-xs font-label font-semibold block mb-1"
+                    htmlFor="plan-price"
+                  >
+                    Price per Month (₹)
+                  </label>
+                  <input
+                    id="plan-price"
+                    type="number"
+                    value={form.pricePerMonth}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, pricePerMonth: e.target.value }))
+                    }
+                    className="w-full h-8 px-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    data-ocid="admin.plans.price.input"
+                  />
+                </div>
+              </div>
+              <div>
+                {/* biome-ignore lint/a11y/noLabelWithoutControl: input follows immediately */}
+                <label
+                  className="text-xs font-label font-semibold block mb-1"
+                  htmlFor="plan-maxusers"
+                >
+                  Max Users
+                </label>
+                <input
+                  id="plan-maxusers"
+                  type="number"
+                  value={form.maxUsers}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, maxUsers: e.target.value }))
+                  }
+                  placeholder="Leave blank for unlimited"
+                  className="w-full h-8 px-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <div>
+                {/* biome-ignore lint/a11y/noLabelWithoutControl: group label for checkboxes */}
+                <label className="text-xs font-label font-semibold block mb-2">
+                  Duration Options
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_OPTIONS.map((d) => (
+                    <label
+                      key={d}
+                      className="flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.durations.includes(d)}
+                        onChange={() =>
+                          setForm((p) => ({
+                            ...p,
+                            durations: toggleArr(p.durations, d),
+                          }))
+                        }
+                        className="rounded"
+                      />
+                      <span className="text-xs">{d}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {/* biome-ignore lint/a11y/noLabelWithoutControl: group label for checkboxes */}
+                <label className="text-xs font-label font-semibold block mb-2">
+                  Included Modules
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_MODULES_LIST.map((m) => (
+                    <label
+                      key={m}
+                      className="flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.modules.includes(m)}
+                        onChange={() =>
+                          setForm((p) => ({
+                            ...p,
+                            modules: toggleArr(p.modules, m),
+                          }))
+                        }
+                        className="rounded"
+                      />
+                      <span className="text-xs">{m}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {/* biome-ignore lint/a11y/noLabelWithoutControl: group label for checkboxes */}
+                <label className="text-xs font-label font-semibold block mb-2">
+                  Included Agents
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_AGENTS_LIST.map((a) => (
+                    <label
+                      key={a}
+                      className="flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.agents.includes(a)}
+                        onChange={() =>
+                          setForm((p) => ({
+                            ...p,
+                            agents: toggleArr(p.agents, a),
+                          }))
+                        }
+                        className="rounded"
+                      />
+                      <span className="text-xs">{a}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {/* biome-ignore lint/a11y/noLabelWithoutControl: textarea follows */}
+                <label
+                  className="text-xs font-label font-semibold block mb-1"
+                  htmlFor="plan-desc"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="plan-desc"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, description: e.target.value }))
+                  }
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                  data-ocid="admin.plans.textarea"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-muted/30 transition-colors"
+                  data-ocid="admin.plans.cancel_button"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
+                  style={{ background: "oklch(0.55 0.22 280)" }}
+                  data-ocid="admin.plans.save_button"
+                >
+                  Save Plan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Approval Agent Tab ───────────────────────────────────────────────────────
+const APPROVAL_SOURCES = [
+  { key: "ic_promotion_queue", type: "Promotion", module: "Promotions" },
+  {
+    key: "ic_rider_registrations",
+    type: "Rider Registration",
+    module: "Rider",
+  },
+  {
+    key: "ic_business_registrations",
+    type: "Business Registration",
+    module: "Business",
+  },
+  {
+    key: "ic_delivery_registrations",
+    type: "Delivery Partner",
+    module: "Delivery",
+  },
+  { key: "ic_ondc_registrations", type: "ONDC Vendor", module: "ONDC" },
+  { key: "ic_business_claims", type: "Business Claim", module: "Business" },
+  {
+    key: "ic_community_join_requests",
+    type: "Community Join",
+    module: "Community",
+  },
+];
+
+interface ApprovalItem {
+  id: string;
+  type: string;
+  name: string;
+  module: string;
+  submitted: string;
+  status: "pending" | "approved" | "rejected";
+  reason?: string;
+  amount?: number;
+  images?: string[];
+  videoUrl?: string;
+}
+
+const SAMPLE_APPROVALS: ApprovalItem[] = [
+  {
+    id: "s1",
+    type: "Promotion",
+    name: "Organic Rice 5kg - Summer Sale",
+    module: "Promotions",
+    submitted: "2026-04-01",
+    status: "pending",
+  },
+  {
+    id: "s2",
+    type: "Rider Registration",
+    name: "Rajesh Kumar - Bike Rider",
+    module: "Rider",
+    submitted: "2026-04-02",
+    status: "pending",
+  },
+  {
+    id: "s3",
+    type: "Business Registration",
+    name: "Priya's Tiffin Service",
+    module: "Business",
+    submitted: "2026-04-02",
+    status: "pending",
+  },
+  {
+    id: "s4",
+    type: "ONDC Vendor",
+    name: "Sharma Kirana Store",
+    module: "ONDC",
+    submitted: "2026-04-03",
+    status: "pending",
+  },
+  {
+    id: "s5",
+    type: "Community Join",
+    name: "Amit Sharma — Block B, Apt 304",
+    module: "Community",
+    submitted: "2026-04-03",
+    status: "pending",
+  },
+];
+
+function ApprovalAgentTab() {
+  const [items, setItems] = React.useState<ApprovalItem[]>([]);
+  const [filterModule, setFilterModule] = React.useState("All");
+  const [filterStatus, setFilterStatus] = React.useState("All");
+  const [rejectId, setRejectId] = React.useState<string | null>(null);
+  const [rejectReason, setRejectReason] = React.useState("");
+
+  const loadItems = React.useCallback(() => {
+    const all: ApprovalItem[] = [...SAMPLE_APPROVALS];
+    for (const src of APPROVAL_SOURCES) {
+      try {
+        const stored = localStorage.getItem(src.key);
+        if (stored) {
+          const arr = JSON.parse(stored);
+          for (const item of arr) {
+            all.push({
+              id: item.id || String(Date.now() + Math.random()),
+              type: src.type,
+              name:
+                item.postTitle ||
+                item.name ||
+                item.businessName ||
+                item.applicantName ||
+                `${src.type} Request`,
+              module: src.module,
+              submitted: item.timestamp
+                ? item.timestamp.slice(0, 10)
+                : item.submitted || new Date().toISOString().slice(0, 10),
+              status:
+                item.status === "approved"
+                  ? "approved"
+                  : item.status === "rejected"
+                    ? "rejected"
+                    : "pending",
+              reason: item.rejectReason,
+              amount: item.amount,
+              images: item.images,
+              videoUrl: item.videoUrl,
+            });
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    // Deduplicate by id
+    const seen = new Set<string>();
+    setItems(
+      all.filter((a) => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return true;
+      }),
+    );
+  }, []);
+
+  React.useEffect(() => {
+    loadItems();
+    const t = setInterval(loadItems, 15000);
+    window.addEventListener("storage", loadItems);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("storage", loadItems);
+    };
+  }, [loadItems]);
+
+  const updateItemStatus = (
+    id: string,
+    status: "approved" | "rejected",
+    reason?: string,
+  ) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status, reason } : item)),
+    );
+    // Update in localStorage too
+    for (const src of APPROVAL_SOURCES) {
+      try {
+        const stored = localStorage.getItem(src.key);
+        if (stored) {
+          const arr = JSON.parse(stored);
+          const updated = arr.map((a: any) =>
+            a.id === id ? { ...a, status, rejectReason: reason } : a,
+          );
+          localStorage.setItem(src.key, JSON.stringify(updated));
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const handleApprove = (id: string) => {
+    updateItemStatus(id, "approved");
+  };
+
+  const handleRejectConfirm = () => {
+    if (!rejectId) return;
+    updateItemStatus(rejectId, "rejected", rejectReason);
+    setRejectId(null);
+    setRejectReason("");
+  };
+
+  const filtered = items.filter((item) => {
+    if (filterModule !== "All" && item.module !== filterModule) return false;
+    if (filterStatus !== "All" && item.status !== filterStatus.toLowerCase())
+      return false;
+    return true;
+  });
+
+  const pendingCount = items.filter((i) => i.status === "pending").length;
+  const modules = ["All", ...Array.from(new Set(items.map((i) => i.module)))];
+
+  return (
+    <div className="space-y-5" data-ocid="admin.approval_agent.panel">
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-semibold">Unified Approval Center</h2>
+        <span
+          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+          style={{
+            background: "oklch(0.60 0.25 335 / 0.15)",
+            color: "oklch(0.60 0.25 335)",
+          }}
+        >
+          {pendingCount} Pending
+        </span>
+        <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />{" "}
+          Auto-refreshes every 15s
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div
+        className="flex flex-wrap gap-2 items-center"
+        data-ocid="admin.approval_agent.panel"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Module:</span>
+          <select
+            value={filterModule}
+            onChange={(e) => setFilterModule(e.target.value)}
+            className="h-7 px-2 text-xs rounded-md border border-input bg-background text-foreground"
+            data-ocid="admin.approval.module.select"
+          >
+            {modules.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Status:</span>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="h-7 px-2 text-xs rounded-md border border-input bg-background text-foreground"
+            data-ocid="admin.approval.status.select"
+          >
+            {["All", "Pending", "Approved", "Rejected"].map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Approvals table */}
+      <div className="border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/30">
+            <tr>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Type
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Name / Title
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground hidden sm:table-cell">
+                Module
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground hidden md:table-cell">
+                Submitted
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Status
+              </th>
+              <th className="px-3 py-3 text-right text-xs font-semibold text-muted-foreground">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-3 py-8 text-center text-sm text-muted-foreground"
+                  data-ocid="admin.approvals.empty_state"
+                >
+                  No approvals found
+                </td>
+              </tr>
+            )}
+            {filtered.map((item, i) => (
+              <tr
+                key={item.id}
+                className="border-t border-border/50 hover:bg-muted/10 transition-colors"
+                data-ocid={`admin.approvals.item.${i + 1}`}
+              >
+                <td className="px-3 py-3">
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                    style={{
+                      background: "oklch(0.55 0.22 280 / 0.12)",
+                      color: "oklch(0.55 0.22 280)",
+                    }}
+                  >
+                    {item.type}
+                  </span>
+                </td>
+                <td className="px-3 py-3 font-medium text-sm max-w-[200px] truncate">
+                  {item.name}
+                  {item.amount ? (
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      ₹{item.amount.toLocaleString()}
+                    </span>
+                  ) : null}
+                </td>
+                <td className="px-3 py-3 text-xs text-muted-foreground hidden sm:table-cell">
+                  {item.module}
+                </td>
+                <td className="px-3 py-3 text-xs text-muted-foreground hidden md:table-cell">
+                  {item.submitted}
+                </td>
+                <td className="px-3 py-3">
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      item.status === "approved"
+                        ? "bg-green-500/15 text-green-600"
+                        : item.status === "rejected"
+                          ? "bg-red-500/15 text-red-600"
+                          : "bg-yellow-500/15 text-yellow-600"
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-right">
+                  {item.status === "pending" && (
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(item.id)}
+                        className="text-[10px] px-2 py-1 rounded font-semibold bg-green-500/15 text-green-700 hover:bg-green-500/25 transition-colors"
+                        data-ocid={`admin.approvals.confirm_button.${i + 1}`}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRejectId(item.id);
+                          setRejectReason("");
+                        }}
+                        className="text-[10px] px-2 py-1 rounded font-semibold bg-red-500/15 text-red-700 hover:bg-red-500/25 transition-colors"
+                        data-ocid={`admin.approvals.delete_button.${i + 1}`}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                  {item.status !== "pending" && item.reason && (
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[100px] block">
+                      {item.reason}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Reject reason dialog */}
+      {rejectId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div
+            className="bg-card border border-border rounded-xl p-5 w-full max-w-sm shadow-2xl"
+            data-ocid="admin.approvals.dialog"
+          >
+            <h3 className="text-sm font-semibold mb-3">
+              Reject — Provide Reason
+            </h3>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Reason for rejection..."
+              className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none mb-3"
+              data-ocid="admin.approvals.textarea"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRejectId(null)}
+                className="flex-1 py-2 rounded-lg border border-border text-sm hover:bg-muted/30 transition-colors"
+                data-ocid="admin.approvals.cancel_button"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRejectConfirm}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold bg-destructive text-destructive-foreground hover:opacity-90 transition-colors"
+                data-ocid="admin.approvals.confirm_button"
+              >
+                Confirm Reject
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

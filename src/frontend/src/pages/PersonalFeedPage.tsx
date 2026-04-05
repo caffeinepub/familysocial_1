@@ -30,11 +30,13 @@ import {
   Plane,
   Send,
   ShoppingBag,
+  Sparkles,
+  Star,
   Trash2,
   TreePine,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +134,320 @@ const INITIAL_DRAFTS: Draft[] = [
     isPublished: false,
   },
 ];
+
+// ── Horoscope Data ────────────────────────────────────────────────────────────
+
+const ZODIAC_SIGNS = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+
+const HOROSCOPE_DATA: Record<
+  string,
+  {
+    text: string;
+    planet: string;
+    color: string;
+    colorHex: string;
+    number: number;
+    time: string;
+    advice: string;
+  }
+> = {
+  Aries: {
+    text: "Fiery energy propels you forward today. A leadership opportunity arrives unexpectedly — seize it with confidence. Your instincts are razor-sharp.",
+    planet: "Mars ♂",
+    color: "Coral Red",
+    colorHex: "#FF6B6B",
+    number: 7,
+    time: "10:00 AM – 12:00 PM",
+    advice:
+      "Channel your passion into a new project. Avoid reactive decisions — pause and reflect before acting.",
+  },
+  Taurus: {
+    text: "Financial clarity arrives today. A long-pending deal shows movement. Your patience and steady nature are your greatest strengths right now.",
+    planet: "Venus ♀",
+    color: "Forest Green",
+    colorHex: "#52B788",
+    number: 2,
+    time: "2:00 PM – 4:00 PM",
+    advice:
+      "Ground yourself with nature or music. Avoid overindulgence — moderation brings rewards.",
+  },
+  Gemini: {
+    text: "Communication flows effortlessly. Multiple conversations open new doors. A sibling or close friend brings unexpected good news today.",
+    planet: "Mercury ☿",
+    color: "Sunny Yellow",
+    colorHex: "#FFD166",
+    number: 5,
+    time: "9:00 AM – 11:00 AM",
+    advice:
+      "Write down your ideas before they vanish. Avoid spreading yourself too thin.",
+  },
+  Cancer: {
+    text: "Home and heart take center stage. Property or family matters resolve favorably. Emotional bonds deepen, bringing warmth and security.",
+    planet: "Moon 🌙",
+    color: "Pearl White",
+    colorHex: "#E8E8E8",
+    number: 4,
+    time: "6:00 PM – 8:00 PM",
+    advice:
+      "Trust your intuition above all else. Share your feelings openly with loved ones.",
+  },
+  Leo: {
+    text: "Your charisma is magnetic today. Creative projects flourish under your attention. Romance and recognition are highlighted — shine boldly.",
+    planet: "Sun ☀️",
+    color: "Royal Gold",
+    colorHex: "#FFB703",
+    number: 1,
+    time: "12:00 PM – 2:00 PM",
+    advice:
+      "Lead with generosity today. Let others share the spotlight — collective wins last longer.",
+  },
+  Virgo: {
+    text: "Detail-oriented work yields significant rewards. Health routines need review. Your analytical mind solves a problem others have overlooked.",
+    planet: "Mercury ☿",
+    color: "Earth Brown",
+    colorHex: "#BC6C25",
+    number: 6,
+    time: "7:00 AM – 9:00 AM",
+    advice:
+      "Perfection is the enemy of progress. Accept good enough, then improve incrementally.",
+  },
+  Libra: {
+    text: "Partnerships flourish beautifully today. Legal and contractual matters see favorable movement. Your diplomatic nature smooths over tensions.",
+    planet: "Venus ♀",
+    color: "Blush Pink",
+    colorHex: "#FFAFCC",
+    number: 3,
+    time: "3:00 PM – 5:00 PM",
+    advice:
+      "Make decisions rather than weighing indefinitely. Balance requires action, not just thought.",
+  },
+  Scorpio: {
+    text: "Transformative energy runs deep today. Hidden truths surface, bringing clarity. Financial investigations and research yield powerful results.",
+    planet: "Pluto/Mars",
+    color: "Deep Crimson",
+    colorHex: "#9B1D20",
+    number: 9,
+    time: "11:00 PM – 1:00 AM",
+    advice:
+      "Trust the transformation. Release what no longer serves you to make room for power.",
+  },
+  Sagittarius: {
+    text: "Expansion and adventure call to you. Higher knowledge and travel plans come into focus. Your optimism is contagious and opens unexpected doors.",
+    planet: "Jupiter ♃",
+    color: "Indigo Blue",
+    colorHex: "#3A0CA3",
+    number: 8,
+    time: "4:00 PM – 6:00 PM",
+    advice:
+      "Aim higher than you think is possible. Your arrows always fly farther than you expect.",
+  },
+  Capricorn: {
+    text: "Career advancement comes through diligent, steady effort. Authority figures are supportive today. Long-term plans crystallize into action.",
+    planet: "Saturn ♄",
+    color: "Obsidian Black",
+    colorHex: "#2D2D2D",
+    number: 10,
+    time: "8:00 AM – 10:00 AM",
+    advice:
+      "Every step forward counts, no matter how small. Consistency is your superpower.",
+  },
+  Aquarius: {
+    text: "Innovation and humanitarian ideals inspire you. Technology ventures and group projects are highly favored. Think outside conventional boundaries.",
+    planet: "Uranus/Saturn",
+    color: "Electric Blue",
+    colorHex: "#4CC9F0",
+    number: 11,
+    time: "1:00 PM – 3:00 PM",
+    advice:
+      "Your unique perspective is a gift. Don't dim your vision to fit conventional expectations.",
+  },
+  Pisces: {
+    text: "Spiritual insights and creative inspiration flow freely. Dreams carry important messages. Your compassion and empathy open unexpected doors.",
+    planet: "Neptune/Jupiter",
+    color: "Sea Green",
+    colorHex: "#06D6A0",
+    number: 12,
+    time: "5:00 PM – 7:00 PM",
+    advice:
+      "Meditate before big decisions. Your inner voice carries more wisdom than logic alone.",
+  },
+};
+
+// ── HoroscopeWidget ────────────────────────────────────────────────────────────
+
+function HoroscopeWidget() {
+  const [selectedSign, setSelectedSign] = useState<string>(
+    () => localStorage.getItem("ic_user_zodiac") || "Scorpio",
+  );
+
+  const horoscope = HOROSCOPE_DATA[selectedSign];
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const handleSignChange = (sign: string) => {
+    setSelectedSign(sign);
+    localStorage.setItem("ic_user_zodiac", sign);
+  };
+
+  return (
+    <div
+      className="rounded-2xl p-5 mb-8 animate-fade-up"
+      style={{
+        background:
+          "linear-gradient(135deg, oklch(0.25 0.10 280), oklch(0.20 0.12 310))",
+        border: "1px solid oklch(0.55 0.22 280 / 0.3)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: "oklch(0.55 0.22 280 / 0.25)" }}
+          >
+            <Sparkles size={18} style={{ color: "oklch(0.85 0.15 280)" }} />
+          </div>
+          <div>
+            <p className="text-sm font-display font-bold text-white">
+              🔮 Today's Horoscope
+            </p>
+            <p className="text-[10px] text-white/50">{today}</p>
+          </div>
+        </div>
+        <Select value={selectedSign} onValueChange={handleSignChange}>
+          <SelectTrigger
+            className="h-7 w-32 text-xs border-white/20 bg-white/10 text-white"
+            data-ocid="horoscope.sign.select"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ZODIAC_SIGNS.map((s) => (
+              <SelectItem key={s} value={s} className="text-sm">
+                {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Main horoscope text */}
+      {horoscope && (
+        <>
+          <p className="text-sm text-white/90 leading-relaxed mb-4">
+            {horoscope.text}
+          </p>
+
+          {/* Sub-cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "oklch(1 0 0 / 0.07)" }}
+            >
+              <p className="text-[10px] text-white/50 mb-1">Planet of Day</p>
+              <p className="text-xs font-bold text-white">{horoscope.planet}</p>
+            </div>
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "oklch(1 0 0 / 0.07)" }}
+            >
+              <p className="text-[10px] text-white/50 mb-1">Lucky Color</p>
+              <div className="flex items-center justify-center gap-1.5">
+                <div
+                  className="w-3 h-3 rounded-full border border-white/20"
+                  style={{ background: horoscope.colorHex }}
+                />
+                <p className="text-xs font-bold text-white">
+                  {horoscope.color}
+                </p>
+              </div>
+            </div>
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "oklch(1 0 0 / 0.07)" }}
+            >
+              <p className="text-[10px] text-white/50 mb-1">Lucky Number</p>
+              <p
+                className="text-xl font-display font-bold"
+                style={{ color: "oklch(0.85 0.20 85)" }}
+              >
+                {horoscope.number}
+              </p>
+            </div>
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "oklch(1 0 0 / 0.07)" }}
+            >
+              <p className="text-[10px] text-white/50 mb-1">Fav. Time</p>
+              <p className="text-[10px] font-bold text-white leading-tight">
+                {horoscope.time}
+              </p>
+            </div>
+          </div>
+
+          {/* Astro Advice */}
+          <div
+            className="rounded-xl p-3 flex items-start gap-2"
+            style={{ background: "oklch(0.55 0.22 280 / 0.2)" }}
+          >
+            <Star
+              size={14}
+              style={{ color: "oklch(0.85 0.20 85)", marginTop: 2 }}
+            />
+            <p className="text-[11px] text-white/80 leading-relaxed">
+              <span className="font-semibold text-white/90">
+                Astro Advice:{" "}
+              </span>
+              {horoscope.advice}
+            </p>
+          </div>
+
+          {/* Sign pills */}
+          <div className="flex flex-wrap gap-1 mt-3">
+            {ZODIAC_SIGNS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleSignChange(s)}
+                className="text-[10px] px-2 py-0.5 rounded-full border transition-all font-label"
+                style={{
+                  borderColor:
+                    selectedSign === s
+                      ? "oklch(0.85 0.15 280)"
+                      : "oklch(1 0 0 / 0.15)",
+                  background:
+                    selectedSign === s
+                      ? "oklch(0.55 0.22 280 / 0.35)"
+                      : "transparent",
+                  color: selectedSign === s ? "white" : "oklch(1 0 0 / 0.5)",
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -250,6 +566,9 @@ export default function PersonalFeedPage() {
           </div>
         </div>
       </div>
+
+      {/* Horoscope Widget */}
+      <HoroscopeWidget />
 
       {/* Composer */}
       <div

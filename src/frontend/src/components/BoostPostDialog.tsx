@@ -13,11 +13,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { PaymentModal } from "./PaymentModal";
 
+// Duration-based pricing matrix
+const PLAN_PRICING: Record<string, Record<number, number>> = {
+  basic: { 1: 299, 2: 499, 4: 999 },
+  standard: { 1: 799, 2: 1299, 4: 2499 },
+  premium: { 1: 2499, 2: 3999, 4: 6999 },
+};
+
 const PLANS = [
   {
     id: "basic",
     name: "Basic",
-    price: 299,
     period: "week",
     impressions: "~500 impressions",
     reach: "Local reach",
@@ -27,7 +33,6 @@ const PLANS = [
   {
     id: "standard",
     name: "Standard",
-    price: 799,
     period: "week",
     impressions: "~2,000 impressions",
     reach: "City-wide",
@@ -37,7 +42,6 @@ const PLANS = [
   {
     id: "premium",
     name: "Premium",
-    price: 2499,
     period: "week",
     impressions: "~10,000 impressions",
     reach: "Regional",
@@ -111,9 +115,12 @@ export default function BoostPostDialog({
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [promoImages, setPromoImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
+  const [showMatrix, setShowMatrix] = useState(false);
 
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
-  const totalPrice = plan.price * selectedDuration;
+  // Use pricing matrix
+  const totalPrice = PLAN_PRICING[selectedPlan]?.[selectedDuration] ?? 299;
+
   function toggleRegion(r: string) {
     setSelectedRegions((prev) =>
       prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
@@ -148,6 +155,9 @@ export default function BoostPostDialog({
         language: selectedLanguage,
         religion: selectedReligion,
         duration: selectedDuration,
+        durationLabel:
+          DURATIONS.find((d) => d.weeks === selectedDuration)?.label ??
+          "1 Week",
         status: "pending",
         timestamp: new Date().toISOString(),
         impressions: 0,
@@ -177,6 +187,7 @@ export default function BoostPostDialog({
         "ic_promotion_queue",
         JSON.stringify([...existingQ, promo]),
       );
+      window.dispatchEvent(new Event("storage"));
     } catch {
       // ignore localStorage errors
     }
@@ -196,6 +207,7 @@ export default function BoostPostDialog({
     setSelectedReligion("All");
     setPromoImages([]);
     setVideoUrl("");
+    setShowMatrix(false);
     onClose();
   }
 
@@ -275,11 +287,91 @@ export default function BoostPostDialog({
               <span className="line-clamp-1">{postTitle}</span>
             </div>
 
-            {/* Plan Selection */}
+            {/* Pricing Matrix toggle */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Choose Plan
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Choose Plan
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowMatrix((v) => !v)}
+                  className="text-[10px] underline text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showMatrix ? "Hide" : "View"} pricing matrix
+                </button>
+              </div>
+
+              {/* Pricing Matrix Table */}
+              {showMatrix && (
+                <div className="mb-3 overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="px-3 py-2 text-left font-semibold text-muted-foreground">
+                          Plan
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-muted-foreground">
+                          1 Week
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-muted-foreground">
+                          2 Weeks
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-muted-foreground">
+                          1 Month
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PLANS.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="border-t border-border/50"
+                          style={{
+                            background:
+                              selectedPlan === p.id
+                                ? `${p.color.replace(")", " / 0.06)")}`
+                                : "transparent",
+                          }}
+                        >
+                          <td
+                            className="px-3 py-2 font-semibold"
+                            style={{ color: p.color }}
+                          >
+                            {p.name}
+                          </td>
+                          {[1, 2, 4].map((w) => (
+                            // biome-ignore lint/a11y/useKeyWithClickEvents: td in pricing matrix
+                            <td
+                              key={w}
+                              className="px-3 py-2 text-center cursor-pointer hover:bg-muted/30 transition-colors"
+                              style={{
+                                fontWeight:
+                                  selectedPlan === p.id &&
+                                  selectedDuration === w
+                                    ? 700
+                                    : 400,
+                                color:
+                                  selectedPlan === p.id &&
+                                  selectedDuration === w
+                                    ? p.color
+                                    : "oklch(var(--foreground))",
+                              }}
+                              onClick={() => {
+                                setSelectedPlan(p.id);
+                                setSelectedDuration(w);
+                              }}
+                            >
+                              ₹{PLAN_PRICING[p.id][w].toLocaleString()}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-2">
                 {PLANS.map((p) => {
                   const Icon = p.icon;
@@ -312,7 +404,10 @@ export default function BoostPostDialog({
                           {p.name}
                         </p>
                         <p className="text-[11px] font-bold text-foreground mt-0.5">
-                          ₹{p.price}/{p.period}
+                          ₹
+                          {PLAN_PRICING[p.id][
+                            selectedDuration
+                          ].toLocaleString()}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {p.reach}
@@ -327,7 +422,41 @@ export default function BoostPostDialog({
               </div>
             </div>
 
-            {/* Audience Targeting - All plans */}
+            {/* Duration */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Duration
+              </p>
+              <div className="flex gap-2">
+                {DURATIONS.map((d) => (
+                  <button
+                    type="button"
+                    key={d.weeks}
+                    onClick={() => setSelectedDuration(d.weeks)}
+                    className="flex-1 py-2 rounded-lg border text-xs font-semibold transition-all"
+                    style={{
+                      borderColor:
+                        selectedDuration === d.weeks
+                          ? plan.color
+                          : "oklch(var(--border))",
+                      background:
+                        selectedDuration === d.weeks
+                          ? `${plan.color.replace(")", " / 0.1)")}`
+                          : "transparent",
+                      color:
+                        selectedDuration === d.weeks
+                          ? plan.color
+                          : "oklch(var(--muted-foreground))",
+                    }}
+                    data-ocid="boost.duration.toggle"
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Audience Targeting - Always visible */}
             <div className="space-y-3">
               <p
                 className="text-xs font-bold uppercase tracking-wider"
@@ -492,7 +621,7 @@ export default function BoostPostDialog({
               </div>
             </div>
 
-            {/* Promotion Media */}
+            {/* Promotion Media - Always visible */}
             <div className="space-y-3">
               <p
                 className="text-xs font-bold uppercase tracking-wider"
@@ -574,40 +703,6 @@ export default function BoostPostDialog({
                     </a>
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* Duration */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Duration
-              </p>
-              <div className="flex gap-2">
-                {DURATIONS.map((d) => (
-                  <button
-                    type="button"
-                    key={d.weeks}
-                    onClick={() => setSelectedDuration(d.weeks)}
-                    className="flex-1 py-2 rounded-lg border text-xs font-semibold transition-all"
-                    style={{
-                      borderColor:
-                        selectedDuration === d.weeks
-                          ? plan.color
-                          : "oklch(var(--border))",
-                      background:
-                        selectedDuration === d.weeks
-                          ? `${plan.color.replace(")", " / 0.1)")}`
-                          : "transparent",
-                      color:
-                        selectedDuration === d.weeks
-                          ? plan.color
-                          : "oklch(var(--muted-foreground))",
-                    }}
-                    data-ocid="boost.duration.toggle"
-                  >
-                    {d.label}
-                  </button>
-                ))}
               </div>
             </div>
 
