@@ -5481,17 +5481,17 @@ export default function AdminPanelPage() {
         >
           <ONDCAdminSetup />
         </TabsContent>
+
+        {/* ── MONTHLY PLANS ── */}
+        <TabsContent value="monthly-plans" className="mt-0">
+          <MonthlyPlansTab />
+        </TabsContent>
+
+        {/* ── APPROVAL AGENT ── */}
+        <TabsContent value="approval-agent" className="mt-0">
+          <ApprovalAgentTab />
+        </TabsContent>
       </Tabs>
-
-      {/* ── MONTHLY PLANS ── */}
-      <TabsContent value="monthly-plans" className="mt-0">
-        <MonthlyPlansTab />
-      </TabsContent>
-
-      {/* ── APPROVAL AGENT ── */}
-      <TabsContent value="approval-agent" className="mt-0">
-        <ApprovalAgentTab />
-      </TabsContent>
 
       <div className="mt-6 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()}.{" "}
