@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Pencil, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -97,7 +98,7 @@ function statusBadge(status: string) {
 
 // ─── 1. INVENTORY MODULE ───────────────────────────────────────────────────────
 export function InventoryModule() {
-  const [stock, setStock] = useState([
+  const DEFAULT_STOCK = [
     {
       id: 1,
       name: "Basmati Rice",
@@ -128,7 +129,15 @@ export function InventoryModule() {
       updated: "1h ago",
       status: "Critical",
     },
-  ]);
+  ];
+  const [stock, setStock] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ic_pos_inventory");
+      return saved ? JSON.parse(saved) : DEFAULT_STOCK;
+    } catch {
+      return DEFAULT_STOCK;
+    }
+  });
   const [suppliers] = useState([
     {
       name: "AgroStar Supplies",
@@ -155,6 +164,7 @@ export function InventoryModule() {
     },
   ]);
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: "",
     cat: "",
@@ -162,6 +172,12 @@ export function InventoryModule() {
     unit: "",
     reorder: "",
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ic_pos_inventory", JSON.stringify(stock));
+    } catch {}
+  }, [stock]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -182,38 +198,78 @@ export function InventoryModule() {
   }, []);
 
   function addItem() {
-    setStock((s) => [
-      ...s,
-      {
-        id: Date.now(),
-        name: form.name,
-        cat: form.cat,
-        qty: Number(form.qty),
-        unit: form.unit,
-        reorder: Number(form.reorder),
-        updated: "just now",
-        status: Number(form.qty) < Number(form.reorder) ? "Low" : "OK",
-      },
-    ]);
-    toast.success("Stock item added");
+    if (editId !== null) {
+      setStock((s) =>
+        s.map((item) =>
+          item.id === editId
+            ? {
+                ...item,
+                name: form.name,
+                cat: form.cat,
+                qty: Number(form.qty),
+                unit: form.unit,
+                reorder: Number(form.reorder),
+                status: Number(form.qty) < Number(form.reorder) ? "Low" : "OK",
+              }
+            : item,
+        ),
+      );
+      toast.success("Stock item updated");
+      setEditId(null);
+    } else {
+      setStock((s) => [
+        ...s,
+        {
+          id: Date.now(),
+          name: form.name,
+          cat: form.cat,
+          qty: Number(form.qty),
+          unit: form.unit,
+          reorder: Number(form.reorder),
+          updated: "just now",
+          status: Number(form.qty) < Number(form.reorder) ? "Low" : "OK",
+        },
+      ]);
+      toast.success("Stock item added");
+    }
     setOpen(false);
     setForm({ name: "", cat: "", qty: "", unit: "", reorder: "" });
+  }
+
+  function editItem(item: (typeof stock)[0]) {
+    setEditId(item.id);
+    setForm({
+      name: item.name,
+      cat: item.cat,
+      qty: String(item.qty),
+      unit: item.unit,
+      reorder: String(item.reorder),
+    });
+    setOpen(true);
+  }
+
+  function deleteItem(id: number) {
+    if (window.confirm("Delete this item?")) {
+      setStock((s) => s.filter((i) => i.id !== id));
+      toast.success("Item removed");
+    }
   }
 
   return (
     <div className="space-y-4">
       <div className="flex gap-3">
-        <SummaryCard label="Total Items" value={stock.length} />
+        <SummaryCard label="Total SKUs" value={stock.length} />
         <SummaryCard
           label="Low Stock"
-          value={stock.filter((s) => s.status !== "OK").length}
+          value={stock.filter((s) => s.status === "Low").length}
           color="oklch(0.62 0.18 45)"
         />
-        <SummaryCard label="Suppliers" value={suppliers.length} />
         <SummaryCard
-          label="Open POs"
-          value={pos.filter((p) => p.status === "Pending").length}
+          label="Critical"
+          value={stock.filter((s) => s.status === "Critical").length}
+          color="oklch(0.55 0.22 25)"
         />
+        <SummaryCard label="Suppliers" value={suppliers.length} />
       </div>
       <Tabs defaultValue="stock">
         <TabsList className="flex-wrap gap-1">
@@ -223,13 +279,30 @@ export function InventoryModule() {
         </TabsList>
         <TabsContent value="stock" className="mt-3 space-y-3">
           <div className="flex justify-end">
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+              open={open}
+              onOpenChange={(v) => {
+                if (!v) {
+                  setEditId(null);
+                  setForm({
+                    name: "",
+                    cat: "",
+                    qty: "",
+                    unit: "",
+                    reorder: "",
+                  });
+                }
+                setOpen(v);
+              }}
+            >
               <DialogTrigger asChild>
                 <Button size="sm">+ Add Stock</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Stock Item</DialogTitle>
+                  <DialogTitle>
+                    {editId !== null ? "Edit Stock Item" : "Add Stock Item"}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3">
                   {(["name", "cat", "qty", "unit", "reorder"] as const).map(
@@ -264,6 +337,7 @@ export function InventoryModule() {
                     "Reorder",
                     "Updated",
                     "Status",
+                    "",
                   ].map((h) => (
                     <th key={h} className="text-left py-1 pr-2">
                       {h}
@@ -281,6 +355,26 @@ export function InventoryModule() {
                     <td className="pr-2">{r.reorder}</td>
                     <td className="pr-2 text-muted-foreground">{r.updated}</td>
                     <td>{statusBadge(r.status)}</td>
+                    <td className="pr-2">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => editItem(r)}
+                          className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteItem(r.id)}
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -514,7 +608,7 @@ export function AssemblyModule() {
 
 // ─── 3. REPAIR SERVICE MODULE ──────────────────────────────────────────────────
 export function RepairServiceModule() {
-  const [jobs, setJobs] = useState([
+  const DEFAULT_JOBS = [
     {
       id: "JC-001",
       customer: "Ravi Kumar",
@@ -542,7 +636,15 @@ export function RepairServiceModule() {
       status: "Ready",
       est: "₹3,500",
     },
-  ]);
+  ];
+  const [jobs, setJobs] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ic_pos_repair");
+      return saved ? JSON.parse(saved) : DEFAULT_JOBS;
+    } catch {
+      return DEFAULT_JOBS;
+    }
+  });
   const parts = [
     { name: "Samsung Panel 32", qty: 2, price: "₹4,500" },
     { name: "Gorilla Glass 6.1", qty: 5, price: "₹800" },
@@ -552,6 +654,7 @@ export function RepairServiceModule() {
     { item: "Bosch Fridge", until: "Mar 2026", customer: "Ajay Mehta" },
   ];
   const [open, setOpen] = useState(false);
+  const [editJobId, setEditJobId] = useState<string | null>(null);
   const [form, setForm] = useState({
     customer: "",
     item: "",
@@ -559,6 +662,12 @@ export function RepairServiceModule() {
     tech: "",
     est: "",
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ic_pos_repair", JSON.stringify(jobs));
+    } catch {}
+  }, [jobs]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -576,17 +685,44 @@ export function RepairServiceModule() {
   }, []);
 
   function addJob() {
-    setJobs((j) => [
-      ...j,
-      {
-        id: `JC-00${j.length + 1}`,
-        ...form,
-        status: "Received",
-      } as (typeof j)[0],
-    ]);
-    toast.success("Job card created");
+    if (editJobId !== null) {
+      setJobs((j) =>
+        j.map((job) => (job.id === editJobId ? { ...job, ...form } : job)),
+      );
+      toast.success("Job card updated");
+      setEditJobId(null);
+    } else {
+      setJobs((j) => [
+        ...j,
+        {
+          id: `JC-00${j.length + 1}`,
+          ...form,
+          status: "Received",
+        } as (typeof j)[0],
+      ]);
+      toast.success("Job card created");
+    }
     setOpen(false);
     setForm({ customer: "", item: "", issue: "", tech: "", est: "" });
+  }
+
+  function editJob(job: (typeof jobs)[0]) {
+    setEditJobId(job.id);
+    setForm({
+      customer: job.customer,
+      item: job.item,
+      issue: job.issue,
+      tech: job.tech,
+      est: job.est,
+    });
+    setOpen(true);
+  }
+
+  function deleteJob(id: string) {
+    if (window.confirm("Delete this job card?")) {
+      setJobs((j) => j.filter((job) => job.id !== id));
+      toast.success("Item removed");
+    }
   }
 
   return (
@@ -616,7 +752,9 @@ export function RepairServiceModule() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>New Job Card</DialogTitle>
+                  <DialogTitle>
+                    {editJobId !== null ? "Edit Job Card" : "New Job Card"}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3">
                   {(["customer", "item", "issue", "tech", "est"] as const).map(
@@ -651,6 +789,7 @@ export function RepairServiceModule() {
                     "Tech",
                     "Est.",
                     "Status",
+                    "",
                   ].map((h) => (
                     <th key={h} className="text-left py-1 pr-2">
                       {h}
@@ -670,6 +809,26 @@ export function RepairServiceModule() {
                     <td className="pr-2">{r.tech}</td>
                     <td className="pr-2">{r.est}</td>
                     <td>{statusBadge(r.status)}</td>
+                    <td className="pr-2">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => editJob(r)}
+                          className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteJob(r.id)}
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -718,8 +877,9 @@ export function RepairServiceModule() {
 
 // ─── 4. FINANCIAL MODULE ───────────────────────────────────────────────────────
 export function FinancialModule() {
-  const [txns] = useState([
+  const DEFAULT_TXNS = [
     {
+      id: 1,
       date: "Apr 1",
       desc: "Product Sale",
       debit: "",
@@ -728,6 +888,7 @@ export function FinancialModule() {
       cat: "Revenue",
     },
     {
+      id: 2,
       date: "Apr 2",
       desc: "Supplier Payment",
       debit: "₹4,200",
@@ -736,6 +897,7 @@ export function FinancialModule() {
       cat: "Expense",
     },
     {
+      id: 3,
       date: "Apr 3",
       desc: "Service Income",
       debit: "",
@@ -743,7 +905,67 @@ export function FinancialModule() {
       bal: "₹1,12,100",
       cat: "Revenue",
     },
-  ]);
+  ];
+  const [txns, setTxns] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ic_pos_financial");
+      return saved ? JSON.parse(saved) : DEFAULT_TXNS;
+    } catch {
+      return DEFAULT_TXNS;
+    }
+  });
+  const [editTxnId, setEditTxnId] = useState<number | null>(null);
+  const [txnOpen, setTxnOpen] = useState(false);
+  const [txnForm, setTxnForm] = useState({
+    date: "",
+    desc: "",
+    debit: "",
+    credit: "",
+    cat: "",
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ic_pos_financial", JSON.stringify(txns));
+    } catch {}
+  }, [txns]);
+
+  function saveTxn() {
+    if (editTxnId !== null) {
+      setTxns((t: typeof DEFAULT_TXNS) =>
+        t.map((tx) => (tx.id === editTxnId ? { ...tx, ...txnForm } : tx)),
+      );
+      toast.success("Transaction updated");
+      setEditTxnId(null);
+    } else {
+      setTxns((t: typeof DEFAULT_TXNS) => [
+        ...t,
+        { id: Date.now(), ...txnForm, bal: "—" },
+      ]);
+      toast.success("Transaction added");
+    }
+    setTxnOpen(false);
+    setTxnForm({ date: "", desc: "", debit: "", credit: "", cat: "" });
+  }
+
+  function editTxn(tx: (typeof DEFAULT_TXNS)[0]) {
+    setEditTxnId(tx.id);
+    setTxnForm({
+      date: tx.date,
+      desc: tx.desc,
+      debit: tx.debit,
+      credit: tx.credit,
+      cat: tx.cat,
+    });
+    setTxnOpen(true);
+  }
+
+  function deleteTxn(id: number) {
+    if (window.confirm("Delete this transaction?")) {
+      setTxns((t: typeof DEFAULT_TXNS) => t.filter((tx) => tx.id !== id));
+      toast.success("Item removed");
+    }
+  }
   const invoices = [
     {
       inv: "INV-101",
@@ -806,7 +1028,62 @@ export function FinancialModule() {
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="tax">Tax Reports</TabsTrigger>
         </TabsList>
-        <TabsContent value="txns" className="mt-3">
+        <TabsContent value="txns" className="mt-3 space-y-3">
+          <div className="flex justify-end">
+            <Dialog
+              open={txnOpen}
+              onOpenChange={(v) => {
+                if (!v) {
+                  setEditTxnId(null);
+                  setTxnForm({
+                    date: "",
+                    desc: "",
+                    debit: "",
+                    credit: "",
+                    cat: "",
+                  });
+                }
+                setTxnOpen(v);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button size="sm">+ Add Transaction</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editTxnId !== null
+                      ? "Edit Transaction"
+                      : "Add Transaction"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  {(["date", "desc", "debit", "credit", "cat"] as const).map(
+                    (f) => (
+                      <div key={f}>
+                        <Label className="capitalize">
+                          {f === "cat"
+                            ? "Category"
+                            : f === "desc"
+                              ? "Description"
+                              : f}
+                        </Label>
+                        <Input
+                          value={txnForm[f]}
+                          onChange={(e) =>
+                            setTxnForm((p) => ({ ...p, [f]: e.target.value }))
+                          }
+                        />
+                      </div>
+                    ),
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button onClick={saveTxn}>Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
           <ScrollArea className="h-56">
             <table className="w-full text-sm">
               <thead>
@@ -818,6 +1095,7 @@ export function FinancialModule() {
                     "Credit",
                     "Balance",
                     "Category",
+                    "",
                   ].map((h) => (
                     <th key={h} className="text-left py-1 pr-3">
                       {h}
@@ -826,9 +1104,9 @@ export function FinancialModule() {
                 </tr>
               </thead>
               <tbody>
-                {txns.map((r, i) => (
+                {txns.map((r: (typeof DEFAULT_TXNS)[0], i: number) => (
                   <tr
-                    key={r.desc + String(i)}
+                    key={r.id ?? r.desc + String(i)}
                     className="border-b last:border-0"
                   >
                     <td className="py-1.5 pr-3">{r.date}</td>
@@ -837,6 +1115,26 @@ export function FinancialModule() {
                     <td className="pr-3 text-green-600">{r.credit}</td>
                     <td className="pr-3 font-mono">{r.bal}</td>
                     <td className="text-muted-foreground">{r.cat}</td>
+                    <td className="pr-2">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => editTxn(r)}
+                          className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteTxn(r.id)}
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

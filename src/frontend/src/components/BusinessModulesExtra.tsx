@@ -27,11 +27,14 @@ import {
   Droplets,
   Flame,
   Package,
+  Pencil,
+  Trash2,
   Truck,
   Wrench,
   Zap,
 } from "lucide-react";
-import { useEffect as React_useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
 const now = () => new Date().toLocaleString("en-IN");
@@ -74,7 +77,7 @@ interface Shipment {
 }
 
 export function CourierDispatchModule() {
-  const [shipments, setShipments] = useState<Shipment[]>([
+  const DEFAULT_SHIPMENTS: Shipment[] = [
     {
       id: "SHP-001",
       customer: "Ramesh Gupta",
@@ -105,7 +108,23 @@ export function CourierDispatchModule() {
       courier: "Suresh Nair",
       createdAt: "31 Mar 2026, 16:30",
     },
-  ]);
+  ];
+  const [shipments, setShipments] = useState<Shipment[]>(() => {
+    try {
+      const saved = localStorage.getItem("ic_pos_courier");
+      return saved ? JSON.parse(saved) : DEFAULT_SHIPMENTS;
+    } catch {
+      return DEFAULT_SHIPMENTS;
+    }
+  });
+  const [editShipId, setEditShipId] = useState<string | null>(null);
+  const [editShipOpen, setEditShipOpen] = useState(false);
+  const [editShipForm, setEditShipForm] = useState({
+    customer: "",
+    origin: "",
+    destination: "",
+    weight: "",
+  });
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({
     customer: "",
@@ -114,6 +133,12 @@ export function CourierDispatchModule() {
     weight: "",
   });
   const couriers = ["Ravi Kumar", "Suresh Nair", "Amit Singh", "Neha Verma"];
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ic_pos_courier", JSON.stringify(shipments));
+    } catch {}
+  }, [shipments]);
 
   const addShipment = () => {
     if (!form.customer || !form.origin || !form.destination) return;
@@ -127,6 +152,33 @@ export function CourierDispatchModule() {
     setShipments((p) => [s, ...p]);
     setForm({ customer: "", origin: "", destination: "", weight: "" });
     setAddOpen(false);
+  };
+
+  const startEditShipment = (s: Shipment) => {
+    setEditShipId(s.id);
+    setEditShipForm({
+      customer: s.customer,
+      origin: s.origin,
+      destination: s.destination,
+      weight: s.weight,
+    });
+    setEditShipOpen(true);
+  };
+
+  const saveEditShipment = () => {
+    setShipments((p) =>
+      p.map((s) => (s.id === editShipId ? { ...s, ...editShipForm } : s)),
+    );
+    toast.success("Shipment updated");
+    setEditShipId(null);
+    setEditShipOpen(false);
+  };
+
+  const deleteShipment = (id: string) => {
+    if (window.confirm("Delete this shipment?")) {
+      setShipments((p) => p.filter((s) => s.id !== id));
+      toast.success("Item removed");
+    }
   };
 
   const assign = (id: string, courier: string) =>
@@ -284,16 +336,34 @@ export function CourierDispatchModule() {
                       <StatusBadge status={s.status} />
                     </td>
                     <td className="px-3 py-2">
-                      {s.status !== "Delivered" && s.status !== "Failed" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-[10px] px-2"
-                          onClick={() => advance(s.id)}
+                      <div className="flex gap-1 items-center">
+                        {s.status !== "Delivered" && s.status !== "Failed" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] px-2"
+                            onClick={() => advance(s.id)}
+                          >
+                            Advance
+                          </Button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => startEditShipment(s)}
+                          className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Edit"
                         >
-                          Advance
-                        </Button>
-                      )}
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteShipment(s.id)}
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -368,6 +438,73 @@ export function CourierDispatchModule() {
           ))}
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={editShipOpen}
+        onOpenChange={(v) => {
+          if (!v) setEditShipId(null);
+          setEditShipOpen(v);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Shipment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs">Customer</Label>
+              <Input
+                value={editShipForm.customer}
+                onChange={(e) =>
+                  setEditShipForm((p) => ({ ...p, customer: e.target.value }))
+                }
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Origin</Label>
+                <Input
+                  value={editShipForm.origin}
+                  onChange={(e) =>
+                    setEditShipForm((p) => ({ ...p, origin: e.target.value }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Destination</Label>
+                <Input
+                  value={editShipForm.destination}
+                  onChange={(e) =>
+                    setEditShipForm((p) => ({
+                      ...p,
+                      destination: e.target.value,
+                    }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Weight</Label>
+              <Input
+                value={editShipForm.weight}
+                onChange={(e) =>
+                  setEditShipForm((p) => ({ ...p, weight: e.target.value }))
+                }
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditShipOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveEditShipment}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -391,7 +528,7 @@ interface DispenseLog {
 }
 
 export function FuelDepotModule() {
-  const [fuels, setFuels] = useState<FuelType[]>([
+  const DEFAULT_FUELS: FuelType[] = [
     {
       id: "petrol",
       name: "Petrol",
@@ -465,10 +602,27 @@ export function FuelDepotModule() {
       stock: 45000,
       price: 9.5,
     },
-  ]);
+  ];
+  const [fuels, setFuels] = useState<FuelType[]>(() => {
+    try {
+      const saved = localStorage.getItem("ic_pos_fuel");
+      return saved ? JSON.parse(saved) : DEFAULT_FUELS;
+    } catch {
+      return DEFAULT_FUELS;
+    }
+  });
+  const [editFuelId, setEditFuelId] = useState<string | null>(null);
+  const [editFuelOpen, setEditFuelOpen] = useState(false);
+  const [editFuelForm, setEditFuelForm] = useState({ stock: "", price: "" });
   const [logs, setLogs] = useState<DispenseLog[]>([]);
   const [dispenseOpen, setDispenseOpen] = useState<string | null>(null);
   const [dispenseQty, setDispenseQty] = useState("");
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ic_pos_fuel", JSON.stringify(fuels));
+    } catch {}
+  }, [fuels]);
 
   const doDispense = () => {
     const qty = Number(dispenseQty);
@@ -492,6 +646,36 @@ export function FuelDepotModule() {
     ]);
     setDispenseQty("");
     setDispenseOpen(null);
+  };
+
+  const startEditFuel = (f: FuelType) => {
+    setEditFuelId(f.id);
+    setEditFuelForm({ stock: String(f.stock), price: String(f.price) });
+    setEditFuelOpen(true);
+  };
+
+  const saveEditFuel = () => {
+    setFuels((p) =>
+      p.map((f) =>
+        f.id === editFuelId
+          ? {
+              ...f,
+              stock: Number(editFuelForm.stock),
+              price: Number(editFuelForm.price),
+            }
+          : f,
+      ),
+    );
+    toast.success("Fuel entry updated");
+    setEditFuelId(null);
+    setEditFuelOpen(false);
+  };
+
+  const deleteFuel = (id: string) => {
+    if (window.confirm("Delete this fuel entry?")) {
+      setFuels((p) => p.filter((f) => f.id !== id));
+      toast.success("Item removed");
+    }
   };
 
   const activeFuel = fuels.find((f) => f.id === dispenseOpen);
@@ -525,6 +709,22 @@ export function FuelDepotModule() {
               >
                 Log Dispense
               </Button>
+              <div className="flex gap-1 mt-1">
+                <button
+                  type="button"
+                  onClick={() => startEditFuel(f)}
+                  className="flex-1 h-6 text-[10px] rounded border border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 transition-colors"
+                >
+                  <Pencil size={10} /> Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteFuel(f.id)}
+                  className="flex-1 h-6 text-[10px] rounded border border-destructive/30 hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center gap-1 transition-colors"
+                >
+                  <Trash2 size={10} />
+                </button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -577,6 +777,57 @@ export function FuelDepotModule() {
             >
               Log Dispense
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Fuel Dialog */}
+      <Dialog
+        open={editFuelOpen}
+        onOpenChange={(v) => {
+          if (!v) setEditFuelId(null);
+          setEditFuelOpen(v);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Edit Fuel — {fuels.find((f) => f.id === editFuelId)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs">
+                Stock ({fuels.find((f) => f.id === editFuelId)?.unit})
+              </Label>
+              <Input
+                type="number"
+                value={editFuelForm.stock}
+                onChange={(e) =>
+                  setEditFuelForm((p) => ({ ...p, stock: e.target.value }))
+                }
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">
+                Price per {fuels.find((f) => f.id === editFuelId)?.unit} (₹)
+              </Label>
+              <Input
+                type="number"
+                value={editFuelForm.price}
+                onChange={(e) =>
+                  setEditFuelForm((p) => ({ ...p, price: e.target.value }))
+                }
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditFuelOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveEditFuel}>Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1924,7 +2175,8 @@ export function VendorOrdersPanel() {
     } catch {}
   };
 
-  React_useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh is stable within component
+  useEffect(() => {
     window.addEventListener("orderPlaced", refresh);
     return () => window.removeEventListener("orderPlaced", refresh);
   }, []);
@@ -2144,7 +2396,8 @@ export function CourierDispatchBusinessPanel() {
     } catch {}
   };
 
-  React_useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh is stable within component
+  useEffect(() => {
     window.addEventListener("orderPlaced", refresh);
     return () => window.removeEventListener("orderPlaced", refresh);
   }, []);

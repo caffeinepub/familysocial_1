@@ -19102,6 +19102,78 @@ const SAMPLE_APPROVALS: ApprovalItem[] = [
     submitted: "2026-04-03",
     status: "pending",
   },
+  {
+    id: "s6",
+    type: "Job Application",
+    name: "Neha Verma — Software Engineer @ TechCorp",
+    module: "Jobs",
+    submitted: "2026-04-03",
+    status: "pending",
+  },
+  {
+    id: "s7",
+    type: "Recruiter Profile",
+    name: "Rahul Mehta — HR Manager, QuickHire",
+    module: "Jobs",
+    submitted: "2026-04-04",
+    status: "pending",
+  },
+  {
+    id: "s8",
+    type: "Healthcare Advisor",
+    name: "Dr. Priya Nair — Dietician",
+    module: "Healthcare",
+    submitted: "2026-04-04",
+    status: "pending",
+  },
+  {
+    id: "s9",
+    type: "Family Business Link",
+    name: "Sharma Electronics linked by Ankit Sharma",
+    module: "Family Tree",
+    submitted: "2026-04-05",
+    status: "pending",
+  },
+  {
+    id: "s10",
+    type: "School Access",
+    name: "Sunita Rao — DPS Bangalore (Class 8)",
+    module: "Education",
+    submitted: "2026-04-05",
+    status: "pending",
+  },
+  {
+    id: "s11",
+    type: "Real Estate Listing",
+    name: "3BHK Apartment, Koramangala, Bengaluru",
+    module: "Real Estate",
+    submitted: "2026-04-05",
+    status: "pending",
+  },
+  {
+    id: "s12",
+    type: "Travel Package",
+    name: "Kerala Backwaters 5D/4N — Group of 6",
+    module: "Travel",
+    submitted: "2026-04-06",
+    status: "pending",
+  },
+  {
+    id: "s13",
+    type: "Matrimony Profile",
+    name: "Kavitha Reddy — 28F, Software Engineer",
+    module: "Matrimony",
+    submitted: "2026-04-06",
+    status: "pending",
+  },
+  {
+    id: "s14",
+    type: "Blog Post Review",
+    name: "10 Best Street Foods in Mumbai",
+    module: "Blog",
+    submitted: "2026-04-06",
+    status: "pending",
+  },
 ];
 
 function ApprovalAgentTab() {
@@ -19327,13 +19399,51 @@ function ApprovalAgentTab() {
                     {item.type}
                   </span>
                 </td>
-                <td className="px-3 py-3 font-medium text-sm max-w-[200px] truncate">
-                  {item.name}
-                  {item.amount ? (
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      ₹{item.amount.toLocaleString()}
-                    </span>
-                  ) : null}
+                <td className="px-3 py-3 font-medium text-sm max-w-[200px]">
+                  <div className="truncate">{item.name}</div>
+                  <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                    {item.amount ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        ₹{item.amount.toLocaleString()}
+                      </span>
+                    ) : null}
+                    {item.type === "Job Application" && (
+                      <span className="text-[10px]">📋 Job</span>
+                    )}
+                    {item.type === "Healthcare Advisor" && (
+                      <span className="text-[10px]">🏥 Healthcare</span>
+                    )}
+                    {item.type === "Family Business Link" && (
+                      <span className="text-[10px]">🌳 Family Tree</span>
+                    )}
+                    {item.type === "School Access" && (
+                      <span className="text-[10px]">🏫 Education</span>
+                    )}
+                    {item.type === "Real Estate Listing" && (
+                      <span className="text-[10px]">🏠 Property</span>
+                    )}
+                    {item.type === "Travel Package" && (
+                      <span className="text-[10px]">✈️ Travel</span>
+                    )}
+                    {item.type === "Matrimony Profile" && (
+                      <span className="text-[10px]">💍 Matrimony</span>
+                    )}
+                    {item.type === "Blog Post Review" && (
+                      <span className="text-[10px]">📝 Blog</span>
+                    )}
+                    {item.images && item.images.length > 0 && (
+                      <span className="flex gap-0.5">
+                        {item.images.slice(0, 2).map((img) => (
+                          <img
+                            key={img.slice(0, 32)}
+                            src={img}
+                            alt="promo"
+                            className="w-5 h-5 rounded object-cover border border-border"
+                          />
+                        ))}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-3 py-3 text-xs text-muted-foreground hidden sm:table-cell">
                   {item.module}

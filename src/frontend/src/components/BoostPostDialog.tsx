@@ -7,7 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CheckCircle2, Rocket, Target, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -50,16 +58,53 @@ const PLANS = [
   },
 ];
 
-const REGIONS = [
-  "North India",
-  "South India",
-  "Maharashtra",
-  "West Bengal",
-  "Gujarat",
-  "Karnataka",
-  "Tamil Nadu",
-  "Delhi NCR",
-];
+const LOCATION_DATA: Record<string, Record<string, string[]>> = {
+  India: {
+    Delhi: ["New Delhi", "Dwarka", "Rohini", "Laxmi Nagar", "Connaught Place"],
+    Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad"],
+    Karnataka: ["Bengaluru", "Mysuru", "Hubli", "Mangaluru", "Belagavi"],
+    "Tamil Nadu": [
+      "Chennai",
+      "Coimbatore",
+      "Madurai",
+      "Salem",
+      "Tiruchirappalli",
+    ],
+    Telangana: ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati"],
+    "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
+    "Uttar Pradesh": [
+      "Lucknow",
+      "Kanpur",
+      "Agra",
+      "Varanasi",
+      "Noida",
+      "Ghaziabad",
+    ],
+    Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+    Rajasthan: ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer"],
+    Punjab: ["Chandigarh", "Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
+    Haryana: ["Gurugram", "Faridabad", "Panipat", "Ambala", "Hisar"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior", "Jabalpur"],
+    Bihar: ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
+    Kerala: ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur"],
+    Odisha: ["Bhubaneswar", "Cuttack", "Rourkela", "Sambalpur"],
+    Assam: ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
+  },
+  "Sri Lanka": {
+    Western: ["Colombo", "Negombo"],
+    Central: ["Kandy", "Nuwara Eliya"],
+  },
+  Bangladesh: {
+    Dhaka: ["Dhaka City", "Narayanganj"],
+    Chittagong: ["Chittagong City"],
+  },
+  Nepal: { Bagmati: ["Kathmandu", "Lalitpur"], Gandaki: ["Pokhara"] },
+  Pakistan: {
+    Punjab: ["Lahore", "Faisalabad"],
+    Sindh: ["Karachi", "Hyderabad"],
+  },
+};
 
 const AGE_GROUPS = ["18-25", "26-35", "36-50", "50+"];
 const GENDERS = ["All", "Male", "Female"];
@@ -105,7 +150,10 @@ export default function BoostPostDialog({
   onBoostSuccess,
 }: BoostPostDialogProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>("basic");
-  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("India");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedArea, setSelectedArea] = useState<string>("");
   const [selectedAge, setSelectedAge] = useState<string>("18-25");
   const [selectedGender, setSelectedGender] = useState<string>("All");
   const [selectedDuration, setSelectedDuration] = useState<number>(1);
@@ -121,11 +169,14 @@ export default function BoostPostDialog({
   // Use pricing matrix
   const totalPrice = PLAN_PRICING[selectedPlan]?.[selectedDuration] ?? 299;
 
-  function toggleRegion(r: string) {
-    setSelectedRegions((prev) =>
-      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
-    );
-  }
+  const locationSummary = [
+    selectedCountry,
+    selectedState,
+    selectedCity,
+    selectedArea,
+  ]
+    .filter(Boolean)
+    .join(" › ");
 
   function handlePay() {
     setPaymentOpen(true);
@@ -149,7 +200,11 @@ export default function BoostPostDialog({
         amount: totalPrice,
         gateway: "Razorpay",
         txnId: `TXN${Date.now()}`,
-        regions: selectedRegions,
+        country: selectedCountry,
+        state: selectedState,
+        city: selectedCity,
+        area: selectedArea,
+        locationSummary,
         ageGroup: selectedAge,
         gender: selectedGender,
         language: selectedLanguage,
@@ -201,7 +256,10 @@ export default function BoostPostDialog({
     setBoosted(false);
     setPaymentOpen(false);
     setSelectedPlan("basic");
-    setSelectedRegions([]);
+    setSelectedCountry("India");
+    setSelectedState("");
+    setSelectedCity("");
+    setSelectedArea("");
     setSelectedDuration(1);
     setSelectedLanguage("Hindi");
     setSelectedReligion("All");
@@ -466,31 +524,115 @@ export default function BoostPostDialog({
               </p>
 
               <div>
-                <p className="text-xs text-muted-foreground mb-1.5">Regions</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {REGIONS.map((r) => (
-                    <button
-                      type="button"
-                      key={r}
-                      onClick={() => toggleRegion(r)}
-                      className="text-[11px] px-2.5 py-1 rounded-full border transition-all"
-                      style={{
-                        borderColor: selectedRegions.includes(r)
-                          ? "oklch(0.55 0.22 280)"
-                          : "oklch(var(--border))",
-                        background: selectedRegions.includes(r)
-                          ? "oklch(0.55 0.22 280 / 0.12)"
-                          : "transparent",
-                        color: selectedRegions.includes(r)
-                          ? "oklch(0.55 0.22 280)"
-                          : "oklch(var(--muted-foreground))",
+                <p className="text-xs text-muted-foreground mb-2">
+                  📍 Location Targeting
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">
+                      Country
+                    </p>
+                    <Select
+                      value={selectedCountry}
+                      onValueChange={(v) => {
+                        setSelectedCountry(v);
+                        setSelectedState("");
+                        setSelectedCity("");
+                        setSelectedArea("");
                       }}
-                      data-ocid="boost.region.toggle"
                     >
-                      {r}
-                    </button>
-                  ))}
+                      <SelectTrigger
+                        className="h-8 text-xs"
+                        data-ocid="boost.country.select"
+                      >
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(LOCATION_DATA).map((c) => (
+                          <SelectItem key={c} value={c} className="text-xs">
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">
+                      State / Province
+                    </p>
+                    <Select
+                      value={selectedState}
+                      onValueChange={(v) => {
+                        setSelectedState(v);
+                        setSelectedCity("");
+                        setSelectedArea("");
+                      }}
+                      disabled={!selectedCountry}
+                    >
+                      <SelectTrigger
+                        className="h-8 text-xs"
+                        data-ocid="boost.state.select"
+                      >
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(LOCATION_DATA[selectedCountry] || {}).map(
+                          (s) => (
+                            <SelectItem key={s} value={s} className="text-xs">
+                              {s}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">
+                      City
+                    </p>
+                    <Select
+                      value={selectedCity}
+                      onValueChange={(v) => {
+                        setSelectedCity(v);
+                        setSelectedArea("");
+                      }}
+                      disabled={!selectedState}
+                    >
+                      <SelectTrigger
+                        className="h-8 text-xs"
+                        data-ocid="boost.city.select"
+                      >
+                        <SelectValue placeholder="Select city" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(
+                          LOCATION_DATA[selectedCountry]?.[selectedState] || []
+                        ).map((c) => (
+                          <SelectItem key={c} value={c} className="text-xs">
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">
+                      Area / Pincode
+                    </p>
+                    <Input
+                      className="h-8 text-xs"
+                      placeholder="Area or pincode"
+                      value={selectedArea}
+                      onChange={(e) => setSelectedArea(e.target.value)}
+                      data-ocid="boost.area.input"
+                    />
+                  </div>
                 </div>
+                {locationSummary && (
+                  <p className="text-[10px] text-primary mt-1.5 font-medium">
+                    📍 {locationSummary}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -758,6 +900,7 @@ export default function BoostPostDialog({
             <p className="text-[10px] text-muted-foreground text-center">
               Targeting: {selectedAge} · {selectedGender} · {selectedLanguage} ·{" "}
               {selectedReligion}
+              {locationSummary ? ` · ${locationSummary}` : ""}
             </p>
           </div>
         )}
