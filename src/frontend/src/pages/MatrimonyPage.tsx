@@ -33,7 +33,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import EventsTab from "../components/EventsTab";
 import QuickAddBar from "../components/QuickAddBar";
@@ -705,7 +705,7 @@ function CompatibilityBadge({ score }: { score: number }) {
   );
 }
 
-function MatchCard({
+const MatchCard = React.memo(function MatchCard({
   profile,
   onShortlist,
   onSendRequest,
@@ -870,7 +870,7 @@ function MatchCard({
       </CardContent>
     </Card>
   );
-}
+});
 
 function ProfileDetailSheet({
   profile,
@@ -1606,6 +1606,404 @@ function SetupProfileSheet({
 
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
+// ─── Astro helpers ────────────────────────────────────────────────────────────
+
+const RULING_PLANET: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
+
+function getHoroScore(compat: string): number {
+  return (
+    { Excellent: 100, Good: 75, Neutral: 50, Challenging: 25 }[compat] ?? 50
+  );
+}
+
+function getCombinedScore(profile: MatrimonyProfile): number {
+  const horoScore = getHoroScore(
+    getHoroCompat(MY_HOROSCOPE, profile.horoscope),
+  );
+  return profile.compatibilityScore * 0.6 + horoScore * 0.4;
+}
+
+function getGunaScore(combined: number): number {
+  return Math.round((combined / 100) * 36);
+}
+
+function getFavorableDay(combined: number): string {
+  if (combined >= 80) return "Friday";
+  if (combined >= 70) return "Thursday";
+  if (combined >= 60) return "Monday";
+  return "Wednesday";
+}
+
+function getNakshatraCompat(combined: number): string {
+  if (combined >= 80) return "Excellent";
+  if (combined >= 60) return "Good";
+  return "Moderate";
+}
+
+function getAstroAdvice(sign: string, mySign: string): string {
+  const planet = RULING_PLANET[sign] ?? "Venus";
+  const myPlanet = RULING_PLANET[mySign] ?? "Venus";
+  return `${planet}-ruled ${sign} and ${myPlanet}-ruled ${mySign} share a deep cosmic resonance. A Friday muhurat with ${planet} hora will amplify prosperity and harmony in this union.`;
+}
+
+// ─── Questionnaire wizard ──────────────────────────────────────────────────────
+
+interface QuizAnswers {
+  ageMin: number;
+  ageMax: number;
+  caste: string;
+  religion: string;
+  city: string;
+  income: string;
+  lifestyle: string;
+  horoscope: string;
+}
+
+function QuestionnaireTab({
+  sendRequest,
+}: { sendRequest: (id: string) => void }) {
+  const [step, setStep] = useState(1);
+  const [answers, setAnswers] = useState<QuizAnswers>({
+    ageMin: 22,
+    ageMax: 32,
+    caste: "",
+    religion: "all",
+    city: "",
+    income: "all",
+    lifestyle: "all",
+    horoscope: "all",
+  });
+  const [results, setResults] = useState<MatrimonyProfile[] | null>(null);
+
+  const findMatches = () => {
+    const matches = MOCK_PROFILES.filter((p) => {
+      if (p.age < answers.ageMin || p.age > answers.ageMax) return false;
+      if (
+        answers.caste &&
+        !p.caste.toLowerCase().includes(answers.caste.toLowerCase())
+      )
+        return false;
+      if (answers.religion !== "all" && p.sect !== answers.religion)
+        return false;
+      if (
+        answers.city &&
+        !p.city.toLowerCase().includes(answers.city.toLowerCase())
+      )
+        return false;
+      if (answers.income !== "all" && p.incomeRange !== answers.income)
+        return false;
+      if (answers.lifestyle !== "all" && p.lifestyle !== answers.lifestyle)
+        return false;
+      if (answers.horoscope !== "all") {
+        const compat = getHoroCompat(answers.horoscope, p.horoscope);
+        if (compat === "Challenging") return false;
+      }
+      return true;
+    });
+    setResults(matches);
+  };
+
+  return (
+    <div className="space-y-6">
+      {results === null ? (
+        <div className="max-w-lg mx-auto space-y-6">
+          {/* Progress indicator */}
+          <div className="flex items-center gap-2">
+            {[1, 2, 3, 4].map((n) => (
+              <React.Fragment key={n}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${n === step ? "text-white" : n < step ? "text-white" : "border-2 border-border text-muted-foreground"}`}
+                  style={
+                    n <= step ? { background: "oklch(0.55 0.22 280)" } : {}
+                  }
+                >
+                  {n < step ? "✓" : n}
+                </div>
+                {n < 4 && (
+                  <div
+                    className={`flex-1 h-0.5 transition-all ${n < step ? "bg-violet-500" : "bg-border"}`}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
+          {step === 1 && (
+            <div className="space-y-4">
+              <h3 className="font-display font-semibold text-lg">Age Range</h3>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Minimum Age</span>
+                    <span className="font-bold">{answers.ageMin}</span>
+                  </div>
+                  <Slider
+                    min={18}
+                    max={40}
+                    step={1}
+                    value={[answers.ageMin]}
+                    onValueChange={([v]) =>
+                      setAnswers((a) => ({ ...a, ageMin: v }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Maximum Age</span>
+                    <span className="font-bold">{answers.ageMax}</span>
+                  </div>
+                  <Slider
+                    min={20}
+                    max={50}
+                    step={1}
+                    value={[answers.ageMax]}
+                    onValueChange={([v]) =>
+                      setAnswers((a) => ({ ...a, ageMax: v }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <h3 className="font-display font-semibold text-lg">
+                Caste &amp; Religion
+              </h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Caste Preference (optional)</Label>
+                  <Input
+                    placeholder="e.g. Syed, Brahmin..."
+                    value={answers.caste}
+                    onChange={(e) =>
+                      setAnswers((a) => ({ ...a, caste: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Religion</Label>
+                  <Select
+                    value={answers.religion}
+                    onValueChange={(v) =>
+                      setAnswers((a) => ({ ...a, religion: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any Religion</SelectItem>
+                      <SelectItem value="Sunni">Sunni</SelectItem>
+                      <SelectItem value="Shia">Shia</SelectItem>
+                      <SelectItem value="Hindu">Hindu</SelectItem>
+                      <SelectItem value="Sikh">Sikh</SelectItem>
+                      <SelectItem value="Christian">Christian</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <h3 className="font-display font-semibold text-lg">
+                Location &amp; Income
+              </h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>City (optional)</Label>
+                  <Input
+                    placeholder="e.g. Mumbai, Lahore..."
+                    value={answers.city}
+                    onChange={(e) =>
+                      setAnswers((a) => ({ ...a, city: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Income Range</Label>
+                  <Select
+                    value={answers.income}
+                    onValueChange={(v) =>
+                      setAnswers((a) => ({ ...a, income: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any Income</SelectItem>
+                      <SelectItem value="30k-60k">₹30k–₹60k</SelectItem>
+                      <SelectItem value="60k-100k">₹60k–₹100k</SelectItem>
+                      <SelectItem value="100k-200k">₹1L–₹2L</SelectItem>
+                      <SelectItem value="200k+">₹2L+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-4">
+              <h3 className="font-display font-semibold text-lg">
+                Lifestyle &amp; Horoscope
+              </h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Lifestyle</Label>
+                  <Select
+                    value={answers.lifestyle}
+                    onValueChange={(v) =>
+                      setAnswers((a) => ({ ...a, lifestyle: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any</SelectItem>
+                      <SelectItem value="Simple">Simple</SelectItem>
+                      <SelectItem value="Moderate">Moderate</SelectItem>
+                      <SelectItem value="Luxury">Luxury</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Partner&apos;s Horoscope Sign</Label>
+                  <Select
+                    value={answers.horoscope}
+                    onValueChange={(v) =>
+                      setAnswers((a) => ({ ...a, horoscope: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any Sign</SelectItem>
+                      {HOROSCOPE_SIGNS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {HOROSCOPE_EMOJI[s]} {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            {step > 1 && (
+              <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
+                Back
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button className="flex-1" onClick={() => setStep((s) => s + 1)}>
+                Next →
+              </Button>
+            ) : (
+              <Button
+                className="flex-1"
+                onClick={findMatches}
+                style={{ background: "oklch(0.55 0.22 280)" }}
+              >
+                Find Matches ✨
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-semibold text-lg">
+              {results.length} Match{results.length !== 1 ? "es" : ""} Found
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setResults(null)}
+            >
+              ← Refine
+            </Button>
+          </div>
+          {results.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <div className="text-4xl mb-3">💫</div>
+              <p className="font-medium">No matches found.</p>
+              <p className="text-sm mt-1">Try widening your filters.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {results.map((p) => {
+                const combined = getCombinedScore(p);
+                const advice = getAstroAdvice(p.horoscope, MY_HOROSCOPE);
+                return (
+                  <Card key={p.id} className="relative overflow-hidden">
+                    <div
+                      className="absolute top-0 left-0 w-1 h-full"
+                      style={{ background: "oklch(0.55 0.22 280)" }}
+                    />
+                    <CardContent className="p-4 pl-5 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-display font-semibold">
+                            {p.name}, {p.age}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {p.occupation} · {p.city}
+                          </p>
+                        </div>
+                        <CompatibilityBadge score={p.compatibilityScore} />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span>{HOROSCOPE_EMOJI[p.horoscope]}</span>
+                        <span className="font-medium">{p.horoscope}</span>
+                        <span className="text-muted-foreground">
+                          · Guna: {getGunaScore(combined)}/36
+                        </span>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground italic">
+                        {advice}
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => sendRequest(p.id)}
+                        style={{ background: "oklch(0.55 0.22 280)" }}
+                      >
+                        ❤️ Send Interest
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MatrimonyPage() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] =
@@ -1624,7 +2022,7 @@ export default function MatrimonyPage() {
   const [filterAgeMax, setFilterAgeMax] = useState(40);
   const [showFilters, setShowFilters] = useState(false);
 
-  const toggleShortlist = (id: string) => {
+  const toggleShortlist = useCallback((id: string) => {
     setShortlisted((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -1636,27 +2034,39 @@ export default function MatrimonyPage() {
       }
       return next;
     });
-  };
+  }, []);
 
-  const sendRequest = (id: string) => {
-    const profile = MOCK_PROFILES.find((p) => p.id === id);
-    if (!profile) return;
-    if (requests.find((r) => r.profile.id === id && r.type === "sent")) {
-      toast.info("Request already sent");
-      return;
-    }
-    setRequests((prev) => [
-      ...prev,
-      {
-        id: `r${Date.now()}`,
-        profile,
-        status: "Pending",
-        type: "sent",
-        date: "Just now",
-      },
-    ]);
-    toast.success(`Interest sent to ${profile.name}!`);
-  };
+  const sendRequest = useCallback(
+    (id: string) => {
+      const profile = MOCK_PROFILES.find((p) => p.id === id);
+      if (!profile) return;
+      if (requests.find((r) => r.profile.id === id && r.type === "sent")) {
+        toast.info("Request already sent");
+        return;
+      }
+      setRequests((prev) => [
+        ...prev,
+        {
+          id: `r${Date.now()}`,
+          profile,
+          status: "Pending",
+          type: "sent",
+          date: "Just now",
+        },
+      ]);
+      toast.success(`Interest sent to ${profile.name}!`);
+    },
+    [requests],
+  );
+
+  // Astro Matches - top 5 by combined score
+  const astroMatches = useMemo(() => {
+    return [...MOCK_PROFILES]
+      .map((p) => ({ p, combined: getCombinedScore(p) }))
+      .sort((a, b) => b.combined - a.combined)
+      .slice(0, 5)
+      .map(({ p, combined }) => ({ profile: p, combined }));
+  }, []);
 
   const filteredProfiles = MOCK_PROFILES.filter((p) => {
     if (
@@ -1817,7 +2227,7 @@ export default function MatrimonyPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList className="font-label">
+        <TabsList className="font-label flex-wrap h-auto">
           <TabsTrigger value="browse">Browse Matches</TabsTrigger>
           <TabsTrigger value="requests">
             Requests
@@ -1834,6 +2244,8 @@ export default function MatrimonyPage() {
           <TabsTrigger value="shortlisted">
             Shortlisted ({shortlisted.size})
           </TabsTrigger>
+          <TabsTrigger value="astro">⭐ Astro Matches</TabsTrigger>
+          <TabsTrigger value="questionnaire">🔍 Find My Match</TabsTrigger>
         </TabsList>
 
         {/* Browse Tab */}
@@ -2161,6 +2573,126 @@ export default function MatrimonyPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+        {/* Astro Matches Tab */}
+        <TabsContent value="astro" className="space-y-4">
+          <div
+            className="mb-4 p-4 rounded-xl border"
+            style={{
+              background: "oklch(0.55 0.22 280 / 0.06)",
+              borderColor: "oklch(0.55 0.22 280 / 0.3)",
+            }}
+          >
+            <p
+              className="text-sm font-medium"
+              style={{ color: "oklch(0.55 0.22 280)" }}
+            >
+              ♎ Your sign: <strong>{MY_HOROSCOPE}</strong> · Ruling planet:{" "}
+              <strong>{RULING_PLANET[MY_HOROSCOPE]}</strong>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Top 5 astro-compatible matches ranked by Guna Milan +
+              compatibility score
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {astroMatches.map(({ profile: p, combined }) => {
+              const gunaScore = getGunaScore(combined);
+              const horoCompat = getHoroCompat(MY_HOROSCOPE, p.horoscope);
+              const advice = getAstroAdvice(p.horoscope, MY_HOROSCOPE);
+              const favorableDay = getFavorableDay(combined);
+              const nakshatraCompat = getNakshatraCompat(combined);
+              const planet = RULING_PLANET[p.horoscope] ?? "Venus";
+              return (
+                <Card
+                  key={p.id}
+                  className="relative overflow-hidden border-2"
+                  style={{ borderColor: "oklch(0.55 0.22 280 / 0.2)" }}
+                >
+                  <div
+                    className="absolute top-0 right-0 w-16 h-16 rounded-bl-full opacity-10"
+                    style={{ background: "oklch(0.55 0.22 280)" }}
+                  />
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-display font-bold text-base">
+                          {p.name}, {p.age}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.occupation} · {p.city}
+                        </p>
+                      </div>
+                      <CompatibilityBadge score={p.compatibilityScore} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        <p className="text-muted-foreground">Horoscope</p>
+                        <p className="font-semibold">
+                          {HOROSCOPE_EMOJI[p.horoscope]} {p.horoscope}
+                        </p>
+                        <p className="text-muted-foreground text-[10px]">
+                          Ruling: {planet}
+                        </p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        <p className="text-muted-foreground">Guna Milan</p>
+                        <p
+                          className="font-bold text-base"
+                          style={{
+                            color:
+                              gunaScore >= 25
+                                ? "oklch(0.52 0.18 155)"
+                                : "oklch(0.72 0.19 85)",
+                          }}
+                        >
+                          {gunaScore}/36
+                        </p>
+                        <p className="text-muted-foreground text-[10px]">
+                          Nakshatra: {nakshatraCompat}
+                        </p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        <p className="text-muted-foreground">Compatibility</p>
+                        <p
+                          className="font-semibold"
+                          style={{ color: getHoroCompatColor(horoCompat) }}
+                        >
+                          {horoCompat}
+                        </p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        <p className="text-muted-foreground">Muhurat Day</p>
+                        <p className="font-semibold">{favorableDay}</p>
+                      </div>
+                    </div>
+
+                    <div
+                      className="rounded-lg p-3 text-xs italic text-muted-foreground"
+                      style={{ background: "oklch(0.55 0.22 280 / 0.06)" }}
+                    >
+                      ✨ {advice}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      className="w-full text-white"
+                      onClick={() => sendRequest(p.id)}
+                      style={{ background: "oklch(0.72 0.15 350)" }}
+                    >
+                      ❤️ Send Interest
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* Questionnaire Tab */}
+        <TabsContent value="questionnaire" className="space-y-4">
+          <QuestionnaireTab sendRequest={sendRequest} />
         </TabsContent>
       </Tabs>
 

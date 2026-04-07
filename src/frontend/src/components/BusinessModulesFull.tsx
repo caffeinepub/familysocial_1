@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -429,7 +429,7 @@ export function InventoryModule() {
 
 // ─── 2. ASSEMBLY MODULE ────────────────────────────────────────────────────────
 export function AssemblyModule() {
-  const [orders, setOrders] = useState([
+  const DEFAULT_ASSEMBLY = [
     {
       id: "PO-A01",
       product: "Wooden Chair",
@@ -451,7 +451,75 @@ export function AssemblyModule() {
       due: "Apr 8",
       status: "Done",
     },
-  ]);
+  ];
+  const [orders, setOrders] = useState(() => {
+    try {
+      const s = localStorage.getItem("biz_assembly");
+      return s ? JSON.parse(s) : DEFAULT_ASSEMBLY;
+    } catch {
+      return DEFAULT_ASSEMBLY;
+    }
+  });
+  const [asmDialog, setAsmDialog] = useState(false);
+  const [asmEdit, setAsmEdit] = useState<{
+    id: string;
+    product: string;
+    qty: number;
+    due: string;
+    status: string;
+  } | null>(null);
+  const [asmForm, setAsmForm] = useState({
+    product: "",
+    qty: "",
+    due: "",
+    status: "Planned",
+  });
+
+  useEffect(() => {
+    localStorage.setItem("biz_assembly", JSON.stringify(orders));
+  }, [orders]);
+
+  const openAsmAdd = () => {
+    setAsmEdit(null);
+    setAsmForm({ product: "", qty: "", due: "", status: "Planned" });
+    setAsmDialog(true);
+  };
+  const openAsmEdit = (r: (typeof orders)[0]) => {
+    setAsmEdit(r);
+    setAsmForm({
+      product: r.product,
+      qty: String(r.qty),
+      due: r.due,
+      status: r.status,
+    });
+    setAsmDialog(true);
+  };
+  const saveAsm = () => {
+    if (!asmForm.product) return;
+    if (asmEdit) {
+      setOrders((o: typeof orders) =>
+        o.map((r: (typeof orders)[0]) =>
+          r.id === asmEdit.id
+            ? { ...r, ...asmForm, qty: Number(asmForm.qty) }
+            : r,
+        ),
+      );
+      toast.success("Order updated");
+    } else {
+      setOrders((o: typeof orders) => [
+        ...o,
+        { id: `PO-A${Date.now()}`, ...asmForm, qty: Number(asmForm.qty) },
+      ]);
+      toast.success("Order added");
+    }
+    setAsmDialog(false);
+  };
+  const deleteAsm = (id: string) => {
+    setOrders((o: typeof orders) =>
+      o.filter((r: (typeof orders)[0]) => r.id !== id),
+    );
+    toast.success("Deleted");
+  };
   const bom = [
     {
       product: "Wooden Chair",
@@ -472,8 +540,8 @@ export function AssemblyModule() {
 
   useEffect(() => {
     const id = setInterval(() => {
-      setOrders((o) =>
-        o.map((r) => ({
+      setOrders((o: typeof orders) =>
+        o.map((r: (typeof orders)[0]) => ({
           ...r,
           status:
             r.status === "Planned" && Math.random() > 0.7
@@ -481,22 +549,91 @@ export function AssemblyModule() {
               : r.status,
         })),
       );
-    }, 12000);
+    }, 25000);
     return () => clearInterval(id);
   }, []);
 
   return (
     <div className="space-y-4">
+      <Dialog open={asmDialog} onOpenChange={setAsmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {asmEdit ? "Edit Order" : "Add Production Order"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Product</Label>
+              <Input
+                value={asmForm.product}
+                onChange={(e) =>
+                  setAsmForm((f) => ({ ...f, product: e.target.value }))
+                }
+                placeholder="Product name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Quantity</Label>
+              <Input
+                type="number"
+                value={asmForm.qty}
+                onChange={(e) =>
+                  setAsmForm((f) => ({ ...f, qty: e.target.value }))
+                }
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Due Date</Label>
+              <Input
+                value={asmForm.due}
+                onChange={(e) =>
+                  setAsmForm((f) => ({ ...f, due: e.target.value }))
+                }
+                placeholder="Apr 20"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select
+                value={asmForm.status}
+                onValueChange={(v) => setAsmForm((f) => ({ ...f, status: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Planned">Planned</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Done">Done</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAsmDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveAsm}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-3">
         <SummaryCard label="Total Orders" value={orders.length} />
         <SummaryCard
           label="In Progress"
-          value={orders.filter((o) => o.status === "In Progress").length}
+          value={
+            orders.filter((o: (typeof orders)[0]) => o.status === "In Progress")
+              .length
+          }
           color="oklch(0.55 0.22 280)"
         />
         <SummaryCard
           label="Completed"
-          value={orders.filter((o) => o.status === "Done").length}
+          value={
+            orders.filter((o: (typeof orders)[0]) => o.status === "Done").length
+          }
           color="oklch(0.52 0.18 155)"
         />
       </div>
@@ -520,13 +657,44 @@ export function AssemblyModule() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((r) => (
+                <tr key="__add__">
+                  <td colSpan={6} className="py-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-7 text-xs"
+                      onClick={openAsmAdd}
+                    >
+                      <Plus size={12} className="mr-1" />
+                      Add Order
+                    </Button>
+                  </td>
+                </tr>
+                {orders.map((r: (typeof orders)[0]) => (
                   <tr key={r.id} className="border-b last:border-0">
                     <td className="py-1.5 pr-2 font-mono text-xs">{r.id}</td>
                     <td className="pr-3">{r.product}</td>
                     <td className="pr-3">{r.qty}</td>
                     <td className="pr-3 text-muted-foreground">{r.due}</td>
                     <td>{statusBadge(r.status)}</td>
+                    <td className="flex gap-1 py-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => openAsmEdit(r)}
+                      >
+                        <Pencil size={11} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-red-500"
+                        onClick={() => deleteAsm(r.id)}
+                      >
+                        <Trash2 size={11} />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1199,7 +1367,7 @@ export function FinancialModule() {
 
 // ─── 5. TELECOM MODULE ─────────────────────────────────────────────────────────
 export function TelecomModule() {
-  const [conns, setConns] = useState([
+  const DEFAULT_CONNS = [
     {
       sim: "9876543210",
       customer: "Ramesh Patel",
@@ -1221,7 +1389,76 @@ export function TelecomModule() {
       status: "Suspended",
       validity: "Apr 10",
     },
-  ]);
+  ];
+  const [conns, setConns] = useState(() => {
+    try {
+      const s = localStorage.getItem("biz_telecom");
+      return s ? JSON.parse(s) : DEFAULT_CONNS;
+    } catch {
+      return DEFAULT_CONNS;
+    }
+  });
+  const [telDialog, setTelDialog] = useState(false);
+  const [telEdit, setTelEdit] = useState<{
+    sim: string;
+    customer: string;
+    plan: string;
+    status: string;
+    validity: string;
+  } | null>(null);
+  const [telForm, setTelForm] = useState({
+    sim: "",
+    customer: "",
+    plan: "1GB/day",
+    status: "Active",
+    validity: "",
+  });
+  useEffect(() => {
+    localStorage.setItem("biz_telecom", JSON.stringify(conns));
+  }, [conns]);
+  const openTelAdd = () => {
+    setTelEdit(null);
+    setTelForm({
+      sim: "",
+      customer: "",
+      plan: "1GB/day",
+      status: "Active",
+      validity: "",
+    });
+    setTelDialog(true);
+  };
+  const openTelEdit = (r: (typeof conns)[0]) => {
+    setTelEdit(r);
+    setTelForm({
+      sim: r.sim,
+      customer: r.customer,
+      plan: r.plan,
+      status: r.status,
+      validity: r.validity,
+    });
+    setTelDialog(true);
+  };
+  const saveTel = () => {
+    if (!telForm.sim) return;
+    if (telEdit) {
+      setConns((c: typeof conns) =>
+        c.map((r: (typeof conns)[0]) =>
+          r.sim === telEdit.sim ? { ...r, ...telForm } : r,
+        ),
+      );
+      toast.success("Updated");
+    } else {
+      setConns((c: typeof conns) => [...c, { ...telForm }]);
+      toast.success("Added");
+    }
+    setTelDialog(false);
+  };
+  const deleteTel = (sim: string) => {
+    setConns((c: typeof conns) =>
+      c.filter((r: (typeof conns)[0]) => r.sim !== sim),
+    );
+    toast.success("Deleted");
+  };
   const plans = [
     {
       name: "Basic 1GB",
@@ -1248,8 +1485,8 @@ export function TelecomModule() {
 
   useEffect(() => {
     const id = setInterval(() => {
-      setConns((c) =>
-        c.map((r) => ({
+      setConns((c: typeof conns) =>
+        c.map((r: (typeof conns)[0]) => ({
           ...r,
           status:
             r.status === "Inactive" && Math.random() > 0.8
@@ -1257,12 +1494,85 @@ export function TelecomModule() {
               : r.status,
         })),
       );
-    }, 12000);
+    }, 25000);
     return () => clearInterval(id);
   }, []);
 
   return (
     <div className="space-y-4">
+      <Dialog open={telDialog} onOpenChange={setTelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {telEdit ? "Edit Connection" : "Add SIM Connection"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>SIM Number</Label>
+              <Input
+                value={telForm.sim}
+                onChange={(e) =>
+                  setTelForm((f) => ({ ...f, sim: e.target.value }))
+                }
+                placeholder="10-digit number"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Customer Name</Label>
+              <Input
+                value={telForm.customer}
+                onChange={(e) =>
+                  setTelForm((f) => ({ ...f, customer: e.target.value }))
+                }
+                placeholder="Customer name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Plan</Label>
+              <Input
+                value={telForm.plan}
+                onChange={(e) =>
+                  setTelForm((f) => ({ ...f, plan: e.target.value }))
+                }
+                placeholder="2GB/day"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Validity</Label>
+              <Input
+                value={telForm.validity}
+                onChange={(e) =>
+                  setTelForm((f) => ({ ...f, validity: e.target.value }))
+                }
+                placeholder="Apr 30"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select
+                value={telForm.status}
+                onValueChange={(v) => setTelForm((f) => ({ ...f, status: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTelDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveTel}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-3">
         <SummaryCard label="Total SIMs" value={conns.length} />
         <SummaryCard
@@ -1297,13 +1607,44 @@ export function TelecomModule() {
                 </tr>
               </thead>
               <tbody>
-                {conns.map((r) => (
+                <tr key="__add__">
+                  <td colSpan={6} className="py-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-7 text-xs"
+                      onClick={openTelAdd}
+                    >
+                      <Plus size={12} className="mr-1" />
+                      Add Connection
+                    </Button>
+                  </td>
+                </tr>
+                {conns.map((r: (typeof conns)[0]) => (
                   <tr key={r.sim} className="border-b last:border-0">
                     <td className="py-1.5 pr-3 font-mono text-xs">{r.sim}</td>
                     <td className="pr-3">{r.customer}</td>
                     <td className="pr-3">{r.plan}</td>
                     <td className="pr-3 text-muted-foreground">{r.validity}</td>
                     <td>{statusBadge(r.status)}</td>
+                    <td className="flex gap-1 py-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => openTelEdit(r)}
+                      >
+                        <Pencil size={11} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-red-500"
+                        onClick={() => deleteTel(r.sim)}
+                      >
+                        <Trash2 size={11} />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1348,21 +1689,149 @@ export function TelecomModule() {
 
 // ─── 6. RETAIL SHOP MODULE ─────────────────────────────────────────────────────
 export function RetailShopModule() {
-  const [billItems, setBillItems] = useState<
-    { name: string; qty: number; price: number }[]
-  >([]);
-  const [search, setSearch] = useState("");
-  const catalog = [
+  const DEFAULT_CATALOG = [
     { name: "Colgate 100g", price: 45 },
     { name: "Maggi 70g", price: 14 },
     { name: "Amul Butter 500g", price: 260 },
     { name: "Lays Chips", price: 20 },
   ];
-  const loyalty = [
+  const DEFAULT_LOYALTY = [
     { name: "Priya Singh", points: 1240, tier: "Gold", last: "Apr 1" },
     { name: "Raj Kumar", points: 380, tier: "Silver", last: "Mar 28" },
     { name: "Anita Rao", points: 5600, tier: "Platinum", last: "Apr 3" },
   ];
+  const [billItems, setBillItems] = useState<
+    { name: string; qty: number; price: number }[]
+  >([]);
+  const [search, setSearch] = useState("");
+  const [catalog, setCatalog] = useState<{ name: string; price: number }[]>(
+    () => {
+      try {
+        const s = localStorage.getItem("biz_retail_catalog");
+        return s ? JSON.parse(s) : DEFAULT_CATALOG;
+      } catch {
+        return DEFAULT_CATALOG;
+      }
+    },
+  );
+  const [loyalty, setLoyalty] = useState<
+    { name: string; points: number; tier: string; last: string }[]
+  >(() => {
+    try {
+      const s = localStorage.getItem("biz_retail_loyalty");
+      return s ? JSON.parse(s) : DEFAULT_LOYALTY;
+    } catch {
+      return DEFAULT_LOYALTY;
+    }
+  });
+  const [catDialog, setCatDialog] = useState(false);
+  const [catEdit, setCatEdit] = useState<{
+    name: string;
+    price: number;
+  } | null>(null);
+  const [catForm, setCatForm] = useState({ name: "", price: "" });
+  const [loyDialog, setLoyDialog] = useState(false);
+  const [loyEdit, setLoyEdit] = useState<(typeof DEFAULT_LOYALTY)[0] | null>(
+    null,
+  );
+  const [loyForm, setLoyForm] = useState({
+    name: "",
+    points: "",
+    tier: "Silver",
+    last: "",
+  });
+
+  useEffect(() => {
+    localStorage.setItem("biz_retail_catalog", JSON.stringify(catalog));
+  }, [catalog]);
+  useEffect(() => {
+    localStorage.setItem("biz_retail_loyalty", JSON.stringify(loyalty));
+  }, [loyalty]);
+
+  const openCatAdd = () => {
+    setCatEdit(null);
+    setCatForm({ name: "", price: "" });
+    setCatDialog(true);
+  };
+  const openCatEdit = (r: { name: string; price: number }) => {
+    setCatEdit(r);
+    setCatForm({ name: r.name, price: String(r.price) });
+    setCatDialog(true);
+  };
+  const saveCat = () => {
+    if (!catForm.name) return;
+    if (catEdit) {
+      setCatalog((c) =>
+        c.map((r) =>
+          r.name === catEdit.name
+            ? { name: catForm.name, price: Number(catForm.price) }
+            : r,
+        ),
+      );
+      toast.success("Updated");
+    } else {
+      setCatalog((c) => [
+        ...c,
+        { name: catForm.name, price: Number(catForm.price) },
+      ]);
+      toast.success("Added");
+    }
+    setCatDialog(false);
+  };
+  const deleteCat = (name: string) => {
+    setCatalog((c) => c.filter((r) => r.name !== name));
+    toast.success("Deleted");
+  };
+
+  const openLoyAdd = () => {
+    setLoyEdit(null);
+    setLoyForm({ name: "", points: "", tier: "Silver", last: "" });
+    setLoyDialog(true);
+  };
+  const openLoyEdit = (r: (typeof DEFAULT_LOYALTY)[0]) => {
+    setLoyEdit(r);
+    setLoyForm({
+      name: r.name,
+      points: String(r.points),
+      tier: r.tier,
+      last: r.last,
+    });
+    setLoyDialog(true);
+  };
+  const saveLoy = () => {
+    if (!loyForm.name) return;
+    if (loyEdit) {
+      setLoyalty((l) =>
+        l.map((r) =>
+          r.name === loyEdit.name
+            ? {
+                name: loyForm.name,
+                points: Number(loyForm.points),
+                tier: loyForm.tier,
+                last: loyForm.last,
+              }
+            : r,
+        ),
+      );
+      toast.success("Updated");
+    } else {
+      setLoyalty((l) => [
+        ...l,
+        {
+          name: loyForm.name,
+          points: Number(loyForm.points),
+          tier: loyForm.tier,
+          last: loyForm.last,
+        },
+      ]);
+      toast.success("Added");
+    }
+    setLoyDialog(false);
+  };
+  const deleteLoy = (name: string) => {
+    setLoyalty((l) => l.filter((r) => r.name !== name));
+    toast.success("Deleted");
+  };
   const sales = [
     {
       date: "Apr 3",
@@ -1398,6 +1867,10 @@ export function RetailShopModule() {
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1"
             />
+            <Button size="sm" variant="outline" onClick={openCatAdd}>
+              <Plus size={12} className="mr-1" />
+              Add Item
+            </Button>
           </div>
           {search && (
             <div className="border rounded-md bg-popover shadow-md">
@@ -1406,25 +1879,55 @@ export function RetailShopModule() {
                   c.name.toLowerCase().includes(search.toLowerCase()),
                 )
                 .map((p) => (
-                  <button
-                    type="button"
+                  <div
                     key={p.name}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex justify-between"
-                    onClick={() => {
-                      setBillItems((b) => {
-                        const ex = b.find((x) => x.name === p.name);
-                        return ex
-                          ? b.map((x) =>
-                              x.name === p.name ? { ...x, qty: x.qty + 1 } : x,
-                            )
-                          : [...b, { ...p, qty: 1 }];
-                      });
-                      setSearch("");
-                    }}
+                    className="flex items-center px-1 hover:bg-accent"
                   >
-                    <span>{p.name}</span>
-                    <span className="text-muted-foreground">₹{p.price}</span>
-                  </button>
+                    <button
+                      type="button"
+                      className="flex-1 text-left px-2 py-2 text-sm flex justify-between"
+                      onClick={() => {
+                        setBillItems((b) => {
+                          const ex = b.find((x) => x.name === p.name);
+                          return ex
+                            ? b.map((x) =>
+                                x.name === p.name
+                                  ? { ...x, qty: x.qty + 1 }
+                                  : x,
+                              )
+                            : [...b, { ...p, qty: 1 }];
+                        });
+                        setSearch("");
+                      }}
+                    >
+                      <span>{p.name}</span>
+                      <span className="text-muted-foreground">₹{p.price}</span>
+                    </button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openCatEdit(p);
+                        setSearch("");
+                      }}
+                    >
+                      <Pencil size={10} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 shrink-0 text-red-500"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteCat(p.name);
+                        setSearch("");
+                      }}
+                    >
+                      <Trash2 size={10} />
+                    </Button>
+                  </div>
                 ))}
             </div>
           )}
@@ -1511,6 +2014,81 @@ export function RetailShopModule() {
           </table>
         </TabsContent>
         <TabsContent value="loyalty" className="mt-3 space-y-2">
+          <Dialog open={loyDialog} onOpenChange={setLoyDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {loyEdit ? "Edit Customer" : "Add Loyalty Customer"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Name</Label>
+                  <Input
+                    value={loyForm.name}
+                    onChange={(e) =>
+                      setLoyForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    placeholder="Customer name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Points</Label>
+                  <Input
+                    type="number"
+                    value={loyForm.points}
+                    onChange={(e) =>
+                      setLoyForm((f) => ({ ...f, points: e.target.value }))
+                    }
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Tier</Label>
+                  <Select
+                    value={loyForm.tier}
+                    onValueChange={(v) =>
+                      setLoyForm((f) => ({ ...f, tier: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Silver">Silver</SelectItem>
+                      <SelectItem value="Gold">Gold</SelectItem>
+                      <SelectItem value="Platinum">Platinum</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Last Visit</Label>
+                  <Input
+                    value={loyForm.last}
+                    onChange={(e) =>
+                      setLoyForm((f) => ({ ...f, last: e.target.value }))
+                    }
+                    placeholder="Apr 1"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setLoyDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={saveLoy}>Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full h-8 text-xs"
+            onClick={openLoyAdd}
+          >
+            <Plus size={12} className="mr-1" />
+            Add Customer
+          </Button>
           {loyalty.map((c) => (
             <Card key={c.name}>
               <CardContent className="p-3 flex justify-between items-center">
@@ -1520,24 +2098,80 @@ export function RetailShopModule() {
                     Last: {c.last}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">{c.points} pts</p>
-                  <Badge variant="outline" className="text-xs">
-                    {c.tier}
-                  </Badge>
+                <div className="text-right flex items-center gap-2">
+                  <div>
+                    <p className="font-bold">{c.points} pts</p>
+                    <Badge variant="outline" className="text-xs">
+                      {c.tier}
+                    </Badge>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={() => openLoyEdit(c)}
+                  >
+                    <Pencil size={11} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-red-500"
+                    onClick={() => deleteLoy(c.name)}
+                  >
+                    <Trash2 size={11} />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </TabsContent>
       </Tabs>
+      <Dialog open={catDialog} onOpenChange={setCatDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {catEdit ? "Edit Item" : "Add Catalog Item"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Item Name</Label>
+              <Input
+                value={catForm.name}
+                onChange={(e) =>
+                  setCatForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="Product name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Price (₹)</Label>
+              <Input
+                type="number"
+                value={catForm.price}
+                onChange={(e) =>
+                  setCatForm((f) => ({ ...f, price: e.target.value }))
+                }
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCatDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveCat}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 // ─── 7. VEHICLE MODULE ─────────────────────────────────────────────────────────
 export function VehicleModule() {
-  const [inventory] = useState([
+  const DEFAULT_VEHICLES = [
     {
       make: "Maruti",
       model: "Swift",
@@ -1562,7 +2196,85 @@ export function VehicleModule() {
       price: "₹14.9L",
       status: "Sold",
     },
-  ]);
+  ];
+  const [inventory, setInventory] = useState<
+    {
+      make: string;
+      model: string;
+      year: number;
+      color: string;
+      price: string;
+      status: string;
+    }[]
+  >(() => {
+    try {
+      const s = localStorage.getItem("biz_vehicle");
+      return s ? JSON.parse(s) : DEFAULT_VEHICLES;
+    } catch {
+      return DEFAULT_VEHICLES;
+    }
+  });
+  const [vehDialog, setVehDialog] = useState(false);
+  const [vehEdit, setVehEdit] = useState<(typeof DEFAULT_VEHICLES)[0] | null>(
+    null,
+  );
+  const [vehForm, setVehForm] = useState({
+    make: "",
+    model: "",
+    year: "",
+    color: "",
+    price: "",
+    status: "Available",
+  });
+  useEffect(() => {
+    localStorage.setItem("biz_vehicle", JSON.stringify(inventory));
+  }, [inventory]);
+  const openVehAdd = () => {
+    setVehEdit(null);
+    setVehForm({
+      make: "",
+      model: "",
+      year: "",
+      color: "",
+      price: "",
+      status: "Available",
+    });
+    setVehDialog(true);
+  };
+  const openVehEdit = (r: (typeof DEFAULT_VEHICLES)[0]) => {
+    setVehEdit(r);
+    setVehForm({
+      make: r.make,
+      model: r.model,
+      year: String(r.year),
+      color: r.color,
+      price: r.price,
+      status: r.status,
+    });
+    setVehDialog(true);
+  };
+  const saveVeh = () => {
+    if (!vehForm.make) return;
+    const entry = { ...vehForm, year: Number(vehForm.year) };
+    if (vehEdit) {
+      setInventory((v) =>
+        v.map((r) =>
+          r.make + r.model === vehEdit.make + vehEdit.model ? entry : r,
+        ),
+      );
+      toast.success("Updated");
+    } else {
+      setInventory((v) => [...v, entry]);
+      toast.success("Added");
+    }
+    setVehDialog(false);
+  };
+  const deleteVeh = (make: string, model: string) => {
+    setInventory((v) =>
+      v.filter((r) => !(r.make === make && r.model === model)),
+    );
+    toast.success("Deleted");
+  };
   const drives = [
     {
       customer: "Anil Mehta",
@@ -1590,6 +2302,92 @@ export function VehicleModule() {
 
   return (
     <div className="space-y-4">
+      <Dialog open={vehDialog} onOpenChange={setVehDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {vehEdit ? "Edit Vehicle" : "Add Vehicle"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Make</Label>
+                <Input
+                  value={vehForm.make}
+                  onChange={(e) =>
+                    setVehForm((f) => ({ ...f, make: e.target.value }))
+                  }
+                  placeholder="Maruti"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Model</Label>
+                <Input
+                  value={vehForm.model}
+                  onChange={(e) =>
+                    setVehForm((f) => ({ ...f, model: e.target.value }))
+                  }
+                  placeholder="Swift"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Year</Label>
+                <Input
+                  type="number"
+                  value={vehForm.year}
+                  onChange={(e) =>
+                    setVehForm((f) => ({ ...f, year: e.target.value }))
+                  }
+                  placeholder="2024"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Color</Label>
+                <Input
+                  value={vehForm.color}
+                  onChange={(e) =>
+                    setVehForm((f) => ({ ...f, color: e.target.value }))
+                  }
+                  placeholder="White"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Price</Label>
+              <Input
+                value={vehForm.price}
+                onChange={(e) =>
+                  setVehForm((f) => ({ ...f, price: e.target.value }))
+                }
+                placeholder="₹8.5L"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select
+                value={vehForm.status}
+                onValueChange={(v) => setVehForm((f) => ({ ...f, status: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Reserved">Reserved</SelectItem>
+                  <SelectItem value="Sold">Sold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVehDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveVeh}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-3">
         <SummaryCard
           label="In Stock"
@@ -1627,6 +2425,19 @@ export function VehicleModule() {
                 </tr>
               </thead>
               <tbody>
+                <tr key="__veh_add__">
+                  <td colSpan={7} className="py-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-7 text-xs"
+                      onClick={openVehAdd}
+                    >
+                      <Plus size={12} className="mr-1" />
+                      Add Vehicle
+                    </Button>
+                  </td>
+                </tr>
                 {inventory.map((r) => (
                   <tr key={r.make + r.model} className="border-b last:border-0">
                     <td className="py-1.5 pr-3">{r.make}</td>
@@ -1635,6 +2446,24 @@ export function VehicleModule() {
                     <td className="pr-3">{r.color}</td>
                     <td className="pr-3">{r.price}</td>
                     <td>{statusBadge(r.status)}</td>
+                    <td className="flex gap-1 py-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => openVehEdit(r)}
+                      >
+                        <Pencil size={11} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-red-500"
+                        onClick={() => deleteVeh(r.make, r.model)}
+                      >
+                        <Trash2 size={11} />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1698,7 +2527,7 @@ export function LeadCRMModule() {
     "Closed Won",
     "Closed Lost",
   ];
-  const [leads] = useState([
+  const DEFAULT_LEADS = [
     {
       name: "Reliance Foods",
       value: "₹2.4L",
@@ -1724,7 +2553,62 @@ export function LeadCRMModule() {
       source: "Social",
       stage: "Contacted",
     },
-  ]);
+  ];
+  const [leads, setLeads] = useState<
+    { name: string; value: string; source: string; stage: string }[]
+  >(() => {
+    try {
+      const s = localStorage.getItem("biz_leads");
+      return s ? JSON.parse(s) : DEFAULT_LEADS;
+    } catch {
+      return DEFAULT_LEADS;
+    }
+  });
+  const [leadDialog, setLeadDialog] = useState(false);
+  const [leadEdit, setLeadEdit] = useState<(typeof DEFAULT_LEADS)[0] | null>(
+    null,
+  );
+  const [leadForm, setLeadForm] = useState({
+    name: "",
+    value: "",
+    source: "",
+    stage: "New",
+  });
+  useEffect(() => {
+    localStorage.setItem("biz_leads", JSON.stringify(leads));
+  }, [leads]);
+  const openLeadAdd = () => {
+    setLeadEdit(null);
+    setLeadForm({ name: "", value: "", source: "", stage: "New" });
+    setLeadDialog(true);
+  };
+  const openLeadEdit = (r: (typeof DEFAULT_LEADS)[0]) => {
+    setLeadEdit(r);
+    setLeadForm({
+      name: r.name,
+      value: r.value,
+      source: r.source,
+      stage: r.stage,
+    });
+    setLeadDialog(true);
+  };
+  const saveLead = () => {
+    if (!leadForm.name) return;
+    if (leadEdit) {
+      setLeads((l) =>
+        l.map((r) => (r.name === leadEdit.name ? { ...leadForm } : r)),
+      );
+      toast.success("Updated");
+    } else {
+      setLeads((l) => [...l, { ...leadForm }]);
+      toast.success("Lead added");
+    }
+    setLeadDialog(false);
+  };
+  const deleteLead = (name: string) => {
+    setLeads((l) => l.filter((r) => r.name !== name));
+    toast.success("Deleted");
+  };
   const followups = [
     {
       lead: "Reliance Foods",
@@ -1744,6 +2628,69 @@ export function LeadCRMModule() {
 
   return (
     <div className="space-y-4">
+      <Dialog open={leadDialog} onOpenChange={setLeadDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{leadEdit ? "Edit Lead" : "Add Lead"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Company / Lead Name</Label>
+              <Input
+                value={leadForm.name}
+                onChange={(e) =>
+                  setLeadForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="Company name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Deal Value</Label>
+              <Input
+                value={leadForm.value}
+                onChange={(e) =>
+                  setLeadForm((f) => ({ ...f, value: e.target.value }))
+                }
+                placeholder="₹1L"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Source</Label>
+              <Input
+                value={leadForm.source}
+                onChange={(e) =>
+                  setLeadForm((f) => ({ ...f, source: e.target.value }))
+                }
+                placeholder="Referral"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Stage</Label>
+              <Select
+                value={leadForm.stage}
+                onValueChange={(v) => setLeadForm((f) => ({ ...f, stage: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {stages.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLeadDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveLead}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-3">
         <SummaryCard label="Total Leads" value={leads.length} />
         <SummaryCard
@@ -1764,6 +2711,15 @@ export function LeadCRMModule() {
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
         </TabsList>
         <TabsContent value="pipeline" className="mt-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="mb-3 w-full h-8 text-xs"
+            onClick={openLeadAdd}
+          >
+            <Plus size={12} className="mr-1" />
+            Add Lead
+          </Button>
           <ScrollArea className="h-64">
             <div className="flex gap-3 min-w-max pb-2">
               {stages.map((s) => (
@@ -1776,7 +2732,27 @@ export function LeadCRMModule() {
                     .map((l) => (
                       <Card key={l.name} className="mb-2">
                         <CardContent className="p-2">
-                          <p className="text-xs font-medium">{l.name}</p>
+                          <div className="flex justify-between items-start">
+                            <p className="text-xs font-medium">{l.name}</p>
+                            <div className="flex gap-0.5">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0"
+                                onClick={() => openLeadEdit(l)}
+                              >
+                                <Pencil size={9} />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-red-500"
+                                onClick={() => deleteLead(l.name)}
+                              >
+                                <Trash2 size={9} />
+                              </Button>
+                            </div>
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {l.value}
                           </p>
@@ -1858,7 +2834,7 @@ export function LeadCRMModule() {
 
 // ─── 9. SOFTWARE PROJECT MODULE ────────────────────────────────────────────────
 export function SoftwareProjectModule() {
-  const [projects] = useState([
+  const DEFAULT_PROJECTS = [
     {
       name: "ERP Portal",
       client: "Sharma Enterprises",
@@ -1875,7 +2851,71 @@ export function SoftwareProjectModule() {
       status: "On Hold",
       budget: "₹2.2L",
     },
-  ]);
+  ];
+  const [projects, setProjects] = useState<typeof DEFAULT_PROJECTS>(() => {
+    try {
+      const s = localStorage.getItem("biz_software");
+      return s ? JSON.parse(s) : DEFAULT_PROJECTS;
+    } catch {
+      return DEFAULT_PROJECTS;
+    }
+  });
+  const [swDialog, setSwDialog] = useState(false);
+  const [swEdit, setSwEdit] = useState<(typeof DEFAULT_PROJECTS)[0] | null>(
+    null,
+  );
+  const [swForm, setSwForm] = useState({
+    name: "",
+    client: "",
+    start: "",
+    deadline: "",
+    budget: "",
+    status: "Active",
+  });
+  useEffect(() => {
+    localStorage.setItem("biz_software", JSON.stringify(projects));
+  }, [projects]);
+  const openSwAdd = () => {
+    setSwEdit(null);
+    setSwForm({
+      name: "",
+      client: "",
+      start: "",
+      deadline: "",
+      budget: "",
+      status: "Active",
+    });
+    setSwDialog(true);
+  };
+  const openSwEdit = (r: (typeof DEFAULT_PROJECTS)[0]) => {
+    setSwEdit(r);
+    setSwForm({
+      name: r.name,
+      client: r.client,
+      start: r.start,
+      deadline: r.deadline,
+      budget: r.budget,
+      status: r.status,
+    });
+    setSwDialog(true);
+  };
+  const saveSw = () => {
+    if (!swForm.name) return;
+    if (swEdit) {
+      setProjects((p) =>
+        p.map((r) => (r.name === swEdit.name ? { ...swForm } : r)),
+      );
+      toast.success("Updated");
+    } else {
+      setProjects((p) => [...p, { ...swForm }]);
+      toast.success("Project added");
+    }
+    setSwDialog(false);
+  };
+  const deleteSw = (name: string) => {
+    setProjects((p) => p.filter((r) => r.name !== name));
+    toast.success("Deleted");
+  };
   const board = {
     "To Do": [
       { task: "API Integration", assignee: "Dev A", sp: 5 },
@@ -1909,6 +2949,89 @@ export function SoftwareProjectModule() {
 
   return (
     <div className="space-y-4">
+      <Dialog open={swDialog} onOpenChange={setSwDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{swEdit ? "Edit Project" : "Add Project"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Project Name</Label>
+              <Input
+                value={swForm.name}
+                onChange={(e) =>
+                  setSwForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="Project name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Client</Label>
+              <Input
+                value={swForm.client}
+                onChange={(e) =>
+                  setSwForm((f) => ({ ...f, client: e.target.value }))
+                }
+                placeholder="Client name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Start Date</Label>
+                <Input
+                  value={swForm.start}
+                  onChange={(e) =>
+                    setSwForm((f) => ({ ...f, start: e.target.value }))
+                  }
+                  placeholder="Jan 1"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Deadline</Label>
+                <Input
+                  value={swForm.deadline}
+                  onChange={(e) =>
+                    setSwForm((f) => ({ ...f, deadline: e.target.value }))
+                  }
+                  placeholder="Dec 31"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Budget</Label>
+              <Input
+                value={swForm.budget}
+                onChange={(e) =>
+                  setSwForm((f) => ({ ...f, budget: e.target.value }))
+                }
+                placeholder="₹2L"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select
+                value={swForm.status}
+                onValueChange={(v) => setSwForm((f) => ({ ...f, status: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="On Hold">On Hold</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSwDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveSw}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-3">
         <SummaryCard label="Projects" value={projects.length} />
         <SummaryCard
@@ -1935,6 +3058,19 @@ export function SoftwareProjectModule() {
               </tr>
             </thead>
             <tbody>
+              <tr key="__sw_add__">
+                <td colSpan={6} className="py-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-7 text-xs"
+                    onClick={openSwAdd}
+                  >
+                    <Plus size={12} className="mr-1" />
+                    Add Project
+                  </Button>
+                </td>
+              </tr>
               {projects.map((r) => (
                 <tr key={r.name} className="border-b last:border-0">
                   <td className="py-1.5 pr-3 font-medium">{r.name}</td>
@@ -1942,6 +3078,24 @@ export function SoftwareProjectModule() {
                   <td className="pr-3">{r.deadline}</td>
                   <td className="pr-3">{r.budget}</td>
                   <td>{statusBadge(r.status)}</td>
+                  <td className="flex gap-1 py-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      onClick={() => openSwEdit(r)}
+                    >
+                      <Pencil size={11} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 text-red-500"
+                      onClick={() => deleteSw(r.name)}
+                    >
+                      <Trash2 size={11} />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -2002,7 +3156,7 @@ export function SoftwareProjectModule() {
 
 // ─── 10. MONEY LENDING MODULE ──────────────────────────────────────────────────
 export function MoneyLendingModule() {
-  const [loans] = useState([
+  const DEFAULT_LOANS = [
     {
       id: "L-001",
       borrower: "Sunil Gupta",
@@ -2030,7 +3184,71 @@ export function MoneyLendingModule() {
       disbursed: "Mar 1",
       status: "Active",
     },
-  ]);
+  ];
+  const [loans, setLoans] = useState<typeof DEFAULT_LOANS>(() => {
+    try {
+      const s = localStorage.getItem("biz_loans");
+      return s ? JSON.parse(s) : DEFAULT_LOANS;
+    } catch {
+      return DEFAULT_LOANS;
+    }
+  });
+  const [loanDialog, setLoanDialog] = useState(false);
+  const [loanEdit, setLoanEdit] = useState<(typeof DEFAULT_LOANS)[0] | null>(
+    null,
+  );
+  const [loanForm, setLoanForm] = useState({
+    borrower: "",
+    amt: "",
+    rate: "",
+    tenure: "",
+    disbursed: "",
+    status: "Active",
+  });
+  useEffect(() => {
+    localStorage.setItem("biz_loans", JSON.stringify(loans));
+  }, [loans]);
+  const openLoanAdd = () => {
+    setLoanEdit(null);
+    setLoanForm({
+      borrower: "",
+      amt: "",
+      rate: "",
+      tenure: "",
+      disbursed: "",
+      status: "Active",
+    });
+    setLoanDialog(true);
+  };
+  const openLoanEdit = (r: (typeof DEFAULT_LOANS)[0]) => {
+    setLoanEdit(r);
+    setLoanForm({
+      borrower: r.borrower,
+      amt: r.amt,
+      rate: r.rate,
+      tenure: r.tenure,
+      disbursed: r.disbursed,
+      status: r.status,
+    });
+    setLoanDialog(true);
+  };
+  const saveLoan = () => {
+    if (!loanForm.borrower) return;
+    if (loanEdit) {
+      setLoans((l) =>
+        l.map((r) => (r.id === loanEdit.id ? { ...r, ...loanForm } : r)),
+      );
+      toast.success("Updated");
+    } else {
+      setLoans((l) => [...l, { id: `L-${Date.now()}`, ...loanForm }]);
+      toast.success("Loan added");
+    }
+    setLoanDialog(false);
+  };
+  const deleteLoan = (id: string) => {
+    setLoans((l) => l.filter((r) => r.id !== id));
+    toast.success("Deleted");
+  };
   const emi = [
     {
       loan: "L-001",
@@ -2060,6 +3278,90 @@ export function MoneyLendingModule() {
 
   return (
     <div className="space-y-4">
+      <Dialog open={loanDialog} onOpenChange={setLoanDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{loanEdit ? "Edit Loan" : "Add Loan"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Borrower Name</Label>
+              <Input
+                value={loanForm.borrower}
+                onChange={(e) =>
+                  setLoanForm((f) => ({ ...f, borrower: e.target.value }))
+                }
+                placeholder="Borrower name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Amount</Label>
+                <Input
+                  value={loanForm.amt}
+                  onChange={(e) =>
+                    setLoanForm((f) => ({ ...f, amt: e.target.value }))
+                  }
+                  placeholder="₹50,000"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Interest Rate</Label>
+                <Input
+                  value={loanForm.rate}
+                  onChange={(e) =>
+                    setLoanForm((f) => ({ ...f, rate: e.target.value }))
+                  }
+                  placeholder="12%"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Tenure</Label>
+                <Input
+                  value={loanForm.tenure}
+                  onChange={(e) =>
+                    setLoanForm((f) => ({ ...f, tenure: e.target.value }))
+                  }
+                  placeholder="12m"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Disbursed Date</Label>
+                <Input
+                  value={loanForm.disbursed}
+                  onChange={(e) =>
+                    setLoanForm((f) => ({ ...f, disbursed: e.target.value }))
+                  }
+                  placeholder="Jan 1"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select
+                value={loanForm.status}
+                onValueChange={(v) => setLoanForm((f) => ({ ...f, status: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="Defaulted">Defaulted</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoanDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveLoan}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-3">
         <SummaryCard
           label="Active Loans"
@@ -2100,6 +3402,19 @@ export function MoneyLendingModule() {
                 </tr>
               </thead>
               <tbody>
+                <tr key="__loan_add__">
+                  <td colSpan={8} className="py-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-7 text-xs"
+                      onClick={openLoanAdd}
+                    >
+                      <Plus size={12} className="mr-1" />
+                      Add Loan
+                    </Button>
+                  </td>
+                </tr>
                 {loans.map((r) => (
                   <tr key={r.id} className="border-b last:border-0">
                     <td className="py-1.5 pr-2 font-mono text-xs">{r.id}</td>
@@ -2109,6 +3424,24 @@ export function MoneyLendingModule() {
                     <td className="pr-2">{r.tenure}</td>
                     <td className="pr-2">{r.disbursed}</td>
                     <td>{statusBadge(r.status)}</td>
+                    <td className="flex gap-1 py-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => openLoanEdit(r)}
+                      >
+                        <Pencil size={11} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-red-500"
+                        onClick={() => deleteLoan(r.id)}
+                      >
+                        <Trash2 size={11} />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

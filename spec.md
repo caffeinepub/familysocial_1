@@ -1,28 +1,36 @@
 # IndyaCentral
 
 ## Current State
-- BoostPostDialog has a flat `REGIONS` array (8 hardcoded region names like "North India", "Maharashtra") with no hierarchy. Users cannot drill down by country, state, city, or pincode.
-- `APPROVAL_SOURCES` in AdminPanelPage only covers 7 sources: Promotions, Rider, Business, Delivery, ONDC, Business Claims, Community. Missing: Jobs (recruiter/event/company), Healthcare advisors, Family Tree business links, School access requests, Real Estate listings, Travel bookings, Matrimony requests, Dating requests, Blog/content approvals.
-- Business modules in `BusinessModulesFull.tsx` and `BusinessModulesExtra.tsx` have basic display and limited add forms. Missing: full inline edit, delete with confirmation, richer form fields (e.g. GST number, supplier details, vehicle RC, loan collateral), real-time save feedback, and per-module summary dashboard cards.
+- Business modules (Assembly, Telecom, Retail, Vehicle, Lead CRM, Software, Money Lending) exist in `BusinessModulesFull.tsx` but have read-only tables — no Add/Edit/Delete functionality or localStorage persistence
+- MatrimonyPage has Browse Matches, Requests, and Shortlisted tabs only. There is no Astro Advice / Best Match tab. Profile setup questionnaire collects data but match suggestions do not run astro-based analysis. There is no question/answer output section.
+- Auto-refresh `setInterval` calls run on every component mount with no cleanup optimization; all modules re-render on every tick regardless of visibility.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Hierarchical location targeting in BoostPostDialog: Country → State → City → Area/Pincode cascading dropdowns/selectors (pre-populated with India + major states + cities; also allow manual pincode entry)
-- New APPROVAL_SOURCES entries for: Job Applications (`ic_job_applications`), Recruiter Profiles (`ic_recruiter_registrations`), Healthcare Advisor Registration (`ic_healthcare_registrations`), Family Tree Business Link (`ic_family_business_links`), School Access Requests (`ic_school_access_requests`), Real Estate Listing Approvals (`ic_realestate_listings`), Travel Package Requests (`ic_travel_requests`), Matrimony Profile Approval (`ic_matrimony_profiles`), Blog/Content Review (`ic_blog_posts`)
-- Sample approval items for each new module source
-- Advanced CRUD for all business modules: inline edit rows, delete with confirmation dialog, richer add dialogs, and live save toast
+- Full CRUD (Add / Edit / Delete dialogs) to AssemblyModule, TelecomModule, RetailShopModule, VehicleModule, LeadCRMModule, SoftwareProjectModule, MoneyLendingModule
+- localStorage persistence for all business module data (keyed per module)
+- Matrimony: new "Astro Matches" tab with:
+  - Top-5 best match cards ranked by combined compatibility score (profile score + astro horoscope score)
+  - Per-match astro advice card: ruling planet, Guna Milan score (out of 36), nakshatra compatibility, favorable date suggestion, and a 2-line astro recommendation text
+- Matrimony: Questionnaire tab that shows a multi-step Q&A wizard (preferences for age, caste, location, income, lifestyle) and after submit displays a filtered results panel with matched profiles and astro notes
+- Performance: wrap expensive list renders in `React.memo`; use `useCallback` for handlers inside auto-refresh loops; increase all module auto-refresh intervals to ≥20s to reduce thrashing
 
 ### Modify
-- Replace flat `REGIONS` array in BoostPostDialog with a 4-level location picker (Country, State, City, Area/Pincode). Selected location builds a readable summary string shown in the targeting summary line.
-- Admin Approval Center: add new module filter chips for all new sources; display module-specific detail fields (e.g. job title for job apps, school name for school access, property address for real estate)
-- Business module panels: add Edit button per row opening a pre-filled dialog, Delete button with a confirmation toast, and real-time localStorage persistence per module
+- `BusinessModulesFull.tsx`: add Add/Edit/Delete dialog + `useEffect` localStorage read/write to each of the 7 remaining modules
+- `MatrimonyPage.tsx`: add `AstroMatchesTab` component and `QuestionnaireTab` component; add tabs to the main Tabs component
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. **BoostPostDialog.tsx** — Replace `REGIONS` with `LOCATION_DATA` (country/state/city/area hierarchy for India + SE Asia). Add cascading selectors: Country dropdown, State dropdown (filtered by country), City dropdown (filtered by state), Area/Pincode text input. Build a `selectedLocation` summary object. Show selected location as a compact breadcrumb badge in the targeting summary.
-2. **AdminPanelPage.tsx** — Extend `APPROVAL_SOURCES` array with 9 new sources. Add matching `SAMPLE_APPROVALS` entries for each. In the ApprovalAgentTab render, show module-specific extra detail row (job title, school, address, etc.) by reading extra fields from the stored item.
-3. **BusinessModulesFull.tsx** — For each module (Inventory, Assembly, Repair, Financial, Telecom, Retail, Vehicle, Lead/CRM, Software, Money Lending): add Edit dialog (pre-fill from row), Delete button with `confirm` guard, localStorage save/load per module, and summary stats auto-update on add/edit/delete.
-4. **BusinessModulesExtra.tsx** — Same CRUD enhancements for Courier/Dispatch, Fuel Depot, Transport, Water, Food Delivery, Plumbing, Electrical, Mechanic, Sweeper, Garments modules.
+1. **BusinessModulesFull.tsx** — For each of the 7 modules, add:
+   - `useEffect` that loads initial data from `localStorage.getItem('biz_<module>')` on mount and saves on every state change
+   - An "Add" button in the table header that opens a `Dialog` form with appropriate fields
+   - Pencil/Trash icons per row for Edit (pre-filled dialog) and Delete (with confirm toast)
+   - Increase setInterval durations from 12s → 25s across all modules
+2. **MatrimonyPage.tsx** — Add:
+   - `AstroMatchesTab`: calculates a combined score = `profile.compatibilityScore * 0.6 + horoScore * 0.4`, sorts top 5, shows a card per match with astro advice (Guna Milan, nakshatra, ruling planet, favorable day)
+   - `QuestionnaireTab`: 5-step wizard (Age Range, Caste Preference, Location, Income, Lifestyle/Horoscope filter), on submit shows filtered profiles with an astro advice blurb per result
+   - Wire both tabs into the existing `<Tabs>` in MatrimonyPage
+3. **Performance micro-optimisations** — wrap `MatchCard`, `SummaryCard`, and module row renders in `React.memo`; use `useCallback` on frequently re-created handlers
