@@ -1,36 +1,27 @@
 # IndyaCentral
 
 ## Current State
-- Business modules (Assembly, Telecom, Retail, Vehicle, Lead CRM, Software, Money Lending) exist in `BusinessModulesFull.tsx` but have read-only tables — no Add/Edit/Delete functionality or localStorage persistence
-- MatrimonyPage has Browse Matches, Requests, and Shortlisted tabs only. There is no Astro Advice / Best Match tab. Profile setup questionnaire collects data but match suggestions do not run astro-based analysis. There is no question/answer output section.
-- Auto-refresh `setInterval` calls run on every component mount with no cleanup optimization; all modules re-render on every tick regardless of visibility.
+The app has a floating NearbySearchBar with Products, Places, People, and Face tabs. It supports image search via category selection. The WhatsApp chatbot script in Admin Panel handles search/buy/sell/image commands. The NotificationsPanel shows per-module notifications. Business Alerts tab in Business Page shows vendor-facing alerts.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full CRUD (Add / Edit / Delete dialogs) to AssemblyModule, TelecomModule, RetailShopModule, VehicleModule, LeadCRMModule, SoftwareProjectModule, MoneyLendingModule
-- localStorage persistence for all business module data (keyed per module)
-- Matrimony: new "Astro Matches" tab with:
-  - Top-5 best match cards ranked by combined compatibility score (profile score + astro horoscope score)
-  - Per-match astro advice card: ruling planet, Guna Milan score (out of 36), nakshatra compatibility, favorable date suggestion, and a 2-line astro recommendation text
-- Matrimony: Questionnaire tab that shows a multi-step Q&A wizard (preferences for age, caste, location, income, lifestyle) and after submit displays a filtered results panel with matched profiles and astro notes
-- Performance: wrap expensive list renders in `React.memo`; use `useCallback` for handlers inside auto-refresh loops; increase all module auto-refresh intervals to ≥20s to reduce thrashing
+- **Vendor Match Broadcast**: When a user posts an image or searches a keyword (without "avoid" keywords active), the system matches the query against vendor business categories AND product/service keywords, then sends a notification to each matched vendor's Business Alerts feed: "A user is looking for [keyword] — tap to approach them"
+- **User Approach Notifications**: After vendors are notified, the user receives back-notifications listing which businesses want to approach them, with Accept/Decline actions. Only triggers for users with Public or Restricted privacy settings
+- **Privacy toggle**: Users can enable/disable "Allow vendors to approach me" in Settings or the search bar
+- **WhatsApp chatbot vendor-match command**: Add `approach [keyword]` and `vendors [keyword]` commands to the chatbot script — bot finds matching vendors and replies with a list; vendor also gets a WhatsApp notification if their number is registered
 
 ### Modify
-- `BusinessModulesFull.tsx`: add Add/Edit/Delete dialog + `useEffect` localStorage read/write to each of the 7 remaining modules
-- `MatrimonyPage.tsx`: add `AstroMatchesTab` component and `QuestionnaireTab` component; add tabs to the main Tabs component
+- **NearbySearchBar**: On search submit (Enter or image category selected), trigger vendor match broadcast if user is logged in and not private. Show a small toast confirming vendors were notified
+- **WhatsAppChatbotScript**: Add vendor-match command handlers and image-based vendor search to the Node.js script code
+- **NotificationsPanel**: Vendor approach requests show as a new "Approach" module type with Accept/Decline inline buttons
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. **BusinessModulesFull.tsx** — For each of the 7 modules, add:
-   - `useEffect` that loads initial data from `localStorage.getItem('biz_<module>')` on mount and saves on every state change
-   - An "Add" button in the table header that opens a `Dialog` form with appropriate fields
-   - Pencil/Trash icons per row for Edit (pre-filled dialog) and Delete (with confirm toast)
-   - Increase setInterval durations from 12s → 25s across all modules
-2. **MatrimonyPage.tsx** — Add:
-   - `AstroMatchesTab`: calculates a combined score = `profile.compatibilityScore * 0.6 + horoScore * 0.4`, sorts top 5, shows a card per match with astro advice (Guna Milan, nakshatra, ruling planet, favorable day)
-   - `QuestionnaireTab`: 5-step wizard (Age Range, Caste Preference, Location, Income, Lifestyle/Horoscope filter), on submit shows filtered profiles with an astro advice blurb per result
-   - Wire both tabs into the existing `<Tabs>` in MatrimonyPage
-3. **Performance micro-optimisations** — wrap `MatchCard`, `SummaryCard`, and module row renders in `React.memo`; use `useCallback` on frequently re-created handlers
+1. Create `vendorMatchStore.ts` — shared store that holds vendor approach requests (vendor→user and user←vendor), with localStorage persistence
+2. Update `NearbySearchBar.tsx` — on search submit/image category select, call `broadcastToVendors(query, avoidList)` from the store; show toast; add a privacy toggle button in the bar
+3. Update `NotificationsPanel.tsx` — handle new `Approach` notification type with Accept/Decline buttons that call `respondToApproach(id, accepted)`
+4. Update `AdminPanelPage.tsx` (WhatsAppChatbotScript) — add `approach [keyword]` and `vendors [keyword]` command handlers to the Node.js script code block
+5. Business Alerts tab in BusinessPage already auto-refreshes — the vendorMatchStore will push approach events there automatically

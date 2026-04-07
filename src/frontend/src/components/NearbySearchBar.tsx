@@ -16,6 +16,13 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  broadcastToVendors,
+  getApproaches,
+  isVendorApproachEnabled,
+  respondToApproach,
+  setVendorApproachEnabled,
+} from "../stores/vendorMatchStore";
 
 const NEARBY_USERS = [
   {
@@ -92,13 +99,7 @@ const NEARBY_PRODUCTS = [
 ];
 
 const NEARBY_PLACES = [
-  {
-    id: 1,
-    name: "City Park",
-    type: "Park",
-    dist: "0.5 km",
-    icon: "🌳",
-  },
+  { id: 1, name: "City Park", type: "Park", dist: "0.5 km", icon: "🌳" },
   {
     id: 2,
     name: "Spice Garden Restaurant",
@@ -106,13 +107,7 @@ const NEARBY_PLACES = [
     dist: "0.7 km",
     icon: "🍽️",
   },
-  {
-    id: 3,
-    name: "Sunrise Market",
-    type: "Market",
-    dist: "1.0 km",
-    icon: "🛒",
-  },
+  { id: 3, name: "Sunrise Market", type: "Market", dist: "1.0 km", icon: "🛒" },
   {
     id: 4,
     name: "City Hospital",
@@ -120,13 +115,15 @@ const NEARBY_PLACES = [
     dist: "1.3 km",
     icon: "🏥",
   },
-  {
-    id: 5,
-    name: "Lotus Temple",
-    type: "Temple",
-    dist: "0.9 km",
-    icon: "🛕",
-  },
+  { id: 5, name: "Lotus Temple", type: "Temple", dist: "0.9 km", icon: "🛕" },
+];
+
+const AVATAR_COLORS = [
+  { bg: "oklch(0.55 0.22 280 / 0.15)", text: "oklch(0.50 0.20 280)" },
+  { bg: "oklch(0.60 0.20 190 / 0.15)", text: "oklch(0.45 0.18 190)" },
+  { bg: "oklch(0.62 0.20 150 / 0.15)", text: "oklch(0.45 0.18 150)" },
+  { bg: "oklch(0.60 0.20 30 / 0.15)", text: "oklch(0.45 0.18 30)" },
+  { bg: "oklch(0.60 0.20 320 / 0.15)", text: "oklch(0.45 0.18 320)" },
 ];
 
 export default function NearbySearchBar() {
@@ -156,6 +153,23 @@ export default function NearbySearchBar() {
   const faceInputRef = useRef<HTMLInputElement>(null);
   const faceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const faceObjectUrlRef = useRef<string | null>(null);
+
+  // Vendor approach state
+  const [vendorApproachOn, setVendorApproachOn] = useState(
+    isVendorApproachEnabled(),
+  );
+  const [approachRequests, setApproachRequests] = useState(() =>
+    getApproaches().filter((a) => a.status === "pending"),
+  );
+
+  useEffect(() => {
+    const handler = () =>
+      setApproachRequests(
+        getApproaches().filter((a) => a.status === "pending"),
+      );
+    window.addEventListener("indya_approach_updated", handler);
+    return () => window.removeEventListener("indya_approach_updated", handler);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -215,6 +229,19 @@ export default function NearbySearchBar() {
     toast.success(`Connection request sent to ${name}`);
   }
 
+  const handleSearchSubmit = () => {
+    if (!query.trim()) return;
+    const avoidNames = avoidedPlaces.map(
+      (id) => NEARBY_PLACES.find((p) => p.id === id)?.name || "",
+    );
+    const count = broadcastToVendors(query, avoidNames);
+    if (count > 0) {
+      toast.success(
+        `🏪 ${count} vendor${count > 1 ? "s" : ""} notified about "${query}"`,
+      );
+    }
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -234,6 +261,16 @@ export default function NearbySearchBar() {
     setQuery(cat.toLowerCase());
     setActiveTab("products");
     toast.success(`Searching for ${cat} products`);
+
+    const avoidNames = avoidedPlaces.map(
+      (id) => NEARBY_PLACES.find((p) => p.id === id)?.name || "",
+    );
+    const count = broadcastToVendors(cat, avoidNames);
+    if (count > 0) {
+      toast.success(
+        `🏪 ${count} vendor${count > 1 ? "s" : ""} notified — they may approach you`,
+      );
+    }
   };
 
   const FACE_RESULTS_DATA = [
@@ -290,6 +327,26 @@ export default function NearbySearchBar() {
     e.target.value = "";
   };
 
+  const handleToggleVendorApproach = () => {
+    const next = !vendorApproachOn;
+    setVendorApproachEnabled(next);
+    setVendorApproachOn(next);
+    toast.info(
+      next ? "Vendors can now approach you" : "Vendor approach disabled",
+    );
+  };
+
+  const handleAcceptApproach = (id: string, vendorName: string) => {
+    respondToApproach(id, true);
+    setApproachRequests((prev) => prev.filter((a) => a.id !== id));
+    toast.success(`You've connected with ${vendorName}`);
+  };
+
+  const handleDeclineApproach = (id: string) => {
+    respondToApproach(id, false);
+    setApproachRequests((prev) => prev.filter((a) => a.id !== id));
+  };
+
   const IMAGE_CATEGORIES = [
     "Electronics",
     "Fashion",
@@ -305,7 +362,7 @@ export default function NearbySearchBar() {
     <div
       ref={ref}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300"
-      style={{ width: expanded ? "min(540px, 94vw)" : "min(280px, 80vw)" }}
+      style={{ width: expanded ? "min(560px, 94vw)" : "min(280px, 80vw)" }}
       data-ocid="nearby.panel"
     >
       <div
@@ -330,9 +387,28 @@ export default function NearbySearchBar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setExpanded(true)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
             className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-sm placeholder:text-muted-foreground/60"
             data-ocid="nearby.search_input"
           />
+
+          {/* Vendor approach toggle */}
+          <Button
+            size="sm"
+            variant={vendorApproachOn ? "default" : "ghost"}
+            className="h-7 px-2 text-[10px] gap-1 shrink-0"
+            title={
+              vendorApproachOn
+                ? "Vendors can approach you"
+                : "Vendor approach OFF"
+            }
+            onClick={handleToggleVendorApproach}
+            data-ocid="nearby.toggle"
+          >
+            <Store size={10} />
+            {vendorApproachOn ? "Open" : "Closed"}
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
@@ -368,6 +444,7 @@ export default function NearbySearchBar() {
           ) : (
             <Search size={13} className="text-muted-foreground shrink-0" />
           )}
+
           {/* Image Search Category Modal */}
           {showImageModal && (
             <div className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-xl shadow-xl p-3 z-50">
@@ -469,6 +546,24 @@ export default function NearbySearchBar() {
                   )}
                 </TabsTrigger>
                 <TabsTrigger
+                  value="approaches"
+                  className="flex-1 text-[11px] h-7 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded"
+                  data-ocid="nearby.approaches.tab"
+                >
+                  🤝
+                  {approachRequests.length > 0 && (
+                    <Badge
+                      className="ml-1 h-4 px-1 text-[9px]"
+                      style={{
+                        background: "oklch(0.60 0.22 30 / 0.2)",
+                        color: "oklch(0.45 0.20 30)",
+                      }}
+                    >
+                      {approachRequests.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
                   value="face"
                   className="flex-1 text-[11px] h-7 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded"
                   data-ocid="nearby.face.tab"
@@ -477,7 +572,7 @@ export default function NearbySearchBar() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Products/Services Tab */}
+              {/* Products Tab */}
               <TabsContent value="products" className="m-0">
                 <div className="px-4 py-3 max-h-64 overflow-y-auto">
                   {filteredProducts.length === 0 ? (
@@ -626,7 +721,6 @@ export default function NearbySearchBar() {
                       </div>
                     ))}
 
-                    {/* Soft nudge for avoided people */}
                     {softNudgeCount > 0 && (
                       <div
                         className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground mt-1"
@@ -648,6 +742,126 @@ export default function NearbySearchBar() {
                   </div>
                 </div>
               </TabsContent>
+
+              {/* Vendor Approaches Tab */}
+              <TabsContent value="approaches" className="m-0">
+                <div className="px-4 py-3 max-h-64 overflow-y-auto space-y-3">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      🏪 Vendor Approach Requests
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-muted-foreground">
+                        {vendorApproachOn ? "Receiving" : "Paused"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleToggleVendorApproach}
+                        className={`w-8 h-4 rounded-full relative transition-colors ${
+                          vendorApproachOn
+                            ? "bg-primary"
+                            : "bg-muted-foreground/30"
+                        }`}
+                        data-ocid="nearby.switch"
+                      >
+                        <span
+                          className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${
+                            vendorApproachOn
+                              ? "translate-x-4"
+                              : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {approachRequests.length === 0 ? (
+                    <p
+                      className="text-xs text-muted-foreground text-center py-4"
+                      data-ocid="nearby.approaches.empty_state"
+                    >
+                      Search for something to get vendor suggestions
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {approachRequests.map((approach, idx) => {
+                        const color = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+                        return (
+                          <div
+                            key={approach.id}
+                            className="flex items-start gap-2.5 p-2.5 rounded-xl"
+                            style={{
+                              background: "oklch(0.55 0.22 280 / 0.04)",
+                              border: "1px solid oklch(0.55 0.22 280 / 0.12)",
+                            }}
+                            data-ocid={`nearby.approaches.item.${idx + 1}`}
+                          >
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5"
+                              style={{
+                                background: color.bg,
+                                color: color.text,
+                              }}
+                            >
+                              {approach.initials}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-foreground">
+                                {approach.vendorName}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {approach.vendorCategory} · wants to help with
+                                &ldquo;{approach.keyword}&rdquo;
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/60">
+                                {approach.timestamp}
+                              </p>
+                              <div className="flex gap-1.5 mt-2">
+                                <Button
+                                  size="sm"
+                                  className="h-6 text-[10px] px-3"
+                                  style={{
+                                    background: "oklch(0.60 0.18 150)",
+                                    color: "white",
+                                  }}
+                                  onClick={() =>
+                                    handleAcceptApproach(
+                                      approach.id,
+                                      approach.vendorName,
+                                    )
+                                  }
+                                  data-ocid={`nearby.approaches.confirm_button.${idx + 1}`}
+                                >
+                                  Accept
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 text-[10px] px-3 text-muted-foreground hover:text-destructive"
+                                  onClick={() =>
+                                    handleDeclineApproach(approach.id)
+                                  }
+                                  data-ocid={`nearby.approaches.cancel_button.${idx + 1}`}
+                                >
+                                  Decline
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {!vendorApproachOn && (
+                    <p className="text-[10px] text-muted-foreground text-center border-t border-border pt-2">
+                      Toggle to &ldquo;Open&rdquo; to let vendors approach you
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+
               {/* Face Search Tab */}
               <TabsContent value="face" className="m-0">
                 <div className="px-4 py-3 max-h-64 overflow-y-auto space-y-3">

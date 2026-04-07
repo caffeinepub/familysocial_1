@@ -15889,6 +15889,15 @@ INDYACENTRAL_API_URL=https://your-canister.ic0.app`;
     await sendWhatsAppMessage(from, \`✅ Order placed for product #\${productId}.\`);
   } else if (text.startsWith('sell ')) {
     await sendWhatsAppMessage(from, \`List a product: \${process.env.INDYACENTRAL_API_URL}/pos\`);
+  } else if (text.startsWith('vendors ') || text.startsWith('approach ')) {
+    const keyword = text.replace('vendors ', '').replace('approach ', '');
+    const vendors = await findMatchingVendors(keyword);
+    if (vendors.length > 0) {
+      const list = vendors.map((v, i) => (i+1) + '. *' + v.name + '* (' + v.category + ')').join('\\n');
+      await sendWhatsAppMessage(from, '🏪 Vendors matching "' + keyword + '":\\n\\n' + list + '\\n\\nReply *connect [vendor-name]* to get in touch.');
+    } else {
+      await sendWhatsAppMessage(from, 'No vendors found for "' + keyword + '". Try: search ' + keyword);
+    }
   } else if (['menu', 'hi', 'hello'].includes(text)) {
     await sendWhatsAppMessage(from,
       'Welcome to IndyaCentral! 🛒\\n\\n' +
@@ -15897,12 +15906,13 @@ INDYACENTRAL_API_URL=https://your-canister.ic0.app`;
       '🛍️ *buy [product-id]* — Place an order\\n' +
       '📦 *sell* — List your product\\n' +
       '📍 *nearby* — Find businesses near you\\n' +
+      '🤝 *vendors [keyword]* — Find vendors for your need\\n' +
       '👤 *account* — Your account info\\n' +
-      '📷 *Send an image* — Visual product search'
+      '📷 *Send an image* — Visual product search + vendor match'
     );
   }
 
-  // IMAGE SEARCH: User sends an image
+  // IMAGE SEARCH: User sends an image — also find matching vendors
   if (message.type === 'image') {
     const caption = (message.caption || '').toLowerCase();
     const searchTerm = caption || 'product';
@@ -15912,6 +15922,12 @@ INDYACENTRAL_API_URL=https://your-canister.ic0.app`;
       await sendWhatsAppMessage(from, 'Image Search: Found ' + list.split('\n').length + ' similar items. ' + list);
     } else {
       await sendWhatsAppMessage(from, '❌ No similar products found. Try sending a text description instead.');
+    }
+    // Also notify matching vendors
+    const vendors = await findMatchingVendors(searchTerm);
+    if (vendors.length > 0) {
+      const vList = vendors.slice(0, 2).map(v => v.name).join(', ');
+      await sendWhatsAppMessage(from, '💡 Vendors who can help: ' + vList + '. Reply *vendors ' + searchTerm + '* to see all.');
     }
   }
 
@@ -15931,6 +15947,13 @@ async function searchIndyaCentral(query) {
     \`\${process.env.INDYACENTRAL_API_URL}/api/search?q=\${query}\`
   );
   return res.data.products || [];
+}
+
+async function findMatchingVendors(keyword) {
+  const res = await axios.get(
+    \`\${process.env.INDYACENTRAL_API_URL}/api/vendors?q=\${encodeURIComponent(keyword)}\`
+  );
+  return res.data.vendors || [];
 }
 
 function formatProductList(products) {
