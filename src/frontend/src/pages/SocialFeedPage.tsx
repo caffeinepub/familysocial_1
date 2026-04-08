@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import {
   Bookmark,
   Briefcase,
@@ -36,10 +37,9 @@ import {
   Zap,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import type { UserProfile } from "../backend.d";
 import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import type { UserProfile } from "../types/platform";
 import { formatTimeAgo } from "../utils/timeUtils";
 
 type Module =

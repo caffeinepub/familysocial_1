@@ -63,9 +63,9 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { UserProfile } from "../backend.d";
 import EventsTab from "../components/EventsTab";
 import QuickAddBar from "../components/QuickAddBar";
+import type { UserProfile } from "../types/platform";
 
 // ─────────────────────────────────────────────
 // Types

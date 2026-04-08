@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { Globe, Heart, Loader2, TreePine, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { EmailUser } from "../App";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 interface Props {
   onEmailLogin: (user: EmailUser) => void;

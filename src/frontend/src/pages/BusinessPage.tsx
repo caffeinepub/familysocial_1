@@ -3571,6 +3571,8 @@ const POS_CATEGORIES = [
   "Food & Beverages",
   "Electronics",
   "Fashion",
+  "Apparel",
+  "Accessories",
   "Home Services",
   "Healthcare",
   "Books & Media",
@@ -3581,13 +3583,116 @@ const POS_CATEGORIES = [
   "Other",
 ];
 
-const VARIANT_PRESETS: Record<string, string[]> = {
-  Fashion: ["XS", "S", "M", "L", "XL", "XXL"],
-  Electronics: ["64GB", "128GB", "256GB"],
-  "Food & Beverages": ["Small", "Medium", "Large"],
-  Healthcare: ["30 Tabs", "60 Tabs", "90 Tabs"],
-  "Home Services": ["Basic", "Standard", "Premium"],
+// Full apparel color palette
+const APPAREL_COLORS = [
+  "Ivory White",
+  "Midnight Black",
+  "Royal Blue",
+  "Cherry Red",
+  "Forest Green",
+  "Dusty Rose",
+  "Charcoal Grey",
+  "Mustard Yellow",
+  "Navy Blue",
+  "Coral Orange",
+  "Olive Green",
+  "Burgundy",
+  "Camel Brown",
+  "Teal",
+  "Off White",
+];
+const APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const ACCESSORIES_MATERIALS = ["Leather", "Fabric", "Metal", "Synthetic"];
+const ACCESSORIES_SIZES = ["Free Size", "S", "M", "L", "One Size Fits All"];
+
+// Suggested addons per category
+const ADDON_SUGGESTIONS: Record<string, { name: string; price: string }[]> = {
+  Apparel: [
+    { name: "Gift Wrapping", price: "50" },
+    { name: "Express Tailoring", price: "200" },
+    { name: "Monogramming", price: "100" },
+    { name: "Alterations", price: "150" },
+    { name: "Premium Packaging", price: "75" },
+  ],
+  Fashion: [
+    { name: "Gift Wrapping", price: "50" },
+    { name: "Express Tailoring", price: "200" },
+    { name: "Monogramming", price: "100" },
+    { name: "Alterations", price: "150" },
+    { name: "Premium Packaging", price: "75" },
+  ],
+  Accessories: [
+    { name: "Gift Box", price: "60" },
+    { name: "Engraving", price: "200" },
+    { name: "Warranty Card", price: "0" },
+    { name: "Cleaning Kit", price: "80" },
+    { name: "Extra Links/Straps", price: "120" },
+  ],
 };
+
+function isApparelCategory(cat: string) {
+  const lower = cat.toLowerCase();
+  return (
+    lower.includes("apparel") ||
+    lower.includes("clothing") ||
+    lower.includes("fashion") ||
+    lower.includes("garment") ||
+    cat === "Fashion"
+  );
+}
+
+function isAccessoriesCategory(cat: string) {
+  const lower = cat.toLowerCase();
+  return (
+    lower.includes("accessories") ||
+    lower.includes("jewelry") ||
+    lower.includes("bags") ||
+    lower.includes("footwear")
+  );
+}
+
+function detectVariantsForCategory(
+  category: string,
+  basePrice: string,
+): { label: string; price: string; stock: string }[] {
+  if (isApparelCategory(category)) {
+    // 5 colors × 4 sizes = 20 variants
+    const colors = APPAREL_COLORS.slice(0, 5);
+    const sizes = ["S", "M", "L", "XL"];
+    return colors.flatMap((color) =>
+      sizes.map((size) => ({
+        label: `${color} / ${size}`,
+        price: basePrice || "0",
+        stock: "10",
+      })),
+    );
+  }
+  if (isAccessoriesCategory(category)) {
+    // 5 colors × materials = variant rows
+    const colors = APPAREL_COLORS.slice(0, 5);
+    return colors.flatMap((color) =>
+      ACCESSORIES_MATERIALS.slice(0, 3).map((mat) => ({
+        label: `${color} / ${mat}`,
+        price: basePrice || "0",
+        stock: "10",
+      })),
+    );
+  }
+  // Standard presets
+  const presets: Record<string, string[]> = {
+    Fashion: APPAREL_SIZES.slice(0, 6),
+    Electronics: ["64GB", "128GB", "256GB"],
+    "Food & Beverages": ["Small", "Medium", "Large"],
+    Healthcare: ["30 Tabs", "60 Tabs", "90 Tabs"],
+    "Home Services": ["Basic", "Standard", "Premium"],
+  };
+  const labels = presets[category] || [];
+  return labels.map((label) => ({
+    label,
+    price: basePrice || "0",
+    stock: "10",
+  }));
+}
 
 function POSProductsTab() {
   const [products, setProducts] = useState(() => getGlobalProducts());
@@ -3604,24 +3709,48 @@ function POSProductsTab() {
   const [variants, setVariants] = useState<
     { label: string; price: string; stock: string }[]
   >([]);
+  const [addons, setAddons] = useState<{ name: string; price: string }[]>([]);
+  const [addonInput, setAddonInput] = useState({ name: "", price: "" });
+  const [detectedColors, setDetectedColors] = useState<string[]>([]);
 
   // Refresh when products change
-  useState(() => {
+  React.useEffect(() => {
     const handler = () => setProducts(getGlobalProducts());
     window.addEventListener("globalProductsUpdated", handler);
     return () => window.removeEventListener("globalProductsUpdated", handler);
-  });
+  }, []);
 
   const detectVariants = (category: string) => {
-    const presets = VARIANT_PRESETS[category] || [];
-    setVariants(
-      presets.map((label) => ({ label, price: form.price, stock: "10" })),
-    );
+    const detected = detectVariantsForCategory(category, form.price);
+    setVariants(detected);
+    if (isApparelCategory(category)) {
+      setDetectedColors(APPAREL_COLORS.slice(0, 5));
+    } else if (isAccessoriesCategory(category)) {
+      setDetectedColors(APPAREL_COLORS.slice(0, 8));
+    } else {
+      setDetectedColors([]);
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Auto-detect colors from filename for apparel
+    if (
+      isApparelCategory(form.category) ||
+      isAccessoriesCategory(form.category)
+    ) {
+      const nameLower = file.name.toLowerCase();
+      const autoColors = APPAREL_COLORS.filter(
+        (c) =>
+          nameLower.includes(c.toLowerCase().replace(" ", "")) ||
+          nameLower.includes(c.toLowerCase().split(" ")[0]),
+      );
+      if (autoColors.length > 0) {
+        setDetectedColors(autoColors);
+        toast.info(`Detected colors: ${autoColors.join(", ")}`);
+      }
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setImagePreview(ev.target?.result as string);
@@ -3647,6 +3776,10 @@ function POSProductsTab() {
         price: Number.parseFloat(v.price) || Number.parseFloat(form.price) || 0,
         stock: Number.parseInt(v.stock) || 0,
       })),
+      addons: addons.map((a) => ({
+        name: a.name,
+        price: Number.parseFloat(a.price) || 0,
+      })),
       isService: showForm === "service",
       status: "active",
     });
@@ -3663,9 +3796,16 @@ function POSProductsTab() {
     });
     setImagePreview("");
     setVariants([]);
+    setAddons([]);
+    setDetectedColors([]);
+    setAddonInput({ name: "", price: "" });
     setShowForm(null);
     setProducts(getGlobalProducts());
   };
+
+  const addonSuggestions = ADDON_SUGGESTIONS[form.category] || [];
+  const isApparel = isApparelCategory(form.category);
+  const isAccessories = isAccessoriesCategory(form.category);
 
   return (
     <div className="space-y-4">
@@ -3801,10 +3941,101 @@ function POSProductsTab() {
               </div>
             </div>
 
-            {variants.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Variants (auto-detected)</Label>
+            {/* Color Picker for Apparel/Accessories */}
+            {(isApparel || isAccessories) && (
+              <div className="space-y-2 p-3 rounded-lg border border-violet-500/20 bg-violet-500/5">
+                <Label className="text-xs font-semibold text-violet-700 dark:text-violet-400">
+                  🎨 Color Detection
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {(isApparel
+                    ? APPAREL_COLORS
+                    : APPAREL_COLORS.slice(0, 8)
+                  ).map((color) => {
+                    const isSelected = detectedColors.includes(color);
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() =>
+                          setDetectedColors((prev) =>
+                            prev.includes(color)
+                              ? prev.filter((c) => c !== color)
+                              : [...prev, color],
+                          )
+                        }
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+                {detectedColors.length > 0 && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      const sizes = isApparel
+                        ? ["S", "M", "L", "XL"]
+                        : ACCESSORIES_SIZES.slice(0, 3);
+                      const newVariants = detectedColors.flatMap((color) =>
+                        sizes.map((size) => ({
+                          label: `${color} / ${size}`,
+                          price: form.price || "0",
+                          stock: "10",
+                        })),
+                      );
+                      setVariants(newVariants);
+                      toast.success(
+                        `Generated ${newVariants.length} color variants`,
+                      );
+                    }}
+                  >
+                    Generate {detectedColors.length} Color × Size Variants
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Variants Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">
+                  {isApparel || isAccessories
+                    ? "Color / Size Variants"
+                    : "Variants"}
+                  {variants.length > 0 && (
+                    <span className="text-muted-foreground ml-1">
+                      ({variants.length})
+                    </span>
+                  )}
+                </Label>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs gap-1"
+                    onClick={() => {
+                      const detected = detectVariantsForCategory(
+                        form.category,
+                        form.price,
+                      );
+                      setVariants(detected);
+                      toast.success(
+                        `${detected.length} variants auto-detected`,
+                      );
+                    }}
+                  >
+                    <Zap size={10} /> Auto-detect
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -3820,66 +4051,202 @@ function POSProductsTab() {
                     + Add
                   </Button>
                 </div>
-                <div className="space-y-1.5">
-                  {variants.map((v, i) => (
-                    <div
-                      key={`variant-${i}-${v.label}`}
-                      className="flex gap-2 items-center"
-                    >
-                      <Input
-                        value={v.label}
-                        onChange={(e) =>
-                          setVariants((prev) =>
-                            prev.map((x, j) =>
-                              j === i ? { ...x, label: e.target.value } : x,
-                            ),
-                          )
-                        }
-                        placeholder="Label"
-                        className="text-xs h-7 flex-1"
-                      />
-                      <Input
-                        value={v.price}
-                        onChange={(e) =>
-                          setVariants((prev) =>
-                            prev.map((x, j) =>
-                              j === i ? { ...x, price: e.target.value } : x,
-                            ),
-                          )
-                        }
-                        placeholder="₹"
-                        type="number"
-                        className="text-xs h-7 w-20"
-                      />
-                      <Input
-                        value={v.stock}
-                        onChange={(e) =>
-                          setVariants((prev) =>
-                            prev.map((x, j) =>
-                              j === i ? { ...x, stock: e.target.value } : x,
-                            ),
-                          )
-                        }
-                        placeholder="Qty"
-                        type="number"
-                        className="text-xs h-7 w-16"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive"
-                        onClick={() =>
-                          setVariants((prev) => prev.filter((_, j) => j !== i))
-                        }
-                      >
-                        <X size={12} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
+              {variants.length > 0 ? (
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-1.5 text-left font-medium">
+                          {isApparel
+                            ? "Color / Size"
+                            : isAccessories
+                              ? "Color / Material"
+                              : "Label"}
+                        </th>
+                        <th className="p-1.5 text-left font-medium">
+                          Price (₹)
+                        </th>
+                        <th className="p-1.5 text-left font-medium">Stock</th>
+                        <th className="p-1.5" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((v, i) => (
+                        <tr
+                          key={`v-${v.label}-${i}`}
+                          className="border-t border-border/40"
+                        >
+                          <td className="p-1">
+                            <Input
+                              value={v.label}
+                              onChange={(e) =>
+                                setVariants((prev) =>
+                                  prev.map((x, j) =>
+                                    j === i
+                                      ? { ...x, label: e.target.value }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              placeholder="Label"
+                              className="text-xs h-6 px-1.5"
+                            />
+                          </td>
+                          <td className="p-1">
+                            <Input
+                              value={v.price}
+                              onChange={(e) =>
+                                setVariants((prev) =>
+                                  prev.map((x, j) =>
+                                    j === i
+                                      ? { ...x, price: e.target.value }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              placeholder="₹"
+                              type="number"
+                              className="text-xs h-6 px-1.5 w-20"
+                            />
+                          </td>
+                          <td className="p-1">
+                            <Input
+                              value={v.stock}
+                              onChange={(e) =>
+                                setVariants((prev) =>
+                                  prev.map((x, j) =>
+                                    j === i
+                                      ? { ...x, stock: e.target.value }
+                                      : x,
+                                  ),
+                                )
+                              }
+                              placeholder="Qty"
+                              type="number"
+                              className="text-xs h-6 px-1.5 w-16"
+                            />
+                          </td>
+                          <td className="p-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-destructive"
+                              onClick={() =>
+                                setVariants((prev) =>
+                                  prev.filter((_, j) => j !== i),
+                                )
+                              }
+                            >
+                              <X size={10} />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground italic">
+                  No variants yet. Click Auto-detect or + Add to add variants.
+                </p>
+              )}
+            </div>
+
+            {/* Add-ons Section */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Add-ons</Label>
+              {addonSuggestions.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground">
+                    Quick add:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {addonSuggestions.map((s) => {
+                      const alreadyAdded = addons.some(
+                        (a) => a.name === s.name,
+                      );
+                      return (
+                        <button
+                          key={s.name}
+                          type="button"
+                          disabled={alreadyAdded}
+                          onClick={() =>
+                            !alreadyAdded && setAddons((prev) => [...prev, s])
+                          }
+                          className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${
+                            alreadyAdded
+                              ? "border-border text-muted-foreground bg-muted cursor-not-allowed"
+                              : "border-primary/40 text-primary bg-primary/5 hover:bg-primary/10"
+                          }`}
+                        >
+                          {s.name}{" "}
+                          {Number(s.price) > 0 ? `+₹${s.price}` : "(free)"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {addons.map((a, i) => (
+                <div
+                  key={`addon-${a.name}-${i}`}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <span className="flex-1 bg-muted/40 rounded px-2 py-1 truncate">
+                    {a.name}
+                  </span>
+                  <span className="text-muted-foreground shrink-0">
+                    ₹{a.price}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAddons((prev) => prev.filter((_, j) => j !== i))
+                    }
+                    className="text-destructive hover:opacity-70 shrink-0"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Addon name"
+                  value={addonInput.name}
+                  onChange={(e) =>
+                    setAddonInput((p) => ({ ...p, name: e.target.value }))
+                  }
+                  className="flex-1 text-xs h-7"
+                  data-ocid="pos.addon.name_input"
+                />
+                <Input
+                  type="number"
+                  placeholder="₹"
+                  value={addonInput.price}
+                  onChange={(e) =>
+                    setAddonInput((p) => ({ ...p, price: e.target.value }))
+                  }
+                  className="text-xs h-7 w-16"
+                  data-ocid="pos.addon.price_input"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs px-2"
+                  onClick={() => {
+                    if (!addonInput.name.trim()) return;
+                    setAddons((prev) => [...prev, addonInput]);
+                    setAddonInput({ name: "", price: "" });
+                  }}
+                  data-ocid="pos.addon.add_button"
+                >
+                  + Add
+                </Button>
+              </div>
+            </div>
 
             <div className="flex gap-2 pt-1">
               <Button
@@ -3897,6 +4264,8 @@ function POSProductsTab() {
                   setShowForm(null);
                   setImagePreview("");
                   setVariants([]);
+                  setAddons([]);
+                  setDetectedColors([]);
                 }}
                 data-ocid="pos.product.cancel_button"
               >

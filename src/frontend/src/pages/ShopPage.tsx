@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import {
   Building2,
   Bus,
@@ -62,7 +63,6 @@ import { LikeVoteBar } from "../components/LikeVoteBar";
 import { PaymentModal } from "../components/PaymentModal";
 import { ReviewModal } from "../components/ReviewModal";
 import { useCurrency } from "../contexts/CurrencyContext";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   getFamilyTreeBusinesses,
   saveFamilyTreeBusiness,

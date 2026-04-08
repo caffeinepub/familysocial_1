@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
@@ -55,10 +56,9 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import type { UserProfile } from "../backend.d";
 import { useUserLevel } from "../contexts/UserLevelContext";
 import { useAdminStatus } from "../hooks/useAdminStatus";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import type { UserProfile } from "../types/platform";
 import CoworkerAssistant from "./CoworkerAssistant";
 import CurrencySelector from "./CurrencySelector";
 import NotificationsPanel from "./NotificationsPanel";

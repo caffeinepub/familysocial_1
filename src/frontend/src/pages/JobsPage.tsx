@@ -26,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import {
   Award,
   Briefcase,
@@ -60,7 +61,6 @@ import BoostPostDialog from "../components/BoostPostDialog";
 import EventsTab from "../components/EventsTab";
 import { LikeVoteBar } from "../components/LikeVoteBar";
 import QuickAddBar from "../components/QuickAddBar";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

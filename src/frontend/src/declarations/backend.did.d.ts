@@ -19,17 +19,9 @@ export interface FamilyMember {
   'medicalConditions' : Array<string>,
   'isPublic' : boolean,
 }
-export interface Profile {
-  'id' : Principal,
-  'bio' : string,
-  'occupation' : string,
-  'bloodType' : string,
-  'dateOfBirth' : string,
-  'name' : string,
-  'photoUrl' : string,
-  'isPrivate' : boolean,
-}
-export type Relationship = { 'other' : string } |
+export type Relationship = { 'grandchild' : null } |
+  { 'grandparent' : null } |
+  { 'other' : null } |
   { 'child' : null } |
   { 'sibling' : null } |
   { 'spouse' : null } |
@@ -43,48 +35,16 @@ export interface UserProfile {
   'photoUrl' : string,
   'isPrivate' : boolean,
 }
-export type UserRole = { 'admin' : null } |
-  { 'user' : null } |
-  { 'guest' : null };
-export interface _CaffeineStorageCreateCertificateResult {
-  'method' : string,
-  'blob_hash' : string,
-}
-export interface _CaffeineStorageRefillInformation {
-  'proposed_top_up_amount' : [] | [bigint],
-}
-export interface _CaffeineStorageRefillResult {
-  'success' : [] | [boolean],
-  'topped_up_amount' : [] | [bigint],
-}
 export interface _SERVICE {
-  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
-  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
-  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
-    [Array<Uint8Array>],
-    undefined
-  >,
-  '_caffeineStorageCreateCertificate' : ActorMethod<
-    [string],
-    _CaffeineStorageCreateCertificateResult
-  >,
-  '_caffeineStorageRefillCashier' : ActorMethod<
-    [[] | [_CaffeineStorageRefillInformation]],
-    _CaffeineStorageRefillResult
-  >,
-  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addFamilyMember' : ActorMethod<[FamilyMember], undefined>,
   'addMarriage' : ActorMethod<[Principal, Principal, string], undefined>,
-  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'claimAdmin' : ActorMethod<[], boolean>,
   'followUser' : ActorMethod<[Principal], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
-  'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getFamilyTree' : ActorMethod<[], Array<FamilyMember>>,
   'getFamilyTreeForUser' : ActorMethod<[Principal], Array<FamilyMember>>,
   'getFollowers' : ActorMethod<[Principal], Array<Principal>>,
-  'getProfile' : ActorMethod<[Principal], Profile>,
-  'getPublicProfiles' : ActorMethod<[], Array<Profile>>,
+  'getPublicProfiles' : ActorMethod<[], Array<UserProfile>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isFollowing' : ActorMethod<[Principal, Principal], boolean>,

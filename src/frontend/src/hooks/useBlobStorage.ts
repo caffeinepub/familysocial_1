@@ -1,11 +1,9 @@
+import { useActor, useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useCallback, useState } from "react";
-import { loadConfig } from "../config";
-import { StorageClient } from "../utils/StorageClient";
-import { useActor } from "./useActor";
-import { useInternetIdentity } from "./useInternetIdentity";
+import { createActor } from "../backend";
 
 export function useBlobStorage() {
-  const { actor } = useActor();
+  const { actor } = useActor(createActor);
   const { identity } = useInternetIdentity();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -13,33 +11,19 @@ export function useBlobStorage() {
   const uploadFile = useCallback(
     async (file: File): Promise<string> => {
       if (!actor || !identity) throw new Error("Not authenticated");
-
-      const config = await loadConfig();
-      const { HttpAgent } = await import("@icp-sdk/core/agent");
-
-      const agent = await HttpAgent.create({
-        identity,
-        host: "https://ic0.app",
-      });
-
-      const storageClient = new StorageClient(
-        "profile-photos",
-        config.storage_gateway_url || "",
-        config.backend_canister_id || "",
-        config.project_id || "",
-        agent,
-      );
-
+      // Base64 fallback for environments without StorageClient
       setIsUploading(true);
       setUploadProgress(0);
-
       try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        const { hash } = await storageClient.putFile(bytes, (pct) => {
-          setUploadProgress(pct);
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setUploadProgress(100);
+            resolve(e.target?.result as string);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
         });
-        const url = await storageClient.getDirectURL(hash);
-        return url;
       } finally {
         setIsUploading(false);
         setUploadProgress(0);

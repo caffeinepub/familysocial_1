@@ -1,14 +1,14 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useEffect, useState } from "react";
-import type { UserProfile } from "./backend.d";
 import AppShell from "./components/AppShell";
 import OnboardingModal from "./components/OnboardingModal";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { UserLevelProvider } from "./contexts/UserLevelContext";
-import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
 import LoginPage from "./pages/LoginPage";
+import type { UserProfile } from "./types/platform";
 
 export interface EmailUser {
   name: string;

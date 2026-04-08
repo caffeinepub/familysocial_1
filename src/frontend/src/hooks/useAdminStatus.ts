@@ -1,11 +1,13 @@
+import { useActor, useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useActor } from "./useActor";
-import { useInternetIdentity } from "./useInternetIdentity";
+import { createActor } from "../backend";
 
 const ADMIN_KEY = "ic-admin-claimed";
 
 export function useAdminStatus() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor: _actor, isFetching: actorFetching } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
   const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
 

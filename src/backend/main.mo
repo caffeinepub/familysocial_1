@@ -1,18 +1,13 @@
 import List "mo:core/List";
 import Text "mo:core/Text";
-import Array "mo:core/Array";
 import Map "mo:core/Map";
-import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Order "mo:core/Order";
-import MixinStorage "blob-storage/Mixin";
-import MixinAuthorization "authorization/MixinAuthorization";
-import AccessControl "authorization/access-control";
+
+
 
 actor {
-  include MixinStorage();
-
   module Profile {
     public func compare(profile1 : Profile, profile2 : Profile) : Order.Order {
       Text.compare(profile1.name, profile2.name);
@@ -44,7 +39,9 @@ actor {
     #sibling;
     #child;
     #spouse;
-    #other : Text;
+    #grandparent;
+    #grandchild;
+    #other;
   };
 
   type FamilyMember = {
@@ -67,8 +64,16 @@ actor {
     followers : Map.Map<Principal, Bool>;
   };
 
-  let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
+  // Access control state (local, no mixin dependency)
+  var adminPrincipal : ?Principal = null;
+  let users = Map.empty<Principal, Bool>();
+
+  func isAdmin(caller : Principal) : Bool {
+    switch (adminPrincipal) {
+      case (null) { false };
+      case (?admin) { admin == caller };
+    };
+  };
 
   // Persistent Profile & Family Storage
   let profiles = Map.empty<Principal, Profile>();
@@ -77,13 +82,32 @@ actor {
   let feeds = Map.empty<Principal, SocialData>();
 
   var nextFamilyMemberId = 0;
-  var nextMediaItemId = 0;
+
+  // Admin management
+  public shared ({ caller }) func claimAdmin() : async Bool {
+    switch (adminPrincipal) {
+      case (null) {
+        adminPrincipal := ?caller;
+        users.add(caller, true);
+        true;
+      };
+      case (?_) { false };
+    };
+  };
+
+  public query ({ caller = _ }) func isCallerAdmin() : async Bool {
+    false // local admin is tracked via localStorage; backend admin state is separate
+  };
+
+  // User registration (auto-register on profile save)
+  func ensureUser(caller : Principal) {
+    if (not users.containsKey(caller)) {
+      users.add(caller, true);
+    };
+  };
 
   // Profile Data
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view profiles");
-    };
     switch (profiles.get(caller)) {
       case (null) { null };
       case (?profile) {
@@ -101,9 +125,7 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
-    };
+    ensureUser(caller);
     let newProfile = {
       id = caller;
       name = profile.name;
@@ -118,53 +140,47 @@ actor {
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
-    };
     switch (profiles.get(user)) {
       case (null) { null };
       case (?profile) {
-        ?{
-          name = profile.name;
-          dateOfBirth = profile.dateOfBirth;
-          bloodType = profile.bloodType;
-          occupation = profile.occupation;
-          bio = profile.bio;
-          photoUrl = profile.photoUrl;
-          isPrivate = profile.isPrivate;
+        if (profile.isPrivate and caller != user and not isAdmin(caller)) {
+          null;
+        } else {
+          ?{
+            name = profile.name;
+            dateOfBirth = profile.dateOfBirth;
+            bloodType = profile.bloodType;
+            occupation = profile.occupation;
+            bio = profile.bio;
+            photoUrl = profile.photoUrl;
+            isPrivate = profile.isPrivate;
+          };
         };
       };
     };
   };
 
-  public query ({ caller }) func getProfile(user : Principal) : async Profile {
-    switch (profiles.get(user)) {
-      case (null) { Runtime.trap("Profile not found") };
-      case (?profile) {
-        if (profile.isPrivate and caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-          Runtime.trap("Private profile: User does not exist");
-        };
-        profile;
-      };
-    };
-  };
-
-  public query ({ caller }) func getPublicProfiles() : async [Profile] {
-    let allProfiles = profiles.values().toArray().sort();
-
-    let iter = allProfiles.values();
-    let publicProfiles = iter.filter(
-      func(profile) { not profile.isPrivate }
+  public query (_ : { caller : Principal }) func getPublicProfiles() : async [UserProfile] {
+    let allProfiles = profiles.values().toArray().sort(
+      func(a : Profile, b : Profile) : Order.Order { Text.compare(a.name, b.name) }
     );
-    publicProfiles.toArray();
+    let filtered = allProfiles.values().filter(func(profile : Profile) : Bool { not profile.isPrivate });
+    filtered.map(func(profile : Profile) : UserProfile {
+      {
+        name = profile.name;
+        dateOfBirth = profile.dateOfBirth;
+        bloodType = profile.bloodType;
+        occupation = profile.occupation;
+        bio = profile.bio;
+        photoUrl = profile.photoUrl;
+        isPrivate = profile.isPrivate;
+      }
+    }).toArray();
   };
 
   // Family Tree Data
   public shared ({ caller }) func addFamilyMember(member : FamilyMember) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can add family members");
-    };
-
+    ensureUser(caller);
     let newMember = {
       id = nextFamilyMemberId;
       name = member.name;
@@ -185,9 +201,6 @@ actor {
   };
 
   public query ({ caller }) func getFamilyTree() : async [FamilyMember] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view family trees");
-    };
     let tree = switch (familyTrees.get(caller)) {
       case (null) { List.empty<FamilyMember>() };
       case (?existingTree) { existingTree };
@@ -196,7 +209,7 @@ actor {
   };
 
   public query ({ caller }) func getFamilyTreeForUser(user : Principal) : async [FamilyMember] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not isAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     let tree = switch (familyTrees.get(user)) {
@@ -207,7 +220,7 @@ actor {
   };
 
   public shared ({ caller }) func addMarriage(spouse1 : Principal, spouse2 : Principal, marriageDate : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not isAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
@@ -234,10 +247,7 @@ actor {
 
   // Follows/Followers Data
   public shared ({ caller }) func followUser(user : Principal) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can perform this action");
-    };
-
+    ensureUser(caller);
     let socialState = switch (feeds.get(caller)) {
       case (null) { { followers = Map.empty<Principal, Bool>() } };
       case (?state) { state };
@@ -251,10 +261,6 @@ actor {
   };
 
   public shared ({ caller }) func unfollowUser(user : Principal) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can perform this action");
-    };
-
     switch (feeds.get(caller)) {
       case (null) { () };
       case (?state) {
@@ -265,9 +271,6 @@ actor {
   };
 
   public query ({ caller }) func isFollowing(follower : Principal, followee : Principal) : async Bool {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can perform this action");
-    };
     switch (feeds.get(follower)) {
       case (null) { false };
       case (?state) { state.followers.containsKey(followee) };
@@ -275,9 +278,6 @@ actor {
   };
 
   public query ({ caller }) func getFollowers(user : Principal) : async [Principal] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view followers");
-    };
     switch (feeds.get(user)) {
       case (null) { [] };
       case (?state) { state.followers.keys().toArray() };

@@ -8,19 +8,10 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const _CaffeineStorageCreateCertificateResult = IDL.Record({
-  'method' : IDL.Text,
-  'blob_hash' : IDL.Text,
-});
-export const _CaffeineStorageRefillInformation = IDL.Record({
-  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
-});
-export const _CaffeineStorageRefillResult = IDL.Record({
-  'success' : IDL.Opt(IDL.Bool),
-  'topped_up_amount' : IDL.Opt(IDL.Nat),
-});
 export const Relationship = IDL.Variant({
-  'other' : IDL.Text,
+  'grandchild' : IDL.Null,
+  'grandparent' : IDL.Null,
+  'other' : IDL.Null,
   'child' : IDL.Null,
   'sibling' : IDL.Null,
   'spouse' : IDL.Null,
@@ -35,22 +26,7 @@ export const FamilyMember = IDL.Record({
   'medicalConditions' : IDL.Vec(IDL.Text),
   'isPublic' : IDL.Bool,
 });
-export const UserRole = IDL.Variant({
-  'admin' : IDL.Null,
-  'user' : IDL.Null,
-  'guest' : IDL.Null,
-});
 export const UserProfile = IDL.Record({
-  'bio' : IDL.Text,
-  'occupation' : IDL.Text,
-  'bloodType' : IDL.Text,
-  'dateOfBirth' : IDL.Text,
-  'name' : IDL.Text,
-  'photoUrl' : IDL.Text,
-  'isPrivate' : IDL.Bool,
-});
-export const Profile = IDL.Record({
-  'id' : IDL.Principal,
   'bio' : IDL.Text,
   'occupation' : IDL.Text,
   'bloodType' : IDL.Text,
@@ -61,39 +37,11 @@ export const Profile = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  '_caffeineStorageBlobIsLive' : IDL.Func(
-      [IDL.Vec(IDL.Nat8)],
-      [IDL.Bool],
-      ['query'],
-    ),
-  '_caffeineStorageBlobsToDelete' : IDL.Func(
-      [],
-      [IDL.Vec(IDL.Vec(IDL.Nat8))],
-      ['query'],
-    ),
-  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
-      [IDL.Vec(IDL.Vec(IDL.Nat8))],
-      [],
-      [],
-    ),
-  '_caffeineStorageCreateCertificate' : IDL.Func(
-      [IDL.Text],
-      [_CaffeineStorageCreateCertificateResult],
-      [],
-    ),
-  '_caffeineStorageRefillCashier' : IDL.Func(
-      [IDL.Opt(_CaffeineStorageRefillInformation)],
-      [_CaffeineStorageRefillResult],
-      [],
-    ),
-  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addFamilyMember' : IDL.Func([FamilyMember], [], []),
   'addMarriage' : IDL.Func([IDL.Principal, IDL.Principal, IDL.Text], [], []),
-  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'claimAdmin' : IDL.Func([], [IDL.Bool], []),
   'followUser' : IDL.Func([IDL.Principal], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getFamilyTree' : IDL.Func([], [IDL.Vec(FamilyMember)], ['query']),
   'getFamilyTreeForUser' : IDL.Func(
       [IDL.Principal],
@@ -105,8 +53,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Principal)],
       ['query'],
     ),
-  'getProfile' : IDL.Func([IDL.Principal], [Profile], ['query']),
-  'getPublicProfiles' : IDL.Func([], [IDL.Vec(Profile)], ['query']),
+  'getPublicProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -125,19 +72,10 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const _CaffeineStorageCreateCertificateResult = IDL.Record({
-    'method' : IDL.Text,
-    'blob_hash' : IDL.Text,
-  });
-  const _CaffeineStorageRefillInformation = IDL.Record({
-    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
-  });
-  const _CaffeineStorageRefillResult = IDL.Record({
-    'success' : IDL.Opt(IDL.Bool),
-    'topped_up_amount' : IDL.Opt(IDL.Nat),
-  });
   const Relationship = IDL.Variant({
-    'other' : IDL.Text,
+    'grandchild' : IDL.Null,
+    'grandparent' : IDL.Null,
+    'other' : IDL.Null,
     'child' : IDL.Null,
     'sibling' : IDL.Null,
     'spouse' : IDL.Null,
@@ -152,22 +90,7 @@ export const idlFactory = ({ IDL }) => {
     'medicalConditions' : IDL.Vec(IDL.Text),
     'isPublic' : IDL.Bool,
   });
-  const UserRole = IDL.Variant({
-    'admin' : IDL.Null,
-    'user' : IDL.Null,
-    'guest' : IDL.Null,
-  });
   const UserProfile = IDL.Record({
-    'bio' : IDL.Text,
-    'occupation' : IDL.Text,
-    'bloodType' : IDL.Text,
-    'dateOfBirth' : IDL.Text,
-    'name' : IDL.Text,
-    'photoUrl' : IDL.Text,
-    'isPrivate' : IDL.Bool,
-  });
-  const Profile = IDL.Record({
-    'id' : IDL.Principal,
     'bio' : IDL.Text,
     'occupation' : IDL.Text,
     'bloodType' : IDL.Text,
@@ -178,39 +101,11 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-    '_caffeineStorageBlobIsLive' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [IDL.Bool],
-        ['query'],
-      ),
-    '_caffeineStorageBlobsToDelete' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Vec(IDL.Nat8))],
-        ['query'],
-      ),
-    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
-        [IDL.Vec(IDL.Vec(IDL.Nat8))],
-        [],
-        [],
-      ),
-    '_caffeineStorageCreateCertificate' : IDL.Func(
-        [IDL.Text],
-        [_CaffeineStorageCreateCertificateResult],
-        [],
-      ),
-    '_caffeineStorageRefillCashier' : IDL.Func(
-        [IDL.Opt(_CaffeineStorageRefillInformation)],
-        [_CaffeineStorageRefillResult],
-        [],
-      ),
-    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addFamilyMember' : IDL.Func([FamilyMember], [], []),
     'addMarriage' : IDL.Func([IDL.Principal, IDL.Principal, IDL.Text], [], []),
-    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'claimAdmin' : IDL.Func([], [IDL.Bool], []),
     'followUser' : IDL.Func([IDL.Principal], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getFamilyTree' : IDL.Func([], [IDL.Vec(FamilyMember)], ['query']),
     'getFamilyTreeForUser' : IDL.Func(
         [IDL.Principal],
@@ -222,8 +117,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Principal)],
         ['query'],
       ),
-    'getProfile' : IDL.Func([IDL.Principal], [Profile], ['query']),
-    'getPublicProfiles' : IDL.Func([], [IDL.Vec(Profile)], ['query']),
+    'getPublicProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

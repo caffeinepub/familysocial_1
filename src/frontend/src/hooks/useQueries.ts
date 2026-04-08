@@ -1,9 +1,12 @@
+import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { FamilyMember, UserProfile } from "../backend.d";
-import { useActor } from "./useActor";
+import { createActor } from "../backend";
+import type { FamilyMember, UserProfile } from "../types/platform";
 
 export function useGetCallerUserProfile() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor: _actor, isFetching: actorFetching } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
 
   const query = useQuery<UserProfile | null>({
     queryKey: ["currentUserProfile"],
@@ -23,7 +26,10 @@ export function useGetCallerUserProfile() {
 }
 
 export function useSaveUserProfile() {
-  const { actor } = useActor();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { actor: _actor } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -38,7 +44,9 @@ export function useSaveUserProfile() {
 }
 
 export function useGetFamilyTree() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor: _actor, isFetching: actorFetching } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
 
   return useQuery<FamilyMember[]>({
     queryKey: ["familyTree"],
@@ -51,7 +59,10 @@ export function useGetFamilyTree() {
 }
 
 export function useAddFamilyMember() {
-  const { actor } = useActor();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { actor: _actor } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -66,7 +77,9 @@ export function useAddFamilyMember() {
 }
 
 export function useGetPublicProfiles() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor: _actor, isFetching: actorFetching } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
 
   return useQuery({
     queryKey: ["publicProfiles"],

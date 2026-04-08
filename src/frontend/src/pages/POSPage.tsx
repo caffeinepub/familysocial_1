@@ -642,6 +642,75 @@ const ALL_MODULES = [
   "Dating",
 ];
 
+// ─── Apparel / Accessories variant constants ──────────────────────────────────
+const APPAREL_COLOR_PALETTE = [
+  "Ivory White",
+  "Midnight Black",
+  "Royal Blue",
+  "Cherry Red",
+  "Forest Green",
+  "Dusty Rose",
+  "Charcoal Grey",
+  "Mustard Yellow",
+  "Navy Blue",
+  "Coral Orange",
+  "Olive Green",
+  "Burgundy",
+  "Camel Brown",
+  "Teal",
+  "Off White",
+];
+const APPAREL_SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const ACCESSORIES_MATERIAL_OPTIONS = [
+  "Leather",
+  "Fabric",
+  "Metal",
+  "Synthetic",
+];
+
+const SUGGESTED_ADDONS: Record<string, { name: string; price: string }[]> = {
+  Apparel: [
+    { name: "Gift Wrapping", price: "50" },
+    { name: "Express Tailoring", price: "200" },
+    { name: "Monogramming", price: "100" },
+    { name: "Alterations", price: "150" },
+    { name: "Premium Packaging", price: "75" },
+  ],
+  Fashion: [
+    { name: "Gift Wrapping", price: "50" },
+    { name: "Express Tailoring", price: "200" },
+    { name: "Monogramming", price: "100" },
+    { name: "Alterations", price: "150" },
+    { name: "Premium Packaging", price: "75" },
+  ],
+  Accessories: [
+    { name: "Gift Box", price: "60" },
+    { name: "Engraving", price: "200" },
+    { name: "Warranty Card", price: "0" },
+    { name: "Cleaning Kit", price: "80" },
+    { name: "Extra Links/Straps", price: "120" },
+  ],
+};
+
+function isApparelCat(cat: string) {
+  const l = cat.toLowerCase();
+  return (
+    l.includes("apparel") ||
+    l.includes("clothing") ||
+    l.includes("fashion") ||
+    l.includes("garment")
+  );
+}
+function isAccessoriesCat(cat: string) {
+  const l = cat.toLowerCase();
+  return (
+    l.includes("accessories") ||
+    l.includes("jewelry") ||
+    l.includes("bags") ||
+    l.includes("footwear")
+  );
+}
+
 function QuickAddProductDialog({
   open,
   onClose,
@@ -668,6 +737,7 @@ function QuickAddProductDialog({
   const [addons, setAddons] = useState<{ name: string; price: string }[]>([]);
   const [addonInput, setAddonInput] = useState({ name: "", price: "" });
   const [detectingVariants, setDetectingVariants] = useState(false);
+  const [detectedColors, setDetectedColors] = useState<string[]>([]);
   const margin =
     form.price && form.purchasePrice
       ? (
@@ -697,23 +767,32 @@ function QuickAddProductDialog({
       const basePrice = form.price || "0";
       let detected: { label: string; price: string; stock: string }[] = [];
       const cat = form.category;
-      if (cat === "Fashion" || cat === "Clothing") {
-        const colors = ["Red", "Blue", "Black", "White", "Green"];
+      if (isApparelCat(cat)) {
+        // 5 colors × 4 sizes = 20 variants
+        const colors = APPAREL_COLOR_PALETTE.slice(0, 5);
         const sizes = ["S", "M", "L", "XL"];
-        detected = colors.slice(0, 3).flatMap((color) =>
-          sizes.slice(0, 2).map((size) => ({
+        detected = colors.flatMap((color) =>
+          sizes.map((size) => ({
             label: `${color} / ${size}`,
             price: basePrice,
             stock: "10",
           })),
         );
+        setDetectedColors(colors);
+      } else if (isAccessoriesCat(cat)) {
+        const colors = APPAREL_COLOR_PALETTE.slice(0, 5);
+        const materials = ACCESSORIES_MATERIAL_OPTIONS.slice(0, 3);
+        detected = colors.flatMap((color) =>
+          materials.map((mat) => ({
+            label: `${color} / ${mat}`,
+            price: basePrice,
+            stock: "10",
+          })),
+        );
+        setDetectedColors(colors);
       } else if (cat === "Electronics") {
         detected = ["64GB / Black", "128GB / Silver", "256GB / Gold"].map(
-          (label) => ({
-            label,
-            price: basePrice,
-            stock: "5",
-          }),
+          (label) => ({ label, price: basePrice, stock: "5" }),
         );
       } else if (cat === "Food & Beverages" || cat === "Food") {
         detected = ["Small", "Medium", "Large", "Family Pack"].map((label) => ({
@@ -723,11 +802,7 @@ function QuickAddProductDialog({
         }));
       } else if (cat === "Healthcare") {
         detected = ["Strip of 10", "Pack of 30", "Pack of 100"].map(
-          (label) => ({
-            label,
-            price: basePrice,
-            stock: "20",
-          }),
+          (label) => ({ label, price: basePrice, stock: "20" }),
         );
       } else if (cat === "Home Services") {
         detected = ["Basic", "Standard", "Premium"].map((label, i) => ({
@@ -749,13 +824,41 @@ function QuickAddProductDialog({
   };
 
   const detectColors = () => {
+    const cat = form.category;
+    const basePrice = form.price || "0";
     setTimeout(() => {
-      const detected = [
-        { label: "Midnight Blue", price: form.price || "0", stock: "10" },
-        { label: "Ivory White", price: form.price || "0", stock: "10" },
-      ];
-      setVariants((prev) => [...prev, ...detected]);
-      toast.success("2 dominant colors detected");
+      if (isApparelCat(cat) || isAccessoriesCat(cat)) {
+        // Rich color detection for apparel/accessories
+        const palette = isApparelCat(cat)
+          ? APPAREL_COLOR_PALETTE.slice(0, 8)
+          : APPAREL_COLOR_PALETTE.slice(0, 6);
+        setDetectedColors(palette);
+        const sizes = isApparelCat(cat)
+          ? ["S", "M", "L", "XL"]
+          : ["Free Size", "S", "M"];
+        const newVariants = palette.slice(0, 5).flatMap((color) =>
+          sizes.slice(0, 2).map((size) => ({
+            label: `${color} / ${size}`,
+            price: basePrice,
+            stock: "10",
+          })),
+        );
+        setVariants((prev) => {
+          const existing = new Set(prev.map((v) => v.label));
+          return [
+            ...prev,
+            ...newVariants.filter((v) => !existing.has(v.label)),
+          ];
+        });
+        toast.success(`${palette.length} colors detected for ${cat}`);
+      } else {
+        const detected = [
+          { label: "Midnight Blue", price: basePrice, stock: "10" },
+          { label: "Ivory White", price: basePrice, stock: "10" },
+        ];
+        setVariants((prev) => [...prev, ...detected]);
+        toast.success("2 dominant colors detected");
+      }
     }, 800);
   };
 
@@ -914,8 +1017,14 @@ function QuickAddProductDialog({
 
           {/* AI Variant Detection */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Variants</Label>
-            <div className="flex gap-2">
+            <Label className="text-xs">
+              {isApparelCat(form.category)
+                ? "Color × Size Variants"
+                : isAccessoriesCat(form.category)
+                  ? "Color × Material Variants"
+                  : "Variants"}
+            </Label>
+            <div className="flex gap-2 flex-wrap">
               <Button
                 type="button"
                 size="sm"
@@ -939,6 +1048,72 @@ function QuickAddProductDialog({
                 <Palette size={12} /> Detect Colors
               </Button>
             </div>
+
+            {/* Color Picker Panel for Apparel/Accessories */}
+            {(isApparelCat(form.category) ||
+              isAccessoriesCat(form.category)) && (
+              <div className="p-3 rounded-lg border border-violet-500/20 bg-violet-500/5 space-y-2">
+                <p className="text-[10px] font-semibold text-violet-700 dark:text-violet-400">
+                  🎨 Color Palette — click to select
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(isApparelCat(form.category)
+                    ? APPAREL_COLOR_PALETTE
+                    : APPAREL_COLOR_PALETTE.slice(0, 8)
+                  ).map((color) => {
+                    const isSelected = detectedColors.includes(color);
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() =>
+                          setDetectedColors((prev) =>
+                            prev.includes(color)
+                              ? prev.filter((c) => c !== color)
+                              : [...prev, color],
+                          )
+                        }
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+                {detectedColors.length > 0 && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      const sizes = isApparelCat(form.category)
+                        ? APPAREL_SIZE_OPTIONS.slice(0, 4)
+                        : ["Free Size", "S", "M"];
+                      const bp = form.price || "0";
+                      const newV = detectedColors.flatMap((color) =>
+                        sizes.map((size) => ({
+                          label: `${color} / ${size}`,
+                          price: bp,
+                          stock: "10",
+                        })),
+                      );
+                      setVariants(newV);
+                      toast.success(
+                        `Generated ${newV.length} variants from ${detectedColors.length} colors`,
+                      );
+                    }}
+                  >
+                    Generate {detectedColors.length} Color × Size Variants
+                  </Button>
+                )}
+              </div>
+            )}
+
             {variants.length > 0 && (
               <div className="border border-border rounded-lg overflow-hidden mt-1">
                 <table className="w-full text-xs">
@@ -952,7 +1127,10 @@ function QuickAddProductDialog({
                   </thead>
                   <tbody>
                     {variants.map((v, i) => (
-                      <tr key={v.label} className="border-t border-border/50">
+                      <tr
+                        key={`${v.label}-${i}`}
+                        className="border-t border-border/50"
+                      >
                         <td className="p-1.5 font-medium">
                           <input
                             type="text"
@@ -966,7 +1144,7 @@ function QuickAddProductDialog({
                                 ),
                               )
                             }
-                            className="w-28 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
+                            className="w-36 border border-border rounded px-1.5 py-0.5 text-xs bg-background"
                           />
                         </td>
                         <td className="p-1.5">
@@ -1025,8 +1203,40 @@ function QuickAddProductDialog({
           {/* Add-ons */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Add-ons</Label>
+            {/* Quick-add chips for Apparel/Accessories */}
+            {(SUGGESTED_ADDONS[form.category] || []).length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground">Quick add:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(SUGGESTED_ADDONS[form.category] || []).map((s) => {
+                    const alreadyAdded = addons.some((a) => a.name === s.name);
+                    return (
+                      <button
+                        key={s.name}
+                        type="button"
+                        disabled={alreadyAdded}
+                        onClick={() =>
+                          !alreadyAdded && setAddons((prev) => [...prev, s])
+                        }
+                        className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${
+                          alreadyAdded
+                            ? "border-border text-muted-foreground bg-muted cursor-not-allowed"
+                            : "border-primary/40 text-primary bg-primary/5 hover:bg-primary/10"
+                        }`}
+                      >
+                        {s.name}{" "}
+                        {Number(s.price) > 0 ? `+₹${s.price}` : "(free)"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {addons.map((a, i) => (
-              <div key={a.name} className="flex items-center gap-2 text-xs">
+              <div
+                key={`${a.name}-${i}`}
+                className="flex items-center gap-2 text-xs"
+              >
                 <span className="flex-1 bg-muted/30 rounded px-2 py-1">
                   {a.name}
                 </span>
@@ -1134,11 +1344,18 @@ function QuickAddProductDialog({
                     "Electronics",
                     "Vehicles",
                     "Fashion",
+                    "Apparel",
+                    "Accessories",
+                    "Garments",
                     "Events",
                     "Furniture",
                     "Food",
+                    "Food & Beverages",
                     "Healthcare",
                     "Education",
+                    "Beauty",
+                    "Sports",
+                    "Home Services",
                     "Other",
                   ].map((c) => (
                     <SelectItem key={c} value={c}>
@@ -3030,6 +3247,9 @@ export default function POSPage() {
                         {[
                           "Electronics",
                           "Fashion",
+                          "Apparel",
+                          "Accessories",
+                          "Garments",
                           "Food & Beverages",
                           "Healthcare",
                           "Home Services",
@@ -3115,7 +3335,166 @@ export default function POSPage() {
 
                   {/* Variants */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Variants</Label>
+                    <Label className="text-xs font-semibold">
+                      {isApparelCat(editProduct.category)
+                        ? "Color × Size Variants"
+                        : isAccessoriesCat(editProduct.category)
+                          ? "Color × Material Variants"
+                          : "Variants"}
+                    </Label>
+                    {/* Color detection for Apparel/Accessories */}
+                    {(isApparelCat(editProduct.category) ||
+                      isAccessoriesCat(editProduct.category)) && (
+                      <div className="p-3 rounded-lg border border-violet-500/20 bg-violet-500/5 space-y-2">
+                        <p className="text-[10px] font-semibold text-violet-700 dark:text-violet-400">
+                          🎨 Color Palette — click to toggle
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {APPAREL_COLOR_PALETTE.map((color) => {
+                            const isSelected = editProduct.variants.some((v) =>
+                              v.label.startsWith(color),
+                            );
+                            return (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => {
+                                  const sizes = isApparelCat(
+                                    editProduct.category,
+                                  )
+                                    ? APPAREL_SIZE_OPTIONS.slice(0, 4)
+                                    : ["Free Size", "S", "M"];
+                                  const bp = String(editProduct.price);
+                                  if (isSelected) {
+                                    setEditProduct((p) =>
+                                      p
+                                        ? {
+                                            ...p,
+                                            variants: p.variants.filter(
+                                              (v) => !v.label.startsWith(color),
+                                            ),
+                                          }
+                                        : p,
+                                    );
+                                  } else {
+                                    const newVs = sizes.map((sz) => ({
+                                      label: `${color} / ${sz}`,
+                                      price: bp,
+                                      stock: "10",
+                                    }));
+                                    setEditProduct((p) =>
+                                      p
+                                        ? {
+                                            ...p,
+                                            variants: [...p.variants, ...newVs],
+                                          }
+                                        : p,
+                                    );
+                                  }
+                                }}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${
+                                  isSelected
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "border-border bg-background hover:bg-muted"
+                                }`}
+                              >
+                                {color}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {(isApparelCat(editProduct.category)
+                          ? ACCESSORIES_MATERIAL_OPTIONS
+                          : ACCESSORIES_MATERIAL_OPTIONS
+                        ).length > 0 &&
+                          isAccessoriesCat(editProduct.category) && (
+                            <div className="flex flex-wrap gap-1.5">
+                              <p className="w-full text-[10px] font-medium text-muted-foreground">
+                                Material options:
+                              </p>
+                              {ACCESSORIES_MATERIAL_OPTIONS.map((mat) => (
+                                <span
+                                  key={mat}
+                                  className="px-2 py-0.5 rounded-full text-[10px] border border-border bg-muted text-muted-foreground"
+                                >
+                                  {mat}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                      </div>
+                    )}
+                    {/* Auto-detect variants button */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => {
+                        const cat = editProduct.category;
+                        const bp = String(editProduct.price);
+                        let detected: {
+                          label: string;
+                          price: string;
+                          stock: string;
+                        }[] = [];
+                        if (isApparelCat(cat)) {
+                          const colors = APPAREL_COLOR_PALETTE.slice(0, 4);
+                          const sizes = APPAREL_SIZE_OPTIONS.slice(0, 4);
+                          detected = colors.flatMap((c) =>
+                            sizes.map((s) => ({
+                              label: `${c} / ${s}`,
+                              price: bp,
+                              stock: "10",
+                            })),
+                          );
+                        } else if (isAccessoriesCat(cat)) {
+                          const colors = APPAREL_COLOR_PALETTE.slice(0, 4);
+                          const mats = ACCESSORIES_MATERIAL_OPTIONS.slice(0, 3);
+                          detected = colors.flatMap((c) =>
+                            mats.map((m) => ({
+                              label: `${c} / ${m}`,
+                              price: bp,
+                              stock: "10",
+                            })),
+                          );
+                        } else if (cat === "Electronics") {
+                          detected = [
+                            "64GB / Black",
+                            "128GB / Silver",
+                            "256GB / Gold",
+                          ].map((l) => ({ label: l, price: bp, stock: "5" }));
+                        } else if (
+                          cat === "Food & Beverages" ||
+                          cat === "Food"
+                        ) {
+                          detected = [
+                            "Small",
+                            "Medium",
+                            "Large",
+                            "Family Pack",
+                          ].map((l) => ({ label: l, price: bp, stock: "50" }));
+                        } else {
+                          detected = ["Standard", "Deluxe", "Premium"].map(
+                            (l, i) => ({
+                              label: l,
+                              price: String(
+                                Math.round(Number(bp) * (1 + i * 0.3)),
+                              ),
+                              stock: "10",
+                            }),
+                          );
+                        }
+                        setEditProduct((p) =>
+                          p ? { ...p, variants: detected } : p,
+                        );
+                        toast.success(
+                          `${detected.length} variants detected for ${cat}`,
+                        );
+                      }}
+                    >
+                      <Wand2 size={12} /> Auto-Detect Variants
+                    </Button>
                     {editProduct.variants.map((v, i) => (
                       <div
                         key={`v-${v.label}-${v.price}`}

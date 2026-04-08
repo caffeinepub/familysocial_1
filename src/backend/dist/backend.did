@@ -1,0 +1,47 @@
+type UserProfile = 
+ record {
+   bio: text;
+   bloodType: text;
+   dateOfBirth: text;
+   isPrivate: bool;
+   name: text;
+   occupation: text;
+   photoUrl: text;
+ };
+type Relationship = 
+ variant {
+   child;
+   grandchild;
+   grandparent;
+   other;
+   parent;
+   sibling;
+   spouse;
+ };
+type FamilyMember = 
+ record {
+   bloodType: text;
+   id: nat;
+   isPublic: bool;
+   medicalConditions: vec text;
+   name: text;
+   occupation: text;
+   relationship: Relationship;
+ };
+service : {
+  addFamilyMember: (member: FamilyMember) -> ();
+  addMarriage: (spouse1: principal, spouse2: principal, marriageDate:
+   text) -> ();
+  claimAdmin: () -> (bool);
+  followUser: (user: principal) -> ();
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getFamilyTree: () -> (vec FamilyMember) query;
+  getFamilyTreeForUser: (user: principal) -> (vec FamilyMember) query;
+  getFollowers: (user: principal) -> (vec principal) query;
+  getPublicProfiles: () -> (vec UserProfile) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  isCallerAdmin: () -> (bool) query;
+  isFollowing: (follower: principal, followee: principal) -> (bool) query;
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  unfollowUser: (user: principal) -> ();
+}

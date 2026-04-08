@@ -41,9 +41,9 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { UserProfile } from "../backend.d";
 import { useBlobStorage } from "../hooks/useBlobStorage";
 import { useSaveUserProfile } from "../hooks/useQueries";
+import type { UserProfile } from "../types/platform";
 
 const BLOOD_TYPES = [
   "A+",

@@ -3,10 +3,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Bot,
   BrainCircuit,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Send,
   Sparkles,
   Star,
+  User,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -849,7 +852,8 @@ export default function CoworkerAssistant({ currentPage }: Props) {
 
                 <TabsContent
                   value="astro"
-                  className="mt-0 flex-1 min-h-0 overflow-y-auto"
+                  forceMount
+                  className="mt-0 flex-1 min-h-0 overflow-y-auto data-[state=inactive]:hidden"
                 >
                   <AstroTabContent />
                 </TabsContent>
@@ -862,23 +866,121 @@ export default function CoworkerAssistant({ currentPage }: Props) {
   );
 }
 
+// ── Zodiac calculation helpers ────────────────────────────────────────────────
+
+const ZODIAC_SIGNS = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+];
+
+const SIGN_META: Record<
+  string,
+  { planet: string; element: string; lucky: number }
+> = {
+  Aries: { planet: "Mars", element: "Fire", lucky: 9 },
+  Taurus: { planet: "Venus", element: "Earth", lucky: 6 },
+  Gemini: { planet: "Mercury", element: "Air", lucky: 5 },
+  Cancer: { planet: "Moon", element: "Water", lucky: 2 },
+  Leo: { planet: "Sun", element: "Fire", lucky: 1 },
+  Virgo: { planet: "Mercury", element: "Earth", lucky: 5 },
+  Libra: { planet: "Venus", element: "Air", lucky: 6 },
+  Scorpio: { planet: "Mars", element: "Water", lucky: 8 },
+  Sagittarius: { planet: "Jupiter", element: "Fire", lucky: 3 },
+  Capricorn: { planet: "Saturn", element: "Earth", lucky: 8 },
+  Aquarius: { planet: "Saturn", element: "Air", lucky: 4 },
+  Pisces: { planet: "Jupiter", element: "Water", lucky: 7 },
+};
+
+function getZodiacFromDOB(dob: string): string {
+  if (!dob) return "";
+  const [, m, d] = dob.split("-").map(Number);
+  if (!m || !d) return "";
+  if ((m === 3 && d >= 21) || (m === 4 && d <= 19)) return "Aries";
+  if ((m === 4 && d >= 20) || (m === 5 && d <= 20)) return "Taurus";
+  if ((m === 5 && d >= 21) || (m === 6 && d <= 20)) return "Gemini";
+  if ((m === 6 && d >= 21) || (m === 7 && d <= 22)) return "Cancer";
+  if ((m === 7 && d >= 23) || (m === 8 && d <= 22)) return "Leo";
+  if ((m === 8 && d >= 23) || (m === 9 && d <= 22)) return "Virgo";
+  if ((m === 9 && d >= 23) || (m === 10 && d <= 22)) return "Libra";
+  if ((m === 10 && d >= 23) || (m === 11 && d <= 21)) return "Scorpio";
+  if ((m === 11 && d >= 22) || (m === 12 && d <= 21)) return "Sagittarius";
+  if ((m === 12 && d >= 22) || (m === 1 && d <= 19)) return "Capricorn";
+  if ((m === 1 && d >= 20) || (m === 2 && d <= 18)) return "Aquarius";
+  return "Pisces";
+}
+
 // ── AstroTabContent ───────────────────────────────────────────────────────────
 function AstroTabContent() {
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [fullName, setFullName] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("ic_astro_name") || ""
+      : "",
+  );
+  const [dob, setDob] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("ic_astro_dob") || ""
+      : "",
+  );
+  const [timeOfBirth, setTimeOfBirth] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("ic_astro_tob") || ""
+      : "",
+  );
+  const [placeOfBirth, setPlaceOfBirth] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("ic_astro_pob") || ""
+      : "",
+  );
+  const [manualSign, setManualSign] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("ic_astro_manual_sign") || ""
+      : "",
+  );
+
+  const autoSign = getZodiacFromDOB(dob);
+  const effectiveSign =
+    manualSign ||
+    autoSign ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("ic_user_zodiac") || "Scorpio"
+      : "Scorpio");
+  const lifePath = dob ? calcLifePath(dob) : null;
+  const signMeta = SIGN_META[effectiveSign] || SIGN_META.Scorpio;
+
+  // Save details to localStorage on change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (fullName) localStorage.setItem("ic_astro_name", fullName);
+    if (dob) localStorage.setItem("ic_astro_dob", dob);
+    if (timeOfBirth) localStorage.setItem("ic_astro_tob", timeOfBirth);
+    if (placeOfBirth) localStorage.setItem("ic_astro_pob", placeOfBirth);
+    if (manualSign) localStorage.setItem("ic_astro_manual_sign", manualSign);
+    if (effectiveSign) localStorage.setItem("ic_user_zodiac", effectiveSign);
+  }, [fullName, dob, timeOfBirth, placeOfBirth, manualSign, effectiveSign]);
+
+  const hasPersonalDetails = !!(fullName && dob);
+
   const [lifeArea, setLifeArea] = useState<string>("Career");
-  const [birthdate, setBirthdate] = useState("");
-  const [lifePath, setLifePath] = useState<number | null>(null);
   const [tarotCards, setTarotCards] = useState<(typeof TAROT_DECK)[number][]>(
     [],
   );
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [isAsking, setIsAsking] = useState(false);
 
-  const userSign =
-    typeof window !== "undefined"
-      ? localStorage.getItem("ic_user_zodiac") || "Scorpio"
-      : "Scorpio";
   const areaData = LIFE_AREA_ADVICE[lifeArea];
-  const timeData = FAVORABLE_TIMES[userSign] || FAVORABLE_TIMES.Scorpio;
+  const timeData = FAVORABLE_TIMES[effectiveSign] || FAVORABLE_TIMES.Scorpio;
 
   const LIFE_AREAS = [
     "Career",
@@ -896,28 +998,272 @@ function AstroTabContent() {
     setTarotCards(shuffled.slice(0, 3));
   }
 
-  function calcNum() {
-    if (!birthdate) return;
-    setLifePath(calcLifePath(birthdate));
+  function buildPersonalizedAnswer(q: string): string {
+    const namePrefix = fullName ? `${fullName.split(" ")[0]}, ` : "";
+    const signPhrase = effectiveSign
+      ? `as a ${effectiveSign} with ruling planet ${signMeta.planet}`
+      : "based on the cosmic alignment";
+    const lpPhrase = lifePath
+      ? ` Your Life Path ${lifePath} ${[11, 22, 33].includes(lifePath) ? "(Master Number)" : ""} adds a layer of ${lifePath === 1 ? "leadership" : lifePath === 7 ? "deep introspection" : lifePath === 8 ? "ambition" : "unique purpose"}.`
+      : "";
+    const areaContext = ` Focusing on ${lifeArea}, `;
+    const birthTimePhrase = timeOfBirth
+      ? ` Born at ${timeOfBirth}, your chart carries a ${Number(timeOfBirth.split(":")[0]) < 12 ? "morning" : "evening"} energy that ${Number(timeOfBirth.split(":")[0]) < 12 ? "sharpens your clarity and initiative" : "deepens your intuition and reflective power"}.`
+      : "";
+    const placePhrase = placeOfBirth
+      ? ` Your roots in ${placeOfBirth} ground your cosmic journey with a distinct cultural energy.`
+      : "";
+
+    const templates = [
+      `${namePrefix}${signPhrase}, the stars suggest that "${q}" holds a favorable resolution.${areaContext}${signMeta.planet} ${lifeArea === "Career" ? "amplifies professional clarity" : lifeArea === "Love" ? "opens your heart to authentic connection" : lifeArea === "Health" ? "restores vitality" : lifeArea === "Education" ? "sharpens your intellect" : "brings positive momentum"} this week.${lpPhrase}${birthTimePhrase} Trust your intuition — clarity is approaching.`,
+
+      `${namePrefix}the cosmic map for a ${effectiveSign} (${signMeta.element} sign) reveals that "${q}" is actively supported by the current planetary configuration.${areaContext}${signMeta.planet}'s influence suggests deliberate, grounded action rather than impulse.${lpPhrase}${placePhrase} The timing is more favorable than you realize.`,
+
+      `${namePrefix}${signPhrase}, Mercury's position illuminates the path around "${q}".${areaContext}patience and honest communication will accelerate your answer.${lpPhrase}${birthTimePhrase} Your ${signMeta.element} nature gives you the resilience to navigate this with grace.`,
+
+      `${namePrefix}regarding "${q}" — the ${effectiveSign} energy you carry is both your challenge and your gift.${areaContext}${signMeta.planet} reminds you that the answer lies in alignment, not force.${lpPhrase}${placePhrase} A quiet moment of reflection between ${timeData.good} will bring unexpected clarity.`,
+
+      `${namePrefix}the stars see your question about "${q}" clearly. ${signPhrase}, your ${signMeta.element} element gives you ${signMeta.element === "Fire" ? "bold instincts" : signMeta.element === "Water" ? "deep emotional intelligence" : signMeta.element === "Earth" ? "grounded wisdom" : "flexible perspective"}.${areaContext}the next 3 days are particularly auspicious. Lucky number ${signMeta.lucky} guides your decisions.${lpPhrase}${birthTimePhrase}`,
+    ];
+
+    return templates[Math.floor(Math.random() * templates.length)];
   }
 
   function askQuestion() {
-    if (!question.trim()) return;
+    if (!question.trim() || isAsking) return;
+    setIsAsking(true);
+    setAnswer(""); // clear previous answer while loading
     const q = question.trim();
-    const responses = [
-      `The stars indicate that regarding "${q}" -- patience and inner alignment will bring clarity. Mercury's position suggests communication is key.`,
-      `Your question about "${q}" resonates with the Moon's current phase. Emotional clarity comes before practical action. Trust the timing.`,
-      `The cards reveal that "${q}" has a favorable answer in the coming weeks. Venus and Jupiter form a harmonious angle supporting your inquiry.`,
-      `For "${q}" -- Mars encourages bold action while Saturn advises caution. Find the middle path: deliberate action taken with wisdom.`,
-      `The universe speaks: regarding "${q}" -- release attachment to outcomes. The path forward is through surrender, not force.`,
-    ];
-    setAnswer(responses[Math.floor(Math.random() * responses.length)]);
     setQuestion("");
+    // Small delay to simulate cosmic consultation
+    setTimeout(() => {
+      const newAnswer = buildPersonalizedAnswer(q);
+      setIsAsking(false);
+      setAnswer(newAnswer);
+    }, 800);
   }
 
   return (
-    <div className="px-3 py-3 space-y-5">
-      {/* Life Area Selector */}
+    <div className="px-3 py-3 space-y-4">
+      {/* ── Personal Details ── */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: "1px solid oklch(0.65 0.20 85 / 0.3)" }}
+      >
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(!detailsOpen)}
+          className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+          style={{ background: "oklch(0.65 0.20 85 / 0.10)" }}
+        >
+          <div className="flex items-center gap-2">
+            <User size={12} style={{ color: "oklch(0.55 0.18 85)" }} />
+            <span
+              className="text-[10px] font-label font-semibold uppercase tracking-wider"
+              style={{ color: "oklch(0.55 0.18 85)" }}
+            >
+              Personal Details {hasPersonalDetails && `— ${effectiveSign}`}
+            </span>
+          </div>
+          {detailsOpen ? (
+            <ChevronUp size={12} className="text-muted-foreground" />
+          ) : (
+            <ChevronDown size={12} className="text-muted-foreground" />
+          )}
+        </button>
+
+        {detailsOpen && (
+          <div
+            className="px-3 pb-3 pt-2 space-y-2.5"
+            style={{ background: "oklch(0.65 0.20 85 / 0.04)" }}
+          >
+            <div>
+              <label
+                htmlFor="astro-name"
+                className="text-[9px] font-label font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+              >
+                Full Name
+              </label>
+              <input
+                id="astro-name"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Your full name"
+                className="w-full h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                data-ocid="friend.astro.name_input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label
+                  htmlFor="astro-dob"
+                  className="text-[9px] font-label font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+                >
+                  Date of Birth *
+                </label>
+                <input
+                  id="astro-dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => {
+                    setDob(e.target.value);
+                    if (manualSign) return; // don't override manual
+                    // auto sign will recalculate via derived value
+                  }}
+                  className="w-full h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  data-ocid="friend.astro.dob_input"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="astro-tob"
+                  className="text-[9px] font-label font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+                >
+                  Time of Birth
+                </label>
+                <input
+                  id="astro-tob"
+                  type="time"
+                  value={timeOfBirth}
+                  onChange={(e) => setTimeOfBirth(e.target.value)}
+                  className="w-full h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  data-ocid="friend.astro.tob_input"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="astro-pob"
+                className="text-[9px] font-label font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+              >
+                Place of Birth
+              </label>
+              <input
+                id="astro-pob"
+                type="text"
+                value={placeOfBirth}
+                onChange={(e) => setPlaceOfBirth(e.target.value)}
+                placeholder="City, Country"
+                className="w-full h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                data-ocid="friend.astro.pob_input"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="astro-sign"
+                className="text-[9px] font-label font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+              >
+                Zodiac Sign{" "}
+                {autoSign && (
+                  <span className="text-primary normal-case">
+                    (auto: {autoSign})
+                  </span>
+                )}
+              </label>
+              <select
+                id="astro-sign"
+                value={manualSign || autoSign}
+                onChange={(e) => setManualSign(e.target.value)}
+                className="w-full h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                data-ocid="friend.astro.sign_select"
+              >
+                <option value="">— Auto from DOB —</option>
+                {ZODIAC_SIGNS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Mini Personal Reading Card ── */}
+      {hasPersonalDetails && (
+        <div
+          className="rounded-xl p-3 space-y-2"
+          style={{
+            background:
+              "linear-gradient(135deg, oklch(0.52 0.14 155 / 0.12), oklch(0.55 0.22 280 / 0.10))",
+            border: "1px solid oklch(0.52 0.14 155 / 0.3)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={12} style={{ color: "oklch(0.52 0.14 155)" }} />
+            <p className="text-[10px] font-label font-bold text-foreground uppercase tracking-wider">
+              Personal Reading — {fullName.split(" ")[0]}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[9px] text-muted-foreground">Sun Sign</p>
+              <p className="text-[11px] font-semibold text-foreground">
+                {effectiveSign}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground">Ruling Planet</p>
+              <p className="text-[11px] font-semibold text-foreground">
+                {signMeta.planet}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground">Element</p>
+              <p className="text-[11px] font-semibold text-foreground">
+                {signMeta.element}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground">Lucky Number</p>
+              <p className="text-[11px] font-semibold text-foreground">
+                {signMeta.lucky}
+              </p>
+            </div>
+            {lifePath !== null && (
+              <div>
+                <p className="text-[9px] text-muted-foreground">Life Path</p>
+                <p className="text-[11px] font-semibold text-foreground">
+                  {lifePath}
+                  {[11, 22, 33].includes(lifePath) ? " ✦" : ""}
+                </p>
+              </div>
+            )}
+            {timeOfBirth && (
+              <div>
+                <p className="text-[9px] text-muted-foreground">Birth Time</p>
+                <p className="text-[11px] font-semibold text-foreground">
+                  {timeOfBirth}
+                </p>
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed pt-1 border-t border-border/30">
+            {effectiveSign === "Scorpio" ||
+            effectiveSign === "Cancer" ||
+            effectiveSign === "Pisces"
+              ? `As a ${signMeta.element} sign, you possess deep emotional intelligence and intuitive gifts. ${signMeta.planet} shapes your inner drive toward transformation and depth.`
+              : effectiveSign === "Aries" ||
+                  effectiveSign === "Leo" ||
+                  effectiveSign === "Sagittarius"
+                ? `Your ${signMeta.element} energy ignites passion and courage in all you pursue. ${signMeta.planet} amplifies your natural leadership and creative force.`
+                : effectiveSign === "Taurus" ||
+                    effectiveSign === "Virgo" ||
+                    effectiveSign === "Capricorn"
+                  ? `Grounded in ${signMeta.element}, you build lasting foundations with precision. ${signMeta.planet} rewards your discipline with material and spiritual abundance.`
+                  : `Your ${signMeta.element} nature brings intellectual agility and adaptability. ${signMeta.planet} opens doors through communication and social connection.`}
+            {lifePath
+              ? ` Life Path ${lifePath}: ${LIFE_PATH_DESC[lifePath]?.split(" -- ")[1] || "a unique cosmic journey awaits."}`
+              : ""}
+          </p>
+        </div>
+      )}
+
+      {/* ── Life Area Selector ── */}
       <div>
         <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
           Life Area
@@ -948,7 +1294,7 @@ function AstroTabContent() {
         </div>
       </div>
 
-      {/* Astro Advice for selected area */}
+      {/* ── Astro Advice for selected area ── */}
       {areaData && (
         <div className="space-y-2">
           <div
@@ -958,8 +1304,18 @@ function AstroTabContent() {
               border: "1px solid oklch(0.52 0.14 155 / 0.2)",
             }}
           >
+            {hasPersonalDetails && (
+              <p
+                className="text-[10px] font-semibold"
+                style={{ color: "oklch(0.52 0.14 155)" }}
+              >
+                For {fullName.split(" ")[0]} · {effectiveSign} · {lifeArea}
+              </p>
+            )}
             <p className="text-[11px] text-foreground leading-relaxed">
-              {areaData.advice}
+              {hasPersonalDetails
+                ? `Based on your ${effectiveSign} nature (ruled by ${signMeta.planet}): ${areaData.advice}`
+                : areaData.advice}
             </p>
             <p
               className="text-[10px]"
@@ -984,7 +1340,7 @@ function AstroTabContent() {
               className="text-[10px] font-semibold mb-1"
               style={{ color: "oklch(0.55 0.18 85)" }}
             >
-              Favorable Time Today ({userSign})
+              Favorable Time Today ({effectiveSign})
             </p>
             <p className="text-[10px] text-foreground">
               Window: <strong>{timeData.good}</strong>
@@ -1017,31 +1373,27 @@ function AstroTabContent() {
         </div>
       )}
 
-      {/* Numerology */}
+      {/* ── Numerology ── */}
       <div className="border-t border-border/30 pt-4">
         <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-          Numerology
+          Numerology{" "}
+          {hasPersonalDetails && dob ? "— calculated from your DOB" : ""}
         </p>
-        <div className="flex gap-2">
-          <input
-            type="date"
-            value={birthdate}
-            onChange={(e) => setBirthdate(e.target.value)}
-            className="flex-1 h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <button
-            type="button"
-            onClick={calcNum}
-            className="h-8 px-3 rounded-lg text-xs font-semibold text-white transition-colors"
-            style={{ background: "oklch(0.55 0.22 280)" }}
-            data-ocid="friend.astro.numerology_button"
-          >
-            Calculate
-          </button>
-        </div>
+        {!dob && (
+          <div className="flex gap-2 mb-2">
+            <input
+              type="date"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              className="flex-1 h-8 px-2 text-xs rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              placeholder="Enter DOB above or here"
+              data-ocid="friend.astro.numerology_dob"
+            />
+          </div>
+        )}
         {lifePath !== null && (
           <div
-            className="mt-2 rounded-xl p-3"
+            className="rounded-xl p-3"
             style={{
               background: "oklch(0.55 0.22 280 / 0.08)",
               border: "1px solid oklch(0.55 0.22 280 / 0.2)",
@@ -1054,25 +1406,50 @@ function AstroTabContent() {
               >
                 {lifePath}
               </span>
-              <p className="text-[10px] font-semibold text-foreground">
-                {[11, 22, 33].includes(lifePath)
-                  ? "Master Number"
-                  : "Life Path"}{" "}
-                {lifePath}
-              </p>
+              <div>
+                <p className="text-[10px] font-semibold text-foreground">
+                  {[11, 22, 33].includes(lifePath)
+                    ? "Master Number"
+                    : "Life Path"}{" "}
+                  {lifePath}
+                  {hasPersonalDetails && ` · ${fullName.split(" ")[0]}`}
+                </p>
+                {hasPersonalDetails && (
+                  <p className="text-[9px] text-muted-foreground">
+                    Lucky Number: {signMeta.lucky}
+                  </p>
+                )}
+              </div>
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               {LIFE_PATH_DESC[lifePath] ||
-                "A unique vibration -- research your specific combination for deeper insight."}
+                "A unique vibration — research your specific combination for deeper insight."}
             </p>
+            {hasPersonalDetails && (
+              <p
+                className="text-[10px] mt-1.5 leading-relaxed"
+                style={{ color: "oklch(0.55 0.22 280)" }}
+              >
+                Combined with your {effectiveSign} sun sign, your Life Path{" "}
+                {lifePath} creates a unique destiny signature. {signMeta.planet}{" "}
+                amplifies this energy in practical ways.
+              </p>
+            )}
           </div>
+        )}
+        {!lifePath && (
+          <p className="text-[10px] text-muted-foreground">
+            Enter your date of birth in Personal Details above to calculate your
+            Life Path number.
+          </p>
         )}
       </div>
 
-      {/* Tarot */}
+      {/* ── Tarot ── */}
       <div className="border-t border-border/30 pt-4">
         <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-          Tarot Reading
+          Tarot Reading{" "}
+          {hasPersonalDetails ? `for ${fullName.split(" ")[0]}` : ""}
         </p>
         <button
           type="button"
@@ -1087,6 +1464,12 @@ function AstroTabContent() {
           <div className="mt-3 space-y-2">
             {(["Past", "Present", "Future"] as const).map((pos, i) => {
               const card = tarotCards[i];
+              const posText =
+                pos === "Past"
+                  ? card.past
+                  : pos === "Present"
+                    ? card.present
+                    : card.future;
               return (
                 <div
                   key={pos}
@@ -1108,11 +1491,9 @@ function AstroTabContent() {
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    {pos === "Past"
-                      ? card.past
-                      : pos === "Present"
-                        ? card.present
-                        : card.future}
+                    {hasPersonalDetails
+                      ? `${fullName.split(" ")[0]}, as a ${effectiveSign}: ${posText}`
+                      : posText}
                   </p>
                 </div>
               );
@@ -1121,46 +1502,101 @@ function AstroTabContent() {
         )}
       </div>
 
-      {/* Q&A */}
+      {/* ── Q&A ── */}
       <div className="border-t border-border/30 pt-4 pb-4">
-        <p className="text-[10px] font-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+        <p className="text-[10px] font-label font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
           Ask the Stars
         </p>
+        {hasPersonalDetails && (
+          <p className="text-[9px] text-muted-foreground mb-2">
+            Personalised for {effectiveSign} · Life Area: {lifeArea}
+          </p>
+        )}
         <div className="flex gap-2">
           <input
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") askQuestion();
+              if (e.key === "Enter" && !isAsking) askQuestion();
             }}
-            placeholder="Ask a life question..."
+            placeholder={
+              hasPersonalDetails
+                ? `Ask about ${lifeArea.toLowerCase()}, love, timing...`
+                : "Ask a life question..."
+            }
             className="flex-1 bg-secondary/60 border border-border rounded-lg px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
             data-ocid="friend.astro.question.input"
           />
           <button
             type="button"
             onClick={askQuestion}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-white shrink-0"
+            disabled={!question.trim() || isAsking}
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-white shrink-0 disabled:opacity-50 transition-opacity"
             style={{ background: "oklch(0.52 0.14 155)" }}
-            disabled={!question.trim()}
             data-ocid="friend.astro.ask_button"
           >
-            <Sparkles size={13} />
+            {isAsking ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{
+                  duration: 1,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "linear",
+                }}
+              >
+                <Sparkles size={13} />
+              </motion.div>
+            ) : (
+              <Sparkles size={13} />
+            )}
           </button>
         </div>
-        {answer && (
-          <div
-            className="mt-2 rounded-xl p-3"
+
+        {/* Answer display — always renders when answer is non-empty or asking */}
+        {(answer || isAsking) && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-3 rounded-xl p-3"
             style={{
-              background: "oklch(0.52 0.14 155 / 0.08)",
-              border: "1px solid oklch(0.52 0.14 155 / 0.2)",
+              background: "oklch(0.52 0.14 155 / 0.10)",
+              border: "1px solid oklch(0.52 0.14 155 / 0.25)",
             }}
+            data-ocid="friend.astro.answer"
           >
-            <p className="text-[11px] text-foreground leading-relaxed">
-              {answer}
-            </p>
-          </div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Sparkles size={10} style={{ color: "oklch(0.52 0.14 155)" }} />
+              <p
+                className="text-[9px] font-semibold uppercase tracking-wider"
+                style={{ color: "oklch(0.52 0.14 155)" }}
+              >
+                {isAsking ? "Consulting the Stars…" : "Cosmic Answer"}
+              </p>
+            </div>
+            {isAsking ? (
+              <div className="flex gap-1 items-center h-5 pl-1">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: "oklch(0.52 0.14 155)" }}
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{
+                      duration: 0.6,
+                      repeat: Number.POSITIVE_INFINITY,
+                      delay: i * 0.15,
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-foreground leading-relaxed">
+                {answer}
+              </p>
+            )}
+          </motion.div>
         )}
       </div>
     </div>

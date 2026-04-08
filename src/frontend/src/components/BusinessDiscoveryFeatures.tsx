@@ -185,6 +185,71 @@ function saveClaims(list: BusinessClaim[]) {
   window.dispatchEvent(new Event("businessClaimsUpdated"));
 }
 
+// ─── Live business data helpers ───────────────────────────────────────────────
+
+interface RealBusiness {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  phone: string;
+}
+
+function loadRealBusinesses(): RealBusiness[] {
+  const results: RealBusiness[] = [];
+  // Read from Family Tree businesses
+  try {
+    const raw = localStorage.getItem("ic_family_businesses");
+    if (raw) {
+      const parsed = JSON.parse(raw) as Array<{
+        id: string;
+        name: string;
+        category?: string;
+        location?: string;
+        phone?: string;
+      }>;
+      for (const b of parsed) {
+        results.push({
+          id: `ft_${b.id}`,
+          name: b.name,
+          category: b.category || "Retail",
+          city: b.location || "India",
+          phone: b.phone || "N/A",
+        });
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  // Read from ic_businesses if present
+  try {
+    const raw2 = localStorage.getItem("ic_businesses");
+    if (raw2) {
+      const parsed2 = JSON.parse(raw2) as Array<{
+        id: string;
+        name: string;
+        category?: string;
+        location?: string;
+        phone?: string;
+      }>;
+      for (const b of parsed2) {
+        if (!results.some((r) => r.name === b.name)) {
+          results.push({
+            id: `biz_${b.id}`,
+            name: b.name,
+            category: b.category || "Services",
+            city: b.location || "India",
+            phone: b.phone || "N/A",
+          });
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return results;
+}
+
 // ─── Agent 11 Business Discovery (Admin Panel) ────────────────────────────────
 
 const DISCOVERY_LOG_TEMPLATES = [
@@ -470,10 +535,31 @@ export function Agent11BusinessDiscovery() {
   ]);
   const [frequency, setFrequency] = useState("daily");
   const [logs, setLogs] = useState<string[]>([]);
-  const [businesses, setBusinesses] =
-    useState<UnclaimedBusiness[]>(loadBusinesses);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Load businesses: real family tree businesses first, then stored discoveries
+  const [businesses, setBusinesses] = useState<UnclaimedBusiness[]>(() => {
+    const realBizs = loadRealBusinesses();
+    const stored = loadBusinesses();
+    // Convert real businesses to "Claimed" status entries
+    const realAsUnclaimed: UnclaimedBusiness[] = realBizs.map((b) => ({
+      id: b.id,
+      name: b.name,
+      category: b.category,
+      city: b.city,
+      phone: b.phone,
+      status: "Claimed" as const,
+    }));
+    // Merge: real businesses first, then stored discoveries (skip duplicates)
+    const existingIds = new Set(realAsUnclaimed.map((b) => b.id));
+    const filteredStored = stored.filter(
+      (b) =>
+        !existingIds.has(b.id) &&
+        !realAsUnclaimed.some((r) => r.name === b.name),
+    );
+    return [...realAsUnclaimed, ...filteredStored];
+  });
 
   const appendLog = useCallback((msg: string) => {
     setLogs((prev) => [
@@ -482,8 +568,103 @@ export function Agent11BusinessDiscovery() {
     ]);
   }, []);
 
+  // Refresh live business list when Family Tree or global businesses are updated
+  useEffect(() => {
+    const refreshLiveBizs = () => {
+      const realBizs = loadRealBusinesses();
+      const realAsUnclaimed: UnclaimedBusiness[] = realBizs.map((b) => ({
+        id: b.id,
+        name: b.name,
+        category: b.category,
+        city: b.city,
+        phone: b.phone,
+        status: "Claimed" as const,
+      }));
+      setBusinesses((prev) => {
+        const existingNames = new Set(realAsUnclaimed.map((b) => b.name));
+        const filtered = prev.filter(
+          (b) =>
+            !existingNames.has(b.name) ||
+            b.status === "Unclaimed" ||
+            b.status === "Pending",
+        );
+        return [
+          ...realAsUnclaimed,
+          ...filtered.filter(
+            (b) => !realAsUnclaimed.some((r) => r.id === b.id),
+          ),
+        ];
+      });
+    };
+    window.addEventListener("familyBusinessUpdated", refreshLiveBizs);
+    window.addEventListener("storage", refreshLiveBizs);
+    // Auto-refresh every 30s to pick up new businesses
+    const interval = setInterval(refreshLiveBizs, 30_000);
+    return () => {
+      window.removeEventListener("familyBusinessUpdated", refreshLiveBizs);
+      window.removeEventListener("storage", refreshLiveBizs);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // On mount: log existing real businesses
+  useEffect(() => {
+    const realBizs = loadRealBusinesses();
+    if (realBizs.length > 0) {
+      for (const b of realBizs) {
+        appendLog(
+          `✅ Your network: "${b.name}" (${b.category}) in ${b.city} — Claimed`,
+        );
+      }
+    }
+  }, [appendLog]);
+
   useEffect(() => {
     if (!running) return;
+    const REALISTIC_NAMES: Record<string, string[]> = {
+      Retail: [
+        "Aggarwal Stores",
+        "Krishna General Store",
+        "Modern Mart",
+        "Raj Emporium",
+        "Laxmi Bazaar",
+      ],
+      Food: [
+        "Annapurna Kitchen",
+        "Shree Biryani House",
+        "Patel Dhaba",
+        "Royal Sweets",
+        "Spice Garden",
+      ],
+      Healthcare: [
+        "Dr. Mehta Clinic",
+        "Lifeline Pharmacy",
+        "Apollo Diagnostics",
+        "City Health Centre",
+        "Wellness Plus",
+      ],
+      Education: [
+        "Saraswati Academy",
+        "Bright Future Institute",
+        "National Tutorial",
+        "Ideal School",
+        "Excellence Classes",
+      ],
+      Services: [
+        "Kumar Electricals",
+        "Sharma Plumbing",
+        "Fast Fix Repairs",
+        "Pro Cleaners",
+        "Expert Tailors",
+      ],
+      "Real Estate": [
+        "Mahesh Properties",
+        "Sunrise Realtors",
+        "Green Acres Builders",
+        "Trust Estates",
+        "City Homes",
+      ],
+    };
     const tick = () => {
       const city = CITIES[Math.floor(Math.random() * CITIES.length)];
       const cat = selectedCats.length
@@ -495,19 +676,25 @@ export function Agent11BusinessDiscovery() {
         ];
       appendLog(tmpl(city, cat));
 
-      // Occasionally add a new discovered business
+      // Occasionally add a new discovered business using realistic names
       if (Math.random() > 0.65) {
+        const namePool = REALISTIC_NAMES[cat] || REALISTIC_NAMES.Services;
+        const baseName = namePool[Math.floor(Math.random() * namePool.length)];
+        const suffix = city.slice(0, 3).toUpperCase();
         const newBiz: UnclaimedBusiness = {
           id: `ub_${Date.now()}`,
-          name: `${city} ${cat} Hub`,
+          name: `${baseName} — ${suffix}`,
           category: cat,
           city,
-          phone: `+91 98${Math.floor(10000000 + Math.random() * 89999999)}`,
+          phone: `+91 ${Math.floor(7000000000 + Math.random() * 2999999999)}`,
           status: "Unclaimed",
         };
+        appendLog(
+          `🔎 Discovered: "${newBiz.name}" (${cat}) in ${city} — Added to unclaimed listings`,
+        );
         setBusinesses((prev) => {
           const updated = [newBiz, ...prev];
-          saveBusinesses(updated);
+          saveBusinesses(updated.filter((b) => b.status !== "Claimed"));
           return updated;
         });
       }
@@ -528,13 +715,49 @@ export function Agent11BusinessDiscovery() {
 
   const approveB = (id: string) => {
     setBusinesses((prev) => {
+      const biz = prev.find((b) => b.id === id);
+      if (biz) {
+        // Save to family tree so it appears in Business Page
+        try {
+          const current = JSON.parse(
+            localStorage.getItem("ic_family_businesses") || "[]",
+          ) as Array<{
+            id: string;
+            name: string;
+            category: string;
+            location: string;
+            phone: string;
+            ownerName: string;
+            createdAt: string;
+          }>;
+          const alreadyExists = current.some((b) => b.name === biz.name);
+          if (!alreadyExists) {
+            current.push({
+              id: `approved_${Date.now()}`,
+              name: biz.name,
+              category: biz.category,
+              location: biz.city,
+              phone: biz.phone,
+              ownerName: "Claimed via A11 Discovery",
+              createdAt: new Date().toISOString(),
+            });
+            localStorage.setItem(
+              "ic_family_businesses",
+              JSON.stringify(current),
+            );
+            window.dispatchEvent(new CustomEvent("familyBusinessUpdated"));
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       const updated = prev.map((b) =>
         b.id === id ? { ...b, status: "Claimed" as const } : b,
       );
-      saveBusinesses(updated);
+      saveBusinesses(updated.filter((b) => b.status !== "Claimed"));
       return updated;
     });
-    toast.success("Business approved and visible to users");
+    toast.success("Business approved — added to Family Tree and Business Page");
   };
 
   const rejectB = (id: string) => {
@@ -542,13 +765,19 @@ export function Agent11BusinessDiscovery() {
       const updated = prev.map((b) =>
         b.id === id ? { ...b, status: "Rejected" as const } : b,
       );
-      saveBusinesses(updated);
+      saveBusinesses(updated.filter((b) => b.status !== "Claimed"));
       return updated;
     });
     setRejectId(null);
     toast.error("Business listing rejected");
   };
 
+  const realCount = businesses.filter(
+    (b) => b.status === "Claimed" && b.id.startsWith("ft_"),
+  ).length;
+  const newDiscoveriesCount = businesses.filter(
+    (b) => b.status === "Unclaimed" || b.status === "Pending",
+  ).length;
   const pendingCount = businesses.filter(
     (b) => b.status === "Unclaimed",
   ).length;
@@ -590,20 +819,39 @@ export function Agent11BusinessDiscovery() {
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Discovered", value: businesses.length, icon: Globe },
-          { label: "Pending Claim", value: pendingCount, icon: Clock },
+          {
+            label: "Total Discovered",
+            value: businesses.length,
+            sub: realCount > 0 ? `${realCount} from your network` : undefined,
+            icon: Globe,
+          },
+          {
+            label: "Pending Claim",
+            value: pendingCount,
+            sub:
+              newDiscoveriesCount > 0
+                ? `${newDiscoveriesCount} new`
+                : undefined,
+            icon: Clock,
+          },
           {
             label: "Claimed",
             value: businesses.filter((b) => b.status === "Claimed").length,
+            sub: undefined,
             icon: CheckCircle,
           },
-        ].map(({ label, value, icon: Icon }) => (
+        ].map(({ label, value, sub, icon: Icon }) => (
           <Card key={label} className="border-border/60">
             <CardContent className="p-3 flex items-center gap-3">
               <Icon size={18} className="text-primary" />
               <div>
                 <div className="text-lg font-bold">{value}</div>
                 <div className="text-[11px] text-muted-foreground">{label}</div>
+                {sub && (
+                  <div className="text-[10px] text-primary/70 mt-0.5">
+                    {sub}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -636,6 +884,18 @@ export function Agent11BusinessDiscovery() {
         </TabsList>
 
         <TabsContent value="config" className="mt-4 space-y-4">
+          {/* Live data summary */}
+          {realCount > 0 && (
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-700 dark:text-green-400 flex gap-2">
+              <CheckCircle size={14} className="shrink-0 mt-0.5" />
+              <span>
+                <strong>{realCount} businesses from your Family Tree</strong>{" "}
+                are pre-loaded as Claimed.
+                {newDiscoveriesCount > 0 &&
+                  ` ${newDiscoveriesCount} new unclaimed discoveries found.`}
+              </span>
+            </div>
+          )}
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Discovery Region</Label>
             <div className="flex gap-2">

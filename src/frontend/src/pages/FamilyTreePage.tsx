@@ -31,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActor, useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -59,7 +60,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { FamilyMember, Relationship, UserProfile } from "../backend.d";
+import { createActor } from "../backend";
 import EventsTab from "../components/EventsTab";
 import { ExtendedProfileSheet } from "../components/ExtendedProfileSheet";
 import type { Business } from "../components/ExtendedProfileSheet.types";
@@ -69,13 +70,16 @@ import {
   loadCircle,
 } from "../components/FamilyCircleManager";
 import type { FamilyCircle } from "../components/FamilyCircleManager";
-import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAddFamilyMember,
   useGetFamilyTree,
   useSaveUserProfile,
 } from "../hooks/useQueries";
+import type {
+  FamilyMember,
+  Relationship,
+  UserProfile,
+} from "../types/platform";
 import {
   getFamilyTreeBusinesses,
   saveFamilyTreeBusiness,
@@ -427,22 +431,19 @@ function EditMemberDialog({
     let relationship: Relationship;
     switch (form.relationship) {
       case "parent":
-        relationship = { __kind__: "parent", parent: null };
+        relationship = { __kind__: "parent" };
         break;
       case "child":
-        relationship = { __kind__: "child", child: null };
+        relationship = { __kind__: "child" };
         break;
       case "sibling":
-        relationship = { __kind__: "sibling", sibling: null };
+        relationship = { __kind__: "sibling" };
         break;
       case "spouse":
-        relationship = { __kind__: "spouse", spouse: null };
+        relationship = { __kind__: "spouse" };
         break;
       default:
-        relationship = {
-          __kind__: "other",
-          other: form.otherRelationship || "Other",
-        };
+        relationship = { __kind__: "other" };
     }
 
     const medConditions = form.medicalConditions
@@ -1183,7 +1184,9 @@ interface Props {
 }
 
 export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor: _actor, isFetching: actorFetching } = useActor(createActor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actor = _actor as any;
   const { identity } = useInternetIdentity();
   const principalId = identity?.getPrincipal().toString() ?? "anonymous";
 
@@ -1319,22 +1322,19 @@ export default function FamilyTreePage({ userProfile, onNavigate }: Props) {
     let relationship: Relationship;
     switch (form.relationship) {
       case "parent":
-        relationship = { __kind__: "parent", parent: null };
+        relationship = { __kind__: "parent" };
         break;
       case "child":
-        relationship = { __kind__: "child", child: null };
+        relationship = { __kind__: "child" };
         break;
       case "sibling":
-        relationship = { __kind__: "sibling", sibling: null };
+        relationship = { __kind__: "sibling" };
         break;
       case "spouse":
-        relationship = { __kind__: "spouse", spouse: null };
+        relationship = { __kind__: "spouse" };
         break;
       default:
-        relationship = {
-          __kind__: "other",
-          other: form.otherRelationship || "Other",
-        };
+        relationship = { __kind__: "other" };
         break;
     }
 
