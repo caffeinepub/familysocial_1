@@ -33,7 +33,9 @@ import {
   Bus,
   CheckCircle2,
   ChevronRight,
+  Globe,
   Info as InfoIcon,
+  Loader2,
   MapPin,
   Minus,
   Package,
@@ -50,12 +52,14 @@ import {
   Train,
   Trash2,
   Truck,
+  User,
+  Users,
   Wrench,
   X,
   Zap,
 } from "lucide-react";
 import { Megaphone } from "lucide-react";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import BoostPostDialog from "../components/BoostPostDialog";
 import { ShopAuctionTab } from "../components/BusinessDiscoveryFeatures";
@@ -67,7 +71,10 @@ import {
   getFamilyTreeBusinesses,
   saveFamilyTreeBusiness,
 } from "../utils/familyTreeState";
-import { getGlobalProducts } from "../utils/globalProductsState";
+import {
+  addGlobalProduct,
+  getGlobalProducts,
+} from "../utils/globalProductsState";
 import { formatTimeAgo } from "../utils/timeUtils";
 import { SAMPLE_PRODUCTS, SAMPLE_SERVICES } from "./ProductsServicesPage";
 
@@ -161,6 +168,41 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const TAX_RATE = 0.05;
+
+// ─── External Search Types ─────────────────────────────────────────────────────
+
+interface OpenFoodProduct {
+  id: string;
+  product_name: string;
+  brands: string;
+  categories_tags: string[];
+  image_url?: string;
+  nutriscore_grade?: string;
+}
+
+interface OSMBusiness {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    road?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  distanceKm?: number;
+}
+
+interface LocalSeller {
+  id: string;
+  name: string;
+  businessName: string;
+  category: string;
+  productCount: number;
+  rating: number;
+  location: string;
+}
 
 // Extra module-specific items
 const EXTRA_SHOP_ITEMS = [
@@ -408,6 +450,7 @@ function ShopProductCard({
   photoUrl,
   sourceModule,
   votes,
+  source,
   isBestBuy,
   onAddToCart,
   distanceKm,
@@ -425,6 +468,7 @@ function ShopProductCard({
   photoUrl?: string;
   sourceModule?: string;
   votes?: number;
+  source?: string;
   isBestBuy?: boolean;
   onAddToCart: () => void;
   distanceKm?: number;
@@ -440,6 +484,7 @@ function ShopProductCard({
     );
     return b.includes(name);
   });
+  const isExternalSource = source === "OpenFoodFacts" || source === "API";
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group relative">
@@ -451,6 +496,11 @@ function ShopProductCard({
       {isBestBuy && (
         <span className="absolute top-2 left-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-bold bg-yellow-400 text-yellow-900">
           ⭐ Best Buy
+        </span>
+      )}
+      {isExternalSource && !isBestBuy && (
+        <span className="absolute top-2 left-2 z-10 flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-blue-500/90 text-white">
+          <Globe size={8} /> 🌐
         </span>
       )}
       {photoUrl ? (
@@ -575,7 +625,504 @@ function ShopProductCard({
   );
 }
 
-// ─── Delivery Provider Card ───────────────────────────────────────────────────
+// ─── External Food Product Card (OpenFoodFacts) ───────────────────────────────
+
+function ExternalFoodCard({
+  product,
+  onAddToShop,
+}: {
+  product: OpenFoodProduct;
+  onAddToShop: (p: OpenFoodProduct) => void;
+}) {
+  const category = product.categories_tags?.[0]
+    ? product.categories_tags[0].replace(/^en:/, "").replace(/-/g, " ")
+    : "Food & Beverages";
+
+  return (
+    <div className="bg-card border border-primary/20 rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group relative">
+      {/* Web source badge */}
+      <span className="absolute top-2 right-2 z-10 flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-blue-500/90 text-white">
+        <Globe size={8} /> Web
+      </span>
+      {product.image_url ? (
+        <img
+          src={product.image_url}
+          alt={product.product_name}
+          className="w-full h-36 object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div className="w-full h-36 flex items-center justify-center bg-blue-500/8">
+          <Package size={32} className="text-blue-400 opacity-50" />
+        </div>
+      )}
+      <div className="p-3 flex flex-col flex-1 gap-1.5">
+        <div className="flex items-center gap-1 flex-wrap">
+          <Badge className="text-[9px] px-1.5 py-0 border-0 bg-blue-500/12 text-blue-600 dark:text-blue-400 capitalize">
+            {category.slice(0, 20)}
+          </Badge>
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5">
+            <Globe size={8} /> OpenFoodFacts
+          </Badge>
+        </div>
+        <h3 className="font-label font-bold text-foreground text-sm line-clamp-2 group-hover:text-primary transition-colors">
+          {product.product_name || "Unknown Product"}
+        </h3>
+        {product.brands && (
+          <p className="text-xs text-muted-foreground">by {product.brands}</p>
+        )}
+        <div className="flex gap-2 mt-auto pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs font-label flex-1 gap-1 border-blue-400/40 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+            onClick={() => onAddToShop(product)}
+            data-ocid="shop.ext_food.add_button"
+          >
+            <Plus size={10} /> Add to My Shop
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Business Search Modal (Nominatim) ────────────────────────────────────────
+
+function BusinessSearchModal({
+  open,
+  onClose,
+  userLocation,
+}: {
+  open: boolean;
+  onClose: () => void;
+  userLocation: { lat: number; lng: number } | null;
+}) {
+  const [city, setCity] = useState("");
+  const [category, setCategory] = useState("Food");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<OSMBusiness[]>([]);
+  const [shopSheet, setShopSheet] = useState<OSMBusiness | null>(null);
+
+  const handleSearch = useCallback(async () => {
+    const q = city.trim();
+    if (!q) {
+      toast.error("Please enter a city name");
+      return;
+    }
+    setLoading(true);
+    setResults([]);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`${category} shop ${q}`)}&format=json&limit=8&addressdetails=1`;
+      const res = await fetch(url, {
+        headers: { "Accept-Language": "en", "User-Agent": "IndyaCentral/1.0" },
+      });
+      if (!res.ok) throw new Error("API error");
+      const data = (await res.json()) as OSMBusiness[];
+      const enriched = data.map((b) => ({
+        ...b,
+        distanceKm: userLocation
+          ? haversineKm(
+              userLocation.lat,
+              userLocation.lng,
+              Number.parseFloat(b.lat),
+              Number.parseFloat(b.lon),
+            )
+          : undefined,
+      }));
+      setResults(enriched);
+      if (enriched.length === 0)
+        toast.info("No businesses found — try another city or category");
+    } catch {
+      toast.error("Could not reach OpenStreetMap — showing local results only");
+    } finally {
+      setLoading(false);
+    }
+  }, [city, category, userLocation]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent
+        className="sm:max-w-lg max-h-[85vh] flex flex-col"
+        data-ocid="shop.biz_search.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <Building2 size={16} className="text-primary" /> Find Businesses
+          </DialogTitle>
+          <DialogDescription>
+            Search local businesses via OpenStreetMap
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex gap-2 mt-2">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger
+              className="w-40 h-9"
+              data-ocid="shop.biz_search.category_select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                "Food",
+                "Electronics",
+                "Fashion",
+                "Healthcare",
+                "Education",
+                "Grocery",
+                "Pharmacy",
+                "Books",
+                "Bakery",
+              ].map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="City (e.g. Mumbai)"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="flex-1 h-9"
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            data-ocid="shop.biz_search.city_input"
+          />
+          <Button
+            size="sm"
+            className="h-9 px-3 font-label"
+            onClick={handleSearch}
+            disabled={loading}
+            data-ocid="shop.biz_search.search_button"
+          >
+            {loading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Search size={14} />
+            )}
+          </Button>
+        </div>
+
+        <ScrollArea className="flex-1 mt-3">
+          {loading && (
+            <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
+              <Loader2 size={20} className="animate-spin" />
+              <span className="text-sm">Searching...</span>
+            </div>
+          )}
+          {!loading && results.length === 0 && (
+            <div
+              className="text-center py-12 text-muted-foreground"
+              data-ocid="shop.biz_search.empty_state"
+            >
+              <Building2 size={36} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">
+                Search a city to discover local businesses
+              </p>
+            </div>
+          )}
+          <div className="space-y-3">
+            {results.map((biz) => (
+              <div
+                key={biz.place_id}
+                className="bg-secondary/30 border border-border rounded-xl p-3 flex flex-col gap-2"
+                data-ocid="shop.biz_search.result"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-label font-semibold text-foreground text-sm line-clamp-1">
+                      {biz.display_name.split(",")[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {biz.display_name}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] gap-0.5 px-1.5"
+                    >
+                      <Globe size={8} /> OSM
+                    </Badge>
+                    {biz.distanceKm !== undefined && (
+                      <span className="text-[10px] text-primary font-semibold">
+                        ~{biz.distanceKm.toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs font-label flex-1 gap-1"
+                    onClick={() => setShopSheet(biz)}
+                    data-ocid="shop.biz_search.visit_button"
+                  >
+                    <ShoppingBag size={10} /> Visit Shop
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs font-label flex-1 gap-1"
+                    onClick={() => {
+                      toast.success(
+                        "Registration flow opened — complete in Business Page",
+                      );
+                      onClose();
+                    }}
+                    data-ocid="shop.biz_search.register_button"
+                  >
+                    <Plus size={10} /> Register on IndyaCentral
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Mock products sheet for OSM business */}
+        <Sheet
+          open={!!shopSheet}
+          onOpenChange={(v) => !v && setShopSheet(null)}
+        >
+          <SheetContent side="bottom" className="h-[60vh]">
+            <SheetHeader>
+              <SheetTitle className="font-display text-sm">
+                {shopSheet?.display_name.split(",")[0]}
+              </SheetTitle>
+            </SheetHeader>
+            <ScrollArea className="h-full mt-3">
+              <div className="grid grid-cols-2 gap-3 pb-6">
+                {[
+                  "Signature Item",
+                  "Popular Choice",
+                  "Daily Special",
+                  "House Favourite",
+                ].map((name) => (
+                  <div
+                    key={name}
+                    className="bg-card border border-border rounded-xl p-3"
+                  >
+                    <div className="w-full h-20 rounded-lg bg-primary/8 flex items-center justify-center mb-2">
+                      <Package size={20} className="text-primary/50" />
+                    </div>
+                    <p className="font-label font-semibold text-xs text-foreground">
+                      {name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">₹149</p>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Seller Search Panel ──────────────────────────────────────────────────────
+
+function SellerSearchPanel({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const sellers: LocalSeller[] = React.useMemo(() => {
+    const ft = (() => {
+      try {
+        return JSON.parse(
+          localStorage.getItem("ic_family_businesses") || "[]",
+        ) as Array<{
+          id: string;
+          name: string;
+          category: string;
+          ownerName?: string;
+          location?: string;
+        }>;
+      } catch {
+        return [];
+      }
+    })();
+    const gp = (() => {
+      try {
+        return JSON.parse(
+          localStorage.getItem("ic_global_products") || "[]",
+        ) as Array<{
+          seller?: string;
+          businessName?: string;
+          category?: string;
+        }>;
+      } catch {
+        return [];
+      }
+    })();
+
+    // Count products per seller
+    const counts: Record<string, number> = {};
+    for (const p of gp) {
+      const s = p.seller || p.businessName || "";
+      if (s) counts[s] = (counts[s] || 0) + 1;
+    }
+
+    const ftSellers: LocalSeller[] = ft.map((b) => ({
+      id: b.id,
+      name: b.ownerName || b.name,
+      businessName: b.name,
+      category: b.category,
+      productCount: counts[b.name] || 0,
+      rating: 4.0 + Math.random() * 0.9,
+      location: b.location || "India",
+    }));
+
+    const seedSellers: LocalSeller[] = [
+      {
+        id: "s1",
+        name: "Raj Sharma",
+        businessName: "Sharma General Store",
+        category: "Food & Beverages",
+        productCount: 12,
+        rating: 4.7,
+        location: "Mumbai",
+      },
+      {
+        id: "s2",
+        name: "Priya Iyer",
+        businessName: "TeaTime India",
+        category: "Food & Beverages",
+        productCount: 8,
+        rating: 4.5,
+        location: "Chennai",
+      },
+      {
+        id: "s3",
+        name: "Amit Verma",
+        businessName: "Tech Planet",
+        category: "Electronics",
+        productCount: 24,
+        rating: 4.6,
+        location: "Bengaluru",
+      },
+      {
+        id: "s4",
+        name: "Kavya Nair",
+        businessName: "Khadi Crafts",
+        category: "Fashion",
+        productCount: 18,
+        rating: 4.4,
+        location: "Kochi",
+      },
+    ];
+
+    const all = [...ftSellers, ...seedSellers];
+    const seen = new Set<string>();
+    return all.filter((s) => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+  }, []);
+
+  const [query, setQuery] = useState("");
+  const filtered = sellers.filter(
+    (s) =>
+      s.businessName.toLowerCase().includes(query.toLowerCase()) ||
+      s.name.toLowerCase().includes(query.toLowerCase()) ||
+      s.category.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md flex flex-col p-0"
+        data-ocid="shop.sellers.panel"
+      >
+        <SheetHeader className="px-5 py-4 border-b border-border">
+          <SheetTitle className="font-display flex items-center gap-2">
+            <Users size={16} className="text-primary" /> Find Sellers
+          </SheetTitle>
+        </SheetHeader>
+        <div className="px-4 pt-3">
+          <div className="relative">
+            <Search
+              size={13}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              placeholder="Search sellers, businesses..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-8 h-9 text-sm"
+              data-ocid="shop.sellers.search_input"
+            />
+          </div>
+        </div>
+        <ScrollArea className="flex-1 px-4 py-3">
+          {filtered.length === 0 ? (
+            <div
+              className="text-center py-12 text-muted-foreground"
+              data-ocid="shop.sellers.empty_state"
+            >
+              <Users size={32} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No sellers found</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((seller) => (
+                <div
+                  key={seller.id}
+                  className="bg-card border border-border rounded-xl p-3 flex items-center gap-3"
+                  data-ocid="shop.sellers.card"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <User size={18} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-label font-semibold text-foreground text-sm truncate">
+                      {seller.businessName}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {seller.name} · {seller.location}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-label font-semibold">
+                        {seller.category}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[10px] text-amber-500 font-semibold">
+                        <Star size={9} className="fill-current" />{" "}
+                        {seller.rating.toFixed(1)}
+                      </span>
+                      {seller.productCount > 0 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {seller.productCount} products
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs font-label shrink-0"
+                    onClick={() => toast.info(`Viewing ${seller.businessName}`)}
+                    data-ocid="shop.sellers.view_button"
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 function DeliveryProviderCard({
   provider,
@@ -1618,6 +2165,94 @@ export default function ShopPage() {
   >(INITIAL_DELIVERY_PROVIDERS);
   const [_surveyVotes, _setSurveyVotes] = useState<SurveyVote[]>([]);
 
+  // ── External search state ──────────────────────────────────────────────────
+  const [extFoodResults, setExtFoodResults] = useState<OpenFoodProduct[]>([]);
+  const [extSearchLoading, setExtSearchLoading] = useState(false);
+  const [bizSearchOpen, setBizSearchOpen] = useState(false);
+  const [sellerPanelOpen, setSellerPanelOpen] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchExternalFood = useCallback(async (keyword: string) => {
+    if (!keyword.trim() || keyword.length < 2) {
+      setExtFoodResults([]);
+      return;
+    }
+    setExtSearchLoading(true);
+    try {
+      const res = await fetch(
+        `https://world.openfoodfacts.org/cgi/search.pl?action=process&search_terms=${encodeURIComponent(keyword)}&json=true&page_size=8`,
+      );
+      if (!res.ok) throw new Error("API error");
+      const data = (await res.json()) as {
+        products?: Array<{
+          id?: string;
+          product_name?: string;
+          brands?: string;
+          categories_tags?: string[];
+          image_url?: string;
+          nutriscore_grade?: string;
+        }>;
+      };
+      const products: OpenFoodProduct[] = (data.products || []).map((p) => ({
+        id: p.id || `off_${Math.random().toString(36).slice(2)}`,
+        product_name: p.product_name || "Unknown Product",
+        brands: p.brands || "",
+        categories_tags: p.categories_tags || [],
+        image_url: p.image_url,
+        nutriscore_grade: p.nutriscore_grade,
+      }));
+      setExtFoodResults(products);
+    } catch {
+      toast.error("Web search unavailable — showing local results only");
+      setExtFoodResults([]);
+    } finally {
+      setExtSearchLoading(false);
+    }
+  }, []);
+
+  // Debounced search trigger
+  const handleSearchChange = useCallback(
+    (val: string) => {
+      setSearchQuery(val);
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      if (!val.trim()) {
+        setExtFoodResults([]);
+        return;
+      }
+      searchDebounceRef.current = setTimeout(() => {
+        void fetchExternalFood(val);
+      }, 600);
+    },
+    [fetchExternalFood],
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
+
+  const handleAddExternalToShop = useCallback((p: OpenFoodProduct) => {
+    const category = p.categories_tags?.[0]
+      ? p.categories_tags[0].replace(/^en:/, "").replace(/-/g, " ")
+      : "Food & Beverages";
+    addGlobalProduct({
+      name: p.product_name,
+      description: `${p.brands ? `Brand: ${p.brands}. ` : ""}Category: ${category}`,
+      price: 0,
+      category: "Food & Beverages",
+      module: "Shop",
+      seller: p.brands || "OpenFoodFacts",
+      imageUrl: p.image_url,
+      source: "OpenFoodFacts",
+      isService: false,
+      status: "active",
+    });
+    toast.success(`"${p.product_name}" added to your shop!`);
+    setExtFoodResults((prev) => prev.filter((x) => x.id !== p.id));
+  }, []);
+
   // Build shop catalog from products + services + extra module items
   // Include user-added products from QuickAddBar (shared via localStorage)
   const userAddedProducts = React.useMemo(() => {
@@ -2166,29 +2801,61 @@ export default function ShopPage() {
 
         {/* ── Listings Tab ── */}
         <TabsContent value="listings">
-          {/* Search + Sort */}
+          {/* Search + Sort + Discovery buttons */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1 max-w-md">
-              <Search
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
+              {extSearchLoading ? (
+                <Loader2
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-primary animate-spin"
+                />
+              ) : (
+                <Search
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+              )}
               <Input
                 placeholder="Search products and services..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void fetchExternalFood(searchQuery);
+                }}
                 className="pl-9 h-10"
                 data-ocid="shop.search_input"
               />
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => {
+                    handleSearchChange("");
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X size={13} />
                 </button>
               )}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 font-label gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/8"
+                onClick={() => setBizSearchOpen(true)}
+                data-ocid="shop.biz_search.open_button"
+              >
+                <Building2 size={13} /> Find Businesses
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 font-label gap-1.5 text-xs"
+                onClick={() => setSellerPanelOpen(true)}
+                data-ocid="shop.sellers.open_button"
+              >
+                <Users size={13} /> Find Sellers
+              </Button>
             </div>
             <Select
               value={sortBy}
@@ -2349,6 +3016,48 @@ export default function ShopPage() {
               })()}
             </div>
           )}
+
+          {/* ── From Web: OpenFoodFacts results ── */}
+          {searchQuery && extFoodResults.length > 0 && (
+            <div className="mt-8" data-ocid="shop.web_results.section">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-border" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-400/40 bg-blue-500/8">
+                  <Globe size={13} className="text-blue-500" />
+                  <span className="text-xs font-label font-semibold text-blue-600 dark:text-blue-400">
+                    🌐 From Web ({extFoodResults.length} results)
+                  </span>
+                </div>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                External results from OpenFoodFacts. Click "Add to My Shop" to
+                save permanently.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {extFoodResults.map((p) => (
+                  <ExternalFoodCard
+                    key={p.id}
+                    product={p}
+                    onAddToShop={handleAddExternalToShop}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loading spinner for external search */}
+          {extSearchLoading && (
+            <div
+              className="flex items-center justify-center gap-2 py-6 text-muted-foreground"
+              data-ocid="shop.web_search.loading"
+            >
+              <Loader2 size={16} className="animate-spin text-primary" />
+              <span className="text-sm">
+                Searching web for food products...
+              </span>
+            </div>
+          )}
         </TabsContent>
 
         {/* ── Delivery Providers Tab ── */}
@@ -2390,6 +3099,19 @@ export default function ShopPage() {
         tax={tax}
         grandTotal={grandTotal}
         deliveryProviders={deliveryProviders}
+      />
+
+      {/* Business Search Modal */}
+      <BusinessSearchModal
+        open={bizSearchOpen}
+        onClose={() => setBizSearchOpen(false)}
+        userLocation={userLocation}
+      />
+
+      {/* Seller Search Panel */}
+      <SellerSearchPanel
+        open={sellerPanelOpen}
+        onClose={() => setSellerPanelOpen(false)}
       />
     </div>
   );

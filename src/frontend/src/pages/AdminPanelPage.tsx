@@ -77,6 +77,7 @@ import { toast } from "sonner";
 import {
   Agent11BusinessDiscovery,
   BusinessClaimsAdmin,
+  getApiQuota,
 } from "../components/BusinessDiscoveryFeatures";
 import { DeliveryPartnersPanel } from "../components/DeliveryPartnersPanel";
 import { type Review, getReviews } from "../components/ReviewModal";
@@ -2940,9 +2941,8 @@ export default function AdminPanelPage() {
               ))}
             </div>
           </div>
+          <ApiQuotaTracker />
         </TabsContent>
-
-        {/* ── AGENT 4: EVOLUTION ── */}
         <TabsContent value="evolution" className="mt-0">
           <Tabs defaultValue="changes">
             <TabsList className="mb-4">
@@ -14698,6 +14698,168 @@ function Agent19PreviewDialog() {
         </Button>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── API Quota Usage Tracker ──────────────────────────────────────────────────
+
+const API_QUOTA_DEFINITIONS = [
+  {
+    name: "OpenFoodFacts",
+    label: "OpenFoodFacts",
+    limit: 500,
+    limitLabel: "500 calls/day",
+    icon: "🥗",
+    color: "green",
+  },
+  {
+    name: "Nominatim/OSM",
+    label: "Nominatim / OpenStreetMap",
+    limit: 200, // practical fair-use target
+    limitLabel: "Unlimited (fair use)",
+    icon: "🗺️",
+    color: "blue",
+  },
+  {
+    name: "GitHub API",
+    label: "GitHub API",
+    limit: 60,
+    limitLabel: "60 req/hr (unauthenticated)",
+    icon: "🐙",
+    color: "violet",
+  },
+] as const;
+
+function ApiQuotaTracker() {
+  const [quotas, setQuotas] = useState<Record<string, number>>(() => {
+    const q: Record<string, number> = {};
+    for (const api of API_QUOTA_DEFINITIONS) {
+      q[api.name] = getApiQuota(api.name);
+    }
+    return q;
+  });
+
+  useEffect(() => {
+    const refresh = () => {
+      const q: Record<string, number> = {};
+      for (const api of API_QUOTA_DEFINITIONS) {
+        q[api.name] = getApiQuota(api.name);
+      }
+      setQuotas(q);
+    };
+    window.addEventListener("apiQuotaUpdated", refresh);
+    const id = setInterval(refresh, 15_000);
+    return () => {
+      window.removeEventListener("apiQuotaUpdated", refresh);
+      clearInterval(id);
+    };
+  }, []);
+
+  const resetQuota = () => {
+    try {
+      localStorage.removeItem("ic_api_quota");
+      window.dispatchEvent(new Event("apiQuotaUpdated"));
+      setQuotas({});
+      toast.success("Quota counters reset");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const colorMap: Record<string, { bar: string; bg: string; text: string }> = {
+    green: {
+      bar: "oklch(0.52 0.14 155)",
+      bg: "oklch(0.52 0.14 155 / 0.1)",
+      text: "oklch(0.35 0.10 155)",
+    },
+    blue: {
+      bar: "oklch(0.55 0.15 240)",
+      bg: "oklch(0.55 0.15 240 / 0.1)",
+      text: "oklch(0.40 0.12 240)",
+    },
+    violet: {
+      bar: "oklch(0.55 0.22 280)",
+      bg: "oklch(0.55 0.22 280 / 0.1)",
+      text: "oklch(0.45 0.18 280)",
+    },
+  };
+
+  return (
+    <div
+      className="mt-6 p-4 bg-card border border-border rounded-xl space-y-4"
+      data-ocid="admin.apiquota.panel"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold">📊 API Quota Usage (Today)</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Tracks API calls made by Agent 11 search features
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs"
+          onClick={resetQuota}
+          data-ocid="admin.apiquota.reset_button"
+        >
+          Reset Quota
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {API_QUOTA_DEFINITIONS.map((api) => {
+          const used = quotas[api.name] || 0;
+          const pct = Math.min(100, Math.round((used / api.limit) * 100));
+          const c = colorMap[api.color];
+          const isHigh = pct >= 80;
+          return (
+            <div
+              key={api.name}
+              className="p-3 rounded-lg border border-border space-y-2"
+              style={{ background: c.bg }}
+              data-ocid={`admin.apiquota.card.${api.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">{api.icon}</span>
+                  <span className="text-xs font-semibold text-foreground">
+                    {api.label}
+                  </span>
+                </div>
+                {isHigh && (
+                  <span className="text-[10px] font-medium text-amber-600">
+                    ⚠ High
+                  </span>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    {used} used today
+                  </span>
+                  <span
+                    className="text-[11px] font-medium"
+                    style={{ color: c.text }}
+                  >
+                    {api.limitLabel}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${pct}%`,
+                      background: c.bar,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

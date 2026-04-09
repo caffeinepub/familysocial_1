@@ -23,6 +23,7 @@ export interface GlobalProduct {
   supplier?: string;
   purchasePrice?: number;
   isService?: boolean;
+  source?: string; // e.g. 'OpenFoodFacts', 'API', 'User', etc.
   status: "active" | "pending" | "moderated";
   votes: number;
   reviews: number;

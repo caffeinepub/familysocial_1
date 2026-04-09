@@ -1,10 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Ban,
   Camera,
+  Clock,
+  ExternalLink,
   MapPin,
   Package,
   Search,
@@ -14,7 +17,7 @@ import {
   UserCheck,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   broadcastToVendors,
@@ -23,8 +26,47 @@ import {
   respondToApproach,
   setVendorApproachEnabled,
 } from "../stores/vendorMatchStore";
+import { getGlobalProducts } from "../utils/globalProductsState";
 
-const NEARBY_USERS = [
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface OpenFoodProduct {
+  id: string;
+  name: string;
+  brand?: string;
+  source: "external";
+}
+
+interface NominatimPlace {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  type: string;
+  address?: { country?: string; city?: string; state?: string };
+  source: "external";
+  distKm?: number;
+}
+
+interface GitHubUser {
+  id: number;
+  login: string;
+  avatar_url: string;
+  html_url: string;
+  source: "github";
+}
+
+interface LocalUser {
+  id: string;
+  name: string;
+  avatar: string;
+  source: "local";
+  privacyLevel?: string;
+}
+
+// ─── Seed data (fallback) ────────────────────────────────────────────────────
+
+const SEED_USERS = [
   {
     id: 1,
     name: "Priya Sharma",
@@ -55,50 +97,7 @@ const NEARBY_USERS = [
   },
 ];
 
-const NEARBY_PRODUCTS = [
-  {
-    id: 1,
-    name: "Organic Vegetables",
-    store: "Fresh Mart",
-    price: "₹120",
-    dist: "0.4 km",
-    category: "Grocery",
-  },
-  {
-    id: 2,
-    name: "Home Cleaning Service",
-    store: "CleanPro",
-    price: "₹499",
-    dist: "0.8 km",
-    category: "Service",
-  },
-  {
-    id: 3,
-    name: "Electrician",
-    store: "QuickFix",
-    price: "₹350",
-    dist: "1.1 km",
-    category: "Service",
-  },
-  {
-    id: 4,
-    name: "Basmati Rice 5kg",
-    store: "Sharma General",
-    price: "₹280",
-    dist: "0.6 km",
-    category: "Grocery",
-  },
-  {
-    id: 5,
-    name: "Birthday Cake",
-    store: "Sweet Bakes",
-    price: "₹650",
-    dist: "1.5 km",
-    category: "Food",
-  },
-];
-
-const NEARBY_PLACES = [
+const SEED_PLACES = [
   { id: 1, name: "City Park", type: "Park", dist: "0.5 km", icon: "🌳" },
   {
     id: 2,
@@ -118,6 +117,17 @@ const NEARBY_PLACES = [
   { id: 5, name: "Lotus Temple", type: "Temple", dist: "0.9 km", icon: "🛕" },
 ];
 
+const IMAGE_CATEGORIES = [
+  "Electronics",
+  "Fashion",
+  "Food",
+  "Home",
+  "Healthcare",
+  "Books",
+  "Vehicles",
+  "Services",
+];
+
 const AVATAR_COLORS = [
   { bg: "oklch(0.55 0.22 280 / 0.15)", text: "oklch(0.50 0.20 280)" },
   { bg: "oklch(0.60 0.20 190 / 0.15)", text: "oklch(0.45 0.18 190)" },
@@ -125,6 +135,131 @@ const AVATAR_COLORS = [
   { bg: "oklch(0.60 0.20 30 / 0.15)", text: "oklch(0.45 0.18 30)" },
   { bg: "oklch(0.60 0.20 320 / 0.15)", text: "oklch(0.45 0.18 320)" },
 ];
+
+const FACE_RESULTS_DATA = [
+  { id: 1, name: "Amit Sharma", similarity: 94, isPublic: true, avatar: "AS" },
+  { id: 2, name: "Priya Mehta", similarity: 89, isPublic: true, avatar: "PM" },
+  {
+    id: 3,
+    name: "Rajesh Kumar",
+    similarity: 86,
+    isPublic: false,
+    avatar: "RK",
+  },
+  { id: 4, name: "Sunita Verma", similarity: 82, isPublic: true, avatar: "SV" },
+];
+
+const RECENT_KEY = "ic_recent_searches";
+const PLACES_CACHE_PREFIX = "ic_places_search_";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function haversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getRecentSearches(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(q: string) {
+  if (!q.trim()) return;
+  const prev = getRecentSearches();
+  const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 5);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+}
+
+function getPlacesCache(keyword: string): NominatimPlace[] | null {
+  try {
+    const raw = localStorage.getItem(
+      `${PLACES_CACHE_PREFIX}${keyword.toLowerCase()}`,
+    );
+    return raw ? (JSON.parse(raw) as NominatimPlace[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setPlacesCache(keyword: string, data: NominatimPlace[]) {
+  localStorage.setItem(
+    `${PLACES_CACHE_PREFIX}${keyword.toLowerCase()}`,
+    JSON.stringify(data),
+  );
+}
+
+function placeTypeIcon(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes("restaurant") || t.includes("food") || t.includes("cafe"))
+    return "🍽️";
+  if (t.includes("hospital") || t.includes("clinic") || t.includes("pharmacy"))
+    return "🏥";
+  if (t.includes("park") || t.includes("garden")) return "🌳";
+  if (t.includes("temple") || t.includes("mosque") || t.includes("church"))
+    return "⛪";
+  if (t.includes("school") || t.includes("college") || t.includes("university"))
+    return "🏫";
+  if (t.includes("market") || t.includes("shop") || t.includes("store"))
+    return "🛒";
+  if (t.includes("hotel") || t.includes("lodg")) return "🏨";
+  return "📍";
+}
+
+// ─── Loading skeleton ────────────────────────────────────────────────────────
+
+function CardSkeleton({ n = 3 }: { n?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: n }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton has no stable id
+        <div key={`skel_${i}`} className="flex items-center gap-2">
+          <Skeleton className="w-7 h-7 rounded-full shrink-0" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-3 w-3/4" />
+            <Skeleton className="h-2.5 w-1/2" />
+          </div>
+          <Skeleton className="h-5 w-12 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Source Badge ─────────────────────────────────────────────────────────────
+
+function SourceBadge({ label }: { label: string }) {
+  return (
+    <span
+      className="text-[9px] px-1.5 py-0.5 rounded-full border font-medium shrink-0"
+      style={{
+        background: "oklch(0.60 0.18 200 / 0.12)",
+        color: "oklch(0.45 0.16 200)",
+        borderColor: "oklch(0.60 0.18 200 / 0.25)",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function NearbySearchBar() {
   const [expanded, setExpanded] = useState(false);
@@ -134,6 +269,31 @@ export default function NearbySearchBar() {
   const [avoidedPlaces, setAvoidedPlaces] = useState<number[]>([]);
   const [keptPeople, setKeptPeople] = useState<number[]>([]);
   const [softNudgeCount, setSoftNudgeCount] = useState(0);
+
+  // Recent searches
+  const [recentSearches, setRecentSearches] =
+    useState<string[]>(getRecentSearches);
+
+  // Products state
+  const [externalProducts, setExternalProducts] = useState<OpenFoodProduct[]>(
+    [],
+  );
+  const [productsLoading, setProductsLoading] = useState(false);
+
+  // Places state
+  const [externalPlaces, setExternalPlaces] = useState<NominatimPlace[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [userLatLon, setUserLatLon] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
+
+  // People state
+  const [githubUsers, setGithubUsers] = useState<GitHubUser[]>([]);
+  const [localUsers, setLocalUsers] = useState<LocalUser[]>([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+
+  // Image / face search
   const ref = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [_imageSearchCategory, setImageSearchCategory] = useState<
@@ -156,11 +316,38 @@ export default function NearbySearchBar() {
 
   // Vendor approach state
   const [vendorApproachOn, setVendorApproachOn] = useState(
-    isVendorApproachEnabled(),
+    isVendorApproachEnabled,
   );
   const [approachRequests, setApproachRequests] = useState(() =>
     getApproaches().filter((a) => a.status === "pending"),
   );
+
+  // Debounce refs
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Acquire geolocation once ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setUserLatLon({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => {}, // silently fail
+    );
+  }, []);
+
+  // ── Close on outside click ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setExpanded(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // ── Approach updates ────────────────────────────────────────────────────
 
   useEffect(() => {
     const handler = () =>
@@ -171,6 +358,8 @@ export default function NearbySearchBar() {
     return () => window.removeEventListener("indya_approach_updated", handler);
   }, []);
 
+  // ── Cleanup face resources ──────────────────────────────────────────────
+
   useEffect(() => {
     return () => {
       if (faceTimeoutRef.current) clearTimeout(faceTimeoutRef.current);
@@ -179,26 +368,186 @@ export default function NearbySearchBar() {
     };
   }, []);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setExpanded(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+  // ── API search functions ─────────────────────────────────────────────────
+
+  const searchProducts = useCallback(async (kw: string) => {
+    // Always show local results
+    const locals = getGlobalProducts().filter(
+      (p) =>
+        p.status === "active" &&
+        (!kw ||
+          p.name.toLowerCase().includes(kw) ||
+          p.category.toLowerCase().includes(kw)),
+    );
+
+    if (!kw) {
+      setExternalProducts([]);
+      return;
+    }
+
+    setProductsLoading(true);
+    try {
+      const res = await fetch(
+        `https://world.openfoodfacts.org/cgi/search.pl?action=process&search_terms=${encodeURIComponent(kw)}&json=true&page_size=10`,
+      );
+      if (!res.ok) throw new Error("OFF API error");
+      const data = (await res.json()) as {
+        products?: Array<{
+          code: string;
+          product_name?: string;
+          brands?: string;
+        }>;
+      };
+      const items: OpenFoodProduct[] = (data.products || [])
+        .filter((p) => p.product_name)
+        .slice(0, 8)
+        .map((p) => ({
+          id: p.code || `off_${Math.random()}`,
+          name: p.product_name!,
+          brand: p.brands,
+          source: "external" as const,
+        }));
+      setExternalProducts(items);
+    } catch {
+      setExternalProducts([]);
+    } finally {
+      setProductsLoading(false);
+    }
+
+    return locals;
   }, []);
 
-  const q = query.toLowerCase();
+  const searchPlaces = useCallback(
+    async (kw: string) => {
+      if (!kw) {
+        setExternalPlaces([]);
+        return;
+      }
 
-  const filteredProducts = NEARBY_PRODUCTS.filter(
-    (p) =>
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.store.toLowerCase().includes(q),
+      // Cache hit
+      const cached = getPlacesCache(kw);
+      if (cached) {
+        setExternalPlaces(cached);
+        return;
+      }
+
+      setPlacesLoading(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(kw)}&format=json&limit=12&addressdetails=1`,
+          { headers: { "Accept-Language": "en" } },
+        );
+        if (!res.ok) throw new Error("Nominatim error");
+        const data = (await res.json()) as Array<{
+          place_id: number;
+          display_name: string;
+          lat: string;
+          lon: string;
+          type: string;
+          address?: { country?: string; city?: string; state?: string };
+        }>;
+        const places: NominatimPlace[] = data.slice(0, 12).map((p) => {
+          const distKm = userLatLon
+            ? haversineKm(
+                userLatLon.lat,
+                userLatLon.lon,
+                Number.parseFloat(p.lat),
+                Number.parseFloat(p.lon),
+              )
+            : undefined;
+          return { ...p, source: "external" as const, distKm };
+        });
+        setExternalPlaces(places);
+        setPlacesCache(kw, places);
+      } catch {
+        setExternalPlaces([]);
+      } finally {
+        setPlacesLoading(false);
+      }
+    },
+    [userLatLon],
   );
 
-  const filteredPlaces = NEARBY_PLACES.filter(
+  const searchPeople = useCallback(async (kw: string) => {
+    // Local users (privacy-filtered)
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("ic_users") || "[]",
+      ) as LocalUser[];
+      const filtered = stored.filter(
+        (u) =>
+          u.privacyLevel !== "private" &&
+          (!kw || u.name?.toLowerCase().includes(kw)),
+      );
+      setLocalUsers(filtered);
+    } catch {
+      setLocalUsers([]);
+    }
+
+    if (!kw) {
+      setGithubUsers([]);
+      return;
+    }
+
+    setPeopleLoading(true);
+    try {
+      const res = await fetch(
+        `https://api.github.com/search/users?q=${encodeURIComponent(kw)}&per_page=12`,
+      );
+      if (!res.ok) throw new Error("GitHub API error");
+      const data = (await res.json()) as { items?: GitHubUser[] };
+      setGithubUsers(
+        (data.items || [])
+          .slice(0, 12)
+          .map((u) => ({ ...u, source: "github" as const })),
+      );
+    } catch {
+      setGithubUsers([]);
+    } finally {
+      setPeopleLoading(false);
+    }
+  }, []);
+
+  // ── Debounced search trigger ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const kw = query.trim().toLowerCase();
+
+    debounceRef.current = setTimeout(() => {
+      if (activeTab === "products") searchProducts(kw);
+      else if (activeTab === "places") searchPlaces(kw);
+      else if (activeTab === "people") searchPeople(kw);
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, activeTab, searchProducts, searchPlaces, searchPeople]);
+
+  // ── Run search when tab switches ─────────────────────────────────────────
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only run on tab change
+  useEffect(() => {
+    const kw = query.trim().toLowerCase();
+    if (activeTab === "products") searchProducts(kw);
+    else if (activeTab === "places") searchPlaces(kw);
+    else if (activeTab === "people") searchPeople(kw);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Local filtered data ───────────────────────────────────────────────────
+
+  const q = query.trim().toLowerCase();
+
+  const localProducts = getGlobalProducts().filter(
+    (p) =>
+      p.status === "active" &&
+      (!q ||
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)),
+  );
+
+  const filteredSeedPlaces = SEED_PLACES.filter(
     (p) =>
       !avoidedPlaces.includes(p.id) &&
       (!q ||
@@ -206,12 +555,17 @@ export default function NearbySearchBar() {
         p.type.toLowerCase().includes(q)),
   );
 
-  const filteredPeople = NEARBY_USERS.filter(
+  const filteredSeedPeople = SEED_USERS.filter(
     (u) =>
-      !avoidedPeople.includes(u.id) &&
-      (!q || u.name.toLowerCase().includes(q)) &&
-      !(u as unknown as Record<string, unknown>).privacyLevel,
+      !avoidedPeople.includes(u.id) && (!q || u.name.toLowerCase().includes(q)),
   );
+
+  const totalProductCount = localProducts.length + externalProducts.length;
+  const totalPlaceCount = filteredSeedPlaces.length + externalPlaces.length;
+  const totalPeopleCount =
+    filteredSeedPeople.length + githubUsers.length + localUsers.length;
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   function handleAvoidPerson(id: number, name: string) {
     setAvoidedPeople((prev) => [...prev, id]);
@@ -231,8 +585,11 @@ export default function NearbySearchBar() {
 
   const handleSearchSubmit = () => {
     if (!query.trim()) return;
+    saveRecentSearch(query.trim());
+    setRecentSearches(getRecentSearches());
+
     const avoidNames = avoidedPlaces.map(
-      (id) => NEARBY_PLACES.find((p) => p.id === id)?.name || "",
+      (id) => SEED_PLACES.find((p) => p.id === id)?.name || "",
     );
     const count = broadcastToVendors(query, avoidNames);
     if (count > 0) {
@@ -240,6 +597,18 @@ export default function NearbySearchBar() {
         `🏪 ${count} vendor${count > 1 ? "s" : ""} notified about "${query}"`,
       );
     }
+
+    // Immediately trigger external search
+    const kw = query.trim().toLowerCase();
+    if (activeTab === "products") searchProducts(kw);
+    else if (activeTab === "places") searchPlaces(kw);
+    else if (activeTab === "people") searchPeople(kw);
+  };
+
+  const handleRecentClick = (recent: string) => {
+    setQuery(recent);
+    setExpanded(true);
+    // Searches will trigger via debounce effect on query change
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,9 +630,8 @@ export default function NearbySearchBar() {
     setQuery(cat.toLowerCase());
     setActiveTab("products");
     toast.success(`Searching for ${cat} products`);
-
     const avoidNames = avoidedPlaces.map(
-      (id) => NEARBY_PLACES.find((p) => p.id === id)?.name || "",
+      (id) => SEED_PLACES.find((p) => p.id === id)?.name || "",
     );
     const count = broadcastToVendors(cat, avoidNames);
     if (count > 0) {
@@ -272,37 +640,6 @@ export default function NearbySearchBar() {
       );
     }
   };
-
-  const FACE_RESULTS_DATA = [
-    {
-      id: 1,
-      name: "Amit Sharma",
-      similarity: 94,
-      isPublic: true,
-      avatar: "AS",
-    },
-    {
-      id: 2,
-      name: "Priya Mehta",
-      similarity: 89,
-      isPublic: true,
-      avatar: "PM",
-    },
-    {
-      id: 3,
-      name: "Rajesh Kumar",
-      similarity: 86,
-      isPublic: false,
-      avatar: "RK",
-    },
-    {
-      id: 4,
-      name: "Sunita Verma",
-      similarity: 82,
-      isPublic: true,
-      avatar: "SV",
-    },
-  ];
 
   const handleFaceSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -347,22 +684,13 @@ export default function NearbySearchBar() {
     setApproachRequests((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const IMAGE_CATEGORIES = [
-    "Electronics",
-    "Fashion",
-    "Food",
-    "Home",
-    "Healthcare",
-    "Books",
-    "Vehicles",
-    "Services",
-  ];
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div
       ref={ref}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300"
-      style={{ width: expanded ? "min(560px, 94vw)" : "min(280px, 80vw)" }}
+      style={{ width: expanded ? "min(580px, 96vw)" : "min(280px, 80vw)" }}
       data-ocid="nearby.panel"
     >
       <div
@@ -436,6 +764,9 @@ export default function NearbySearchBar() {
                 setExpanded(false);
                 setQuery("");
                 setImageSearchCategory(null);
+                setExternalProducts([]);
+                setExternalPlaces([]);
+                setGithubUsers([]);
               }}
               data-ocid="nearby.close_button"
             >
@@ -477,6 +808,28 @@ export default function NearbySearchBar() {
           )}
         </div>
 
+        {/* Recent searches */}
+        {expanded && recentSearches.length > 0 && !query && (
+          <div
+            className="px-4 pb-2 flex flex-wrap gap-1.5 border-b"
+            style={{ borderColor: "oklch(var(--border))" }}
+          >
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 mr-1">
+              <Clock size={9} /> Recent:
+            </span>
+            {recentSearches.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleRecentClick(s)}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Expanded tabs */}
         {expanded && (
           <div
@@ -495,7 +848,7 @@ export default function NearbySearchBar() {
                 >
                   <Package size={11} className="mr-1" />
                   Products
-                  {filteredProducts.length > 0 && (
+                  {totalProductCount > 0 && (
                     <Badge
                       className="ml-1 h-4 px-1 text-[9px]"
                       style={{
@@ -503,7 +856,7 @@ export default function NearbySearchBar() {
                         color: "oklch(0.55 0.22 280)",
                       }}
                     >
-                      {filteredProducts.length}
+                      {totalProductCount}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -514,7 +867,7 @@ export default function NearbySearchBar() {
                 >
                   <Store size={11} className="mr-1" />
                   Places
-                  {filteredPlaces.length > 0 && (
+                  {totalPlaceCount > 0 && (
                     <Badge
                       className="ml-1 h-4 px-1 text-[9px]"
                       style={{
@@ -522,7 +875,7 @@ export default function NearbySearchBar() {
                         color: "oklch(0.50 0.18 190)",
                       }}
                     >
-                      {filteredPlaces.length}
+                      {totalPlaceCount}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -533,7 +886,7 @@ export default function NearbySearchBar() {
                 >
                   <User size={11} className="mr-1" />
                   People
-                  {filteredPeople.length + softNudgeCount > 0 && (
+                  {totalPeopleCount + softNudgeCount > 0 && (
                     <Badge
                       className="ml-1 h-4 px-1 text-[9px]"
                       style={{
@@ -541,7 +894,7 @@ export default function NearbySearchBar() {
                         color: "oklch(0.50 0.18 150)",
                       }}
                     >
-                      {filteredPeople.length + softNudgeCount}
+                      {totalPeopleCount + softNudgeCount}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -572,19 +925,16 @@ export default function NearbySearchBar() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Products Tab */}
+              {/* ── Products Tab ─────────────────────────────────────────── */}
               <TabsContent value="products" className="m-0">
-                <div className="px-4 py-3 max-h-64 overflow-y-auto">
-                  {filteredProducts.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      No products nearby
-                    </p>
-                  ) : (
+                <div className="px-4 py-3 max-h-72 overflow-y-auto space-y-3">
+                  {/* Local products */}
+                  {localProducts.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
-                        <MapPin size={9} /> Near you
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <MapPin size={9} /> IndyaCentral
                       </p>
-                      {filteredProducts.map((item) => (
+                      {localProducts.map((item) => (
                         <div
                           key={item.id}
                           className="flex items-center justify-between gap-2"
@@ -594,40 +944,81 @@ export default function NearbySearchBar() {
                               {item.name}
                             </p>
                             <p className="text-[10px] text-muted-foreground">
-                              {item.store} · {item.dist}
+                              {item.businessName || item.seller || "—"} ·{" "}
+                              {item.category}
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             <Badge variant="secondary" className="text-[10px]">
-                              {item.price}
+                              ₹{item.price.toLocaleString("en-IN")}
                             </Badge>
-                            <Badge
-                              className="text-[10px] px-1.5"
-                              style={{
-                                background: "oklch(0.55 0.22 280 / 0.1)",
-                                color: "oklch(0.55 0.22 280)",
-                              }}
-                            >
-                              {item.dist}
-                            </Badge>
+                            <SourceBadge label="👤 IndyaCentral" />
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  {/* Loading skeleton */}
+                  {productsLoading && (
+                    <div data-ocid="nearby.products.loading_state">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        🌐 OpenFoodFacts
+                      </p>
+                      <CardSkeleton n={4} />
+                    </div>
+                  )}
+
+                  {/* External products */}
+                  {!productsLoading && externalProducts.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        🌐 OpenFoodFacts
+                      </p>
+                      {externalProducts.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {item.name}
+                            </p>
+                            {item.brand && (
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {item.brand}
+                              </p>
+                            )}
+                          </div>
+                          <SourceBadge label="🌐 OpenFoodFacts" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {!productsLoading &&
+                    localProducts.length === 0 &&
+                    externalProducts.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        {q
+                          ? `No products found for "${q}"`
+                          : "Search for products above"}
+                      </p>
+                    )}
                 </div>
               </TabsContent>
 
-              {/* Places Tab */}
+              {/* ── Places Tab ───────────────────────────────────────────── */}
               <TabsContent value="places" className="m-0">
-                <div className="px-4 py-3 max-h-64 overflow-y-auto">
-                  {filteredPlaces.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      No places to show
-                    </p>
-                  ) : (
+                <div className="px-4 py-3 max-h-72 overflow-y-auto space-y-3">
+                  {/* Seed places */}
+                  {filteredSeedPlaces.length > 0 && (
                     <div className="space-y-2">
-                      {filteredPlaces.map((place) => (
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        📍 Local
+                      </p>
+                      {filteredSeedPlaces.map((place) => (
                         <div key={place.id} className="flex items-center gap-2">
                           <span className="text-base shrink-0">
                             {place.icon}
@@ -656,97 +1047,247 @@ export default function NearbySearchBar() {
                       ))}
                     </div>
                   )}
-                </div>
-              </TabsContent>
 
-              {/* People Tab */}
-              <TabsContent value="people" className="m-0">
-                <div className="px-4 py-3 max-h-64 overflow-y-auto">
-                  <p className="text-[10px] text-muted-foreground mb-3">
-                    People nearby in the last month
-                  </p>
-                  <div className="space-y-2">
-                    {filteredPeople.map((u) => (
-                      <div key={u.id} className="flex items-center gap-2.5">
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                          style={{
-                            background: "oklch(0.55 0.22 280 / 0.12)",
-                            color: "oklch(0.55 0.22 280)",
-                          }}
-                        >
-                          {u.avatar}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">
-                            {u.name}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {u.distance} · last seen {u.lastSeen}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          {keptPeople.includes(u.id) ? (
-                            <Badge
-                              className="text-[10px] px-2 h-6"
-                              style={{
-                                background: "oklch(0.60 0.18 150 / 0.15)",
-                                color: "oklch(0.50 0.16 150)",
-                              }}
-                            >
-                              <UserCheck size={9} className="mr-1" /> Kept
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 text-[10px] px-2"
-                              onClick={() => handleKeepPerson(u.id, u.name)}
-                              data-ocid="nearby.person.primary_button"
-                            >
-                              Keep
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                            title={`Avoid ${u.name}`}
-                            onClick={() => handleAvoidPerson(u.id, u.name)}
-                            data-ocid="nearby.person.delete_button"
+                  {/* Loading skeleton */}
+                  {placesLoading && (
+                    <div data-ocid="nearby.places.loading_state">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        🌐 OpenStreetMap
+                      </p>
+                      <CardSkeleton n={4} />
+                    </div>
+                  )}
+
+                  {/* External places */}
+                  {!placesLoading && externalPlaces.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        🌐 OpenStreetMap
+                      </p>
+                      {externalPlaces.map((place) => {
+                        const shortName = place.display_name.split(",")[0];
+                        const city =
+                          place.address?.city || place.address?.state || "";
+                        const mapsUrl = `https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lon}#map=16`;
+                        return (
+                          <div
+                            key={place.place_id}
+                            className="flex items-center gap-2"
                           >
-                            <X size={10} />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                            <span className="text-base shrink-0">
+                              {placeTypeIcon(place.type)}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-foreground truncate">
+                                {shortName}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {city}
+                                {place.distKm !== undefined
+                                  ? ` · ~${place.distKm.toFixed(1)} km`
+                                  : ""}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <SourceBadge label="🌐 OSM" />
+                              <a
+                                href={mapsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:opacity-80"
+                                title="Open in Maps"
+                              >
+                                <ExternalLink size={11} />
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                    {softNudgeCount > 0 && (
-                      <div
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground mt-1"
-                        style={{
-                          background: "oklch(0.55 0.22 280 / 0.05)",
-                          border: "1px dashed oklch(0.55 0.22 280 / 0.2)",
-                        }}
-                      >
-                        <User size={12} className="text-primary shrink-0" />
-                        Someone nearby you may know
-                      </div>
-                    )}
-
-                    {filteredPeople.length === 0 && softNudgeCount === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-3">
-                        No people nearby
+                  {!placesLoading &&
+                    filteredSeedPlaces.length === 0 &&
+                    externalPlaces.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        {q
+                          ? `No places found for "${q}"`
+                          : "Search for a location above"}
                       </p>
                     )}
-                  </div>
                 </div>
               </TabsContent>
 
-              {/* Vendor Approaches Tab */}
+              {/* ── People Tab ───────────────────────────────────────────── */}
+              <TabsContent value="people" className="m-0">
+                <div className="px-4 py-3 max-h-72 overflow-y-auto space-y-3">
+                  <p className="text-[10px] text-muted-foreground">
+                    People nearby in the last month
+                  </p>
+
+                  {/* Seed people */}
+                  {filteredSeedPeople.length > 0 && (
+                    <div className="space-y-2">
+                      {filteredSeedPeople.map((u) => (
+                        <div key={u.id} className="flex items-center gap-2.5">
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                            style={{
+                              background: "oklch(0.55 0.22 280 / 0.12)",
+                              color: "oklch(0.55 0.22 280)",
+                            }}
+                          >
+                            {u.avatar}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {u.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {u.distance} · last seen {u.lastSeen}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {keptPeople.includes(u.id) ? (
+                              <Badge
+                                className="text-[10px] px-2 h-6"
+                                style={{
+                                  background: "oklch(0.60 0.18 150 / 0.15)",
+                                  color: "oklch(0.50 0.16 150)",
+                                }}
+                              >
+                                <UserCheck size={9} className="mr-1" /> Kept
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] px-2"
+                                onClick={() => handleKeepPerson(u.id, u.name)}
+                                data-ocid="nearby.person.primary_button"
+                              >
+                                Keep
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              title={`Avoid ${u.name}`}
+                              onClick={() => handleAvoidPerson(u.id, u.name)}
+                              data-ocid="nearby.person.delete_button"
+                            >
+                              <X size={10} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Local IndyaCentral users */}
+                  {localUsers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        👤 IndyaCentral Members
+                      </p>
+                      {localUsers.map((u) => (
+                        <div key={u.id} className="flex items-center gap-2.5">
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                            style={{
+                              background: "oklch(0.60 0.20 30 / 0.12)",
+                              color: "oklch(0.50 0.18 30)",
+                            }}
+                          >
+                            {u.avatar ||
+                              u.name?.slice(0, 2).toUpperCase() ||
+                              "U"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {u.name}
+                            </p>
+                          </div>
+                          <SourceBadge label="👤 IndyaCentral" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* GitHub loading */}
+                  {peopleLoading && (
+                    <div data-ocid="nearby.people.loading_state">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        🌐 GitHub
+                      </p>
+                      <CardSkeleton n={4} />
+                    </div>
+                  )}
+
+                  {/* GitHub users */}
+                  {!peopleLoading && githubUsers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        🌐 GitHub Profiles
+                      </p>
+                      {githubUsers.map((u) => (
+                        <div key={u.id} className="flex items-center gap-2.5">
+                          <img
+                            src={u.avatar_url}
+                            alt={u.login}
+                            className="w-7 h-7 rounded-full shrink-0 border border-border"
+                            loading="lazy"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {u.login}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <SourceBadge label="🌐 GitHub" />
+                            <a
+                              href={u.html_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:opacity-80"
+                            >
+                              <ExternalLink size={11} />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {softNudgeCount > 0 && (
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground mt-1"
+                      style={{
+                        background: "oklch(0.55 0.22 280 / 0.05)",
+                        border: "1px dashed oklch(0.55 0.22 280 / 0.2)",
+                      }}
+                    >
+                      <User size={12} className="text-primary shrink-0" />
+                      Someone nearby you may know
+                    </div>
+                  )}
+
+                  {!peopleLoading &&
+                    filteredSeedPeople.length === 0 &&
+                    githubUsers.length === 0 &&
+                    localUsers.length === 0 &&
+                    softNudgeCount === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-3">
+                        {q ? `No people found for "${q}"` : "No people nearby"}
+                      </p>
+                    )}
+                </div>
+              </TabsContent>
+
+              {/* ── Vendor Approaches Tab ────────────────────────────────── */}
               <TabsContent value="approaches" className="m-0">
-                <div className="px-4 py-3 max-h-64 overflow-y-auto space-y-3">
-                  {/* Header */}
+                <div className="px-4 py-3 max-h-72 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       🏪 Vendor Approach Requests
@@ -862,9 +1403,9 @@ export default function NearbySearchBar() {
                 </div>
               </TabsContent>
 
-              {/* Face Search Tab */}
+              {/* ── Face Search Tab ──────────────────────────────────────── */}
               <TabsContent value="face" className="m-0">
-                <div className="px-4 py-3 max-h-64 overflow-y-auto space-y-3">
+                <div className="px-4 py-3 max-h-72 overflow-y-auto space-y-3">
                   <button
                     type="button"
                     className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"

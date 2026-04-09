@@ -10,6 +10,20 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface DiscoveredBusiness {
+  'name' : string,
+  'website' : string,
+  'address' : string,
+  'category' : string,
+  'rating' : string,
+  'phone' : string,
+}
+export interface DiscoveredProduct {
+  'categories' : string,
+  'brands' : string,
+  'productName' : string,
+  'imageUrl' : string,
+}
 export interface FamilyMember {
   'id' : bigint,
   'occupation' : string,
@@ -19,6 +33,19 @@ export interface FamilyMember {
   'medicalConditions' : Array<string>,
   'isPublic' : boolean,
 }
+export interface HttpHeader { 'value' : string, 'name' : string }
+export interface HttpResponse {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<HttpHeader>,
+}
+export interface PersonProfile {
+  'bio' : string,
+  'name' : string,
+  'htmlUrl' : string,
+  'login' : string,
+  'avatarUrl' : string,
+}
 export type Relationship = { 'grandchild' : null } |
   { 'grandparent' : null } |
   { 'other' : null } |
@@ -26,6 +53,10 @@ export type Relationship = { 'grandchild' : null } |
   { 'sibling' : null } |
   { 'spouse' : null } |
   { 'parent' : null };
+export interface TransformArg {
+  'context' : Uint8Array,
+  'response' : HttpResponse,
+}
 export interface UserProfile {
   'bio' : string,
   'occupation' : string,
@@ -49,6 +80,22 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isFollowing' : ActorMethod<[Principal, Principal], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'searchBusinesses' : ActorMethod<
+    [string, string],
+    { 'ok' : Array<DiscoveredBusiness> } |
+      { 'err' : string }
+  >,
+  'searchPeople' : ActorMethod<
+    [string],
+    { 'ok' : Array<PersonProfile> } |
+      { 'err' : string }
+  >,
+  'searchProducts' : ActorMethod<
+    [string],
+    { 'ok' : Array<DiscoveredProduct> } |
+      { 'err' : string }
+  >,
+  'transformHttpResponse' : ActorMethod<[TransformArg], HttpResponse>,
   'unfollowUser' : ActorMethod<[Principal], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

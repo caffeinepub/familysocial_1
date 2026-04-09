@@ -8,6 +8,11 @@ type UserProfile =
    occupation: text;
    photoUrl: text;
  };
+type TransformArg = 
+ record {
+   context: blob;
+   response: HttpResponse;
+ };
 type Relationship = 
  variant {
    child;
@@ -18,6 +23,25 @@ type Relationship =
    sibling;
    spouse;
  };
+type PersonProfile = 
+ record {
+   avatarUrl: text;
+   bio: text;
+   htmlUrl: text;
+   login: text;
+   name: text;
+ };
+type HttpResponse = 
+ record {
+   body: blob;
+   headers: vec HttpHeader;
+   status: nat;
+ };
+type HttpHeader = 
+ record {
+   name: text;
+   value: text;
+ };
 type FamilyMember = 
  record {
    bloodType: text;
@@ -27,6 +51,22 @@ type FamilyMember =
    name: text;
    occupation: text;
    relationship: Relationship;
+ };
+type DiscoveredProduct = 
+ record {
+   brands: text;
+   categories: text;
+   imageUrl: text;
+   productName: text;
+ };
+type DiscoveredBusiness = 
+ record {
+   address: text;
+   category: text;
+   name: text;
+   phone: text;
+   rating: text;
+   website: text;
  };
 service : {
   addFamilyMember: (member: FamilyMember) -> ();
@@ -43,5 +83,21 @@ service : {
   isCallerAdmin: () -> (bool) query;
   isFollowing: (follower: principal, followee: principal) -> (bool) query;
   saveCallerUserProfile: (profile: UserProfile) -> ();
+  searchBusinesses: (city: text, category: text) ->
+   (variant {
+      err: text;
+      ok: vec DiscoveredBusiness;
+    });
+  searchPeople: (keyword: text) ->
+   (variant {
+      err: text;
+      ok: vec PersonProfile;
+    });
+  searchProducts: (keyword: text) ->
+   (variant {
+      err: text;
+      ok: vec DiscoveredProduct;
+    });
+  transformHttpResponse: (raw: TransformArg) -> (HttpResponse) query;
   unfollowUser: (user: principal) -> ();
 }

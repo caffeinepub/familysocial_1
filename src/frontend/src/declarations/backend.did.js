@@ -35,6 +35,37 @@ export const UserProfile = IDL.Record({
   'photoUrl' : IDL.Text,
   'isPrivate' : IDL.Bool,
 });
+export const DiscoveredBusiness = IDL.Record({
+  'name' : IDL.Text,
+  'website' : IDL.Text,
+  'address' : IDL.Text,
+  'category' : IDL.Text,
+  'rating' : IDL.Text,
+  'phone' : IDL.Text,
+});
+export const PersonProfile = IDL.Record({
+  'bio' : IDL.Text,
+  'name' : IDL.Text,
+  'htmlUrl' : IDL.Text,
+  'login' : IDL.Text,
+  'avatarUrl' : IDL.Text,
+});
+export const DiscoveredProduct = IDL.Record({
+  'categories' : IDL.Text,
+  'brands' : IDL.Text,
+  'productName' : IDL.Text,
+  'imageUrl' : IDL.Text,
+});
+export const HttpHeader = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+export const HttpResponse = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(HttpHeader),
+});
+export const TransformArg = IDL.Record({
+  'context' : IDL.Vec(IDL.Nat8),
+  'response' : HttpResponse,
+});
 
 export const idlService = IDL.Service({
   'addFamilyMember' : IDL.Func([FamilyMember], [], []),
@@ -66,6 +97,22 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'searchBusinesses' : IDL.Func(
+      [IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Vec(DiscoveredBusiness), 'err' : IDL.Text })],
+      [],
+    ),
+  'searchPeople' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Vec(PersonProfile), 'err' : IDL.Text })],
+      [],
+    ),
+  'searchProducts' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Vec(DiscoveredProduct), 'err' : IDL.Text })],
+      [],
+    ),
+  'transformHttpResponse' : IDL.Func([TransformArg], [HttpResponse], ['query']),
   'unfollowUser' : IDL.Func([IDL.Principal], [], []),
 });
 
@@ -99,6 +146,37 @@ export const idlFactory = ({ IDL }) => {
     'photoUrl' : IDL.Text,
     'isPrivate' : IDL.Bool,
   });
+  const DiscoveredBusiness = IDL.Record({
+    'name' : IDL.Text,
+    'website' : IDL.Text,
+    'address' : IDL.Text,
+    'category' : IDL.Text,
+    'rating' : IDL.Text,
+    'phone' : IDL.Text,
+  });
+  const PersonProfile = IDL.Record({
+    'bio' : IDL.Text,
+    'name' : IDL.Text,
+    'htmlUrl' : IDL.Text,
+    'login' : IDL.Text,
+    'avatarUrl' : IDL.Text,
+  });
+  const DiscoveredProduct = IDL.Record({
+    'categories' : IDL.Text,
+    'brands' : IDL.Text,
+    'productName' : IDL.Text,
+    'imageUrl' : IDL.Text,
+  });
+  const HttpHeader = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+  const HttpResponse = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(HttpHeader),
+  });
+  const TransformArg = IDL.Record({
+    'context' : IDL.Vec(IDL.Nat8),
+    'response' : HttpResponse,
+  });
   
   return IDL.Service({
     'addFamilyMember' : IDL.Func([FamilyMember], [], []),
@@ -130,6 +208,26 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'searchBusinesses' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Vec(DiscoveredBusiness), 'err' : IDL.Text })],
+        [],
+      ),
+    'searchPeople' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Vec(PersonProfile), 'err' : IDL.Text })],
+        [],
+      ),
+    'searchProducts' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Vec(DiscoveredProduct), 'err' : IDL.Text })],
+        [],
+      ),
+    'transformHttpResponse' : IDL.Func(
+        [TransformArg],
+        [HttpResponse],
+        ['query'],
+      ),
     'unfollowUser' : IDL.Func([IDL.Principal], [], []),
   });
 };

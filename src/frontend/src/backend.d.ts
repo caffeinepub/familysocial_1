@@ -7,6 +7,30 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface UserProfile {
+    bio: string;
+    occupation: string;
+    bloodType: string;
+    dateOfBirth: string;
+    name: string;
+    photoUrl: string;
+    isPrivate: boolean;
+}
+export interface TransformArg {
+    context: Uint8Array;
+    response: HttpResponse;
+}
+export interface HttpResponse {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<HttpHeader>;
+}
+export interface DiscoveredProduct {
+    categories: string;
+    brands: string;
+    productName: string;
+    imageUrl: string;
+}
 export interface FamilyMember {
     id: bigint;
     occupation: string;
@@ -16,14 +40,24 @@ export interface FamilyMember {
     medicalConditions: Array<string>;
     isPublic: boolean;
 }
-export interface UserProfile {
-    bio: string;
-    occupation: string;
-    bloodType: string;
-    dateOfBirth: string;
+export interface DiscoveredBusiness {
     name: string;
-    photoUrl: string;
-    isPrivate: boolean;
+    website: string;
+    address: string;
+    category: string;
+    rating: string;
+    phone: string;
+}
+export interface HttpHeader {
+    value: string;
+    name: string;
+}
+export interface PersonProfile {
+    bio: string;
+    name: string;
+    htmlUrl: string;
+    login: string;
+    avatarUrl: string;
 }
 export enum Relationship {
     grandchild = "grandchild",
@@ -48,5 +82,27 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     isFollowing(follower: Principal, followee: Principal): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    searchBusinesses(city: string, category: string): Promise<{
+        __kind__: "ok";
+        ok: Array<DiscoveredBusiness>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    searchPeople(keyword: string): Promise<{
+        __kind__: "ok";
+        ok: Array<PersonProfile>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    searchProducts(keyword: string): Promise<{
+        __kind__: "ok";
+        ok: Array<DiscoveredProduct>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    transformHttpResponse(raw: TransformArg): Promise<HttpResponse>;
     unfollowUser(user: Principal): Promise<void>;
 }

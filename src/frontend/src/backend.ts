@@ -89,6 +89,30 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface UserProfile {
+    bio: string;
+    occupation: string;
+    bloodType: string;
+    dateOfBirth: string;
+    name: string;
+    photoUrl: string;
+    isPrivate: boolean;
+}
+export interface TransformArg {
+    context: Uint8Array;
+    response: HttpResponse;
+}
+export interface HttpResponse {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<HttpHeader>;
+}
+export interface DiscoveredProduct {
+    categories: string;
+    brands: string;
+    productName: string;
+    imageUrl: string;
+}
 export interface FamilyMember {
     id: bigint;
     occupation: string;
@@ -98,14 +122,24 @@ export interface FamilyMember {
     medicalConditions: Array<string>;
     isPublic: boolean;
 }
-export interface UserProfile {
-    bio: string;
-    occupation: string;
-    bloodType: string;
-    dateOfBirth: string;
+export interface DiscoveredBusiness {
     name: string;
-    photoUrl: string;
-    isPrivate: boolean;
+    website: string;
+    address: string;
+    category: string;
+    rating: string;
+    phone: string;
+}
+export interface HttpHeader {
+    value: string;
+    name: string;
+}
+export interface PersonProfile {
+    bio: string;
+    name: string;
+    htmlUrl: string;
+    login: string;
+    avatarUrl: string;
 }
 export enum Relationship {
     grandchild = "grandchild",
@@ -130,9 +164,31 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     isFollowing(follower: Principal, followee: Principal): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    searchBusinesses(city: string, category: string): Promise<{
+        __kind__: "ok";
+        ok: Array<DiscoveredBusiness>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    searchPeople(keyword: string): Promise<{
+        __kind__: "ok";
+        ok: Array<PersonProfile>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    searchProducts(keyword: string): Promise<{
+        __kind__: "ok";
+        ok: Array<DiscoveredProduct>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    transformHttpResponse(raw: TransformArg): Promise<HttpResponse>;
     unfollowUser(user: Principal): Promise<void>;
 }
-import type { FamilyMember as _FamilyMember, Relationship as _Relationship, UserProfile as _UserProfile } from "./declarations/backend.did.d.ts";
+import type { DiscoveredBusiness as _DiscoveredBusiness, DiscoveredProduct as _DiscoveredProduct, FamilyMember as _FamilyMember, PersonProfile as _PersonProfile, Relationship as _Relationship, UserProfile as _UserProfile } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async addFamilyMember(arg0: FamilyMember): Promise<void> {
@@ -317,6 +373,80 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async searchBusinesses(arg0: string, arg1: string): Promise<{
+        __kind__: "ok";
+        ok: Array<DiscoveredBusiness>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.searchBusinesses(arg0, arg1);
+                return from_candid_variant_n11(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.searchBusinesses(arg0, arg1);
+            return from_candid_variant_n11(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async searchPeople(arg0: string): Promise<{
+        __kind__: "ok";
+        ok: Array<PersonProfile>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.searchPeople(arg0);
+                return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.searchPeople(arg0);
+            return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async searchProducts(arg0: string): Promise<{
+        __kind__: "ok";
+        ok: Array<DiscoveredProduct>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.searchProducts(arg0);
+                return from_candid_variant_n13(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.searchProducts(arg0);
+            return from_candid_variant_n13(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async transformHttpResponse(arg0: TransformArg): Promise<HttpResponse> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.transformHttpResponse(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.transformHttpResponse(arg0);
+            return result;
+        }
+    }
     async unfollowUser(arg0: Principal): Promise<void> {
         if (this.processError) {
             try {
@@ -384,6 +514,63 @@ function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Ui
     parent: null;
 }): Relationship {
     return "grandchild" in value ? Relationship.grandchild : "grandparent" in value ? Relationship.grandparent : "other" in value ? Relationship.other : "child" in value ? Relationship.child : "sibling" in value ? Relationship.sibling : "spouse" in value ? Relationship.spouse : "parent" in value ? Relationship.parent : value;
+}
+function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: Array<_DiscoveredBusiness>;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: Array<DiscoveredBusiness>;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: Array<_PersonProfile>;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: Array<PersonProfile>;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: Array<_DiscoveredProduct>;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: Array<DiscoveredProduct>;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
 }
 function from_candid_vec_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_FamilyMember>): Array<FamilyMember> {
     return value.map((x)=>from_candid_FamilyMember_n7(_uploadFile, _downloadFile, x));
